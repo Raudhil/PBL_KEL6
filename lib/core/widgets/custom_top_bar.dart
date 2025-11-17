@@ -16,50 +16,99 @@ class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(60);
+  Size get preferredSize => const Size.fromHeight(70);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = Supabase.instance.client.auth.currentUser;
     final userName = user?.email?.split('@')[0] ?? 'User';
 
-    return AppBar(
-      automaticallyImplyLeading: showBackButton,
-      backgroundColor: AppColors.primary,
-      foregroundColor: AppColors.white,
-      elevation: 0,
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.white,
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary600, AppColors.primary400],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          if (!showBackButton)
-            Text(
-              'Halo, $userName',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.normal,
-                color: AppColors.white.withOpacity(0.9),
-              ),
-            ),
         ],
       ),
-      actions:
-          actions ??
-          [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {
-                // TODO: Navigate to notifications
-              },
+      child: SafeArea(
+        bottom: false,
+        child: AppBar(
+          automaticallyImplyLeading: showBackButton,
+          backgroundColor: Colors.transparent,
+          foregroundColor: AppColors.white,
+          elevation: 0,
+          centerTitle: false,
+          titleSpacing: showBackButton ? 0 : 16,
+          title: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                if (!showBackButton)
+                  Text(
+                    'Halo, $userName',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.white.withOpacity(0.95),
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+              ],
             ),
-          ],
+          ),
+          actions: actions ??
+              [
+                Container(
+                  margin: const EdgeInsets.only(right: 16),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Fitur notifikasi masih dalam pengembangan'),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.25),
+                          width: 1,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_outlined,
+                        size: 24,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+        ),
+      ),
     );
   }
 }

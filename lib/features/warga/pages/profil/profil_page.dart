@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../theme/app_colors.dart';
-import '../../../core/providers/role_provider.dart';
-import '../../auth/controllers/auth_controller.dart';
+import '../../../../theme/app_colors.dart';
+import '../../../../core/providers/role_provider.dart';
+import '../../../auth/controllers/auth_controller.dart';
 
 class WargaProfilPage extends ConsumerWidget {
   const WargaProfilPage({super.key});
