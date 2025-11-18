@@ -38,6 +38,10 @@ class AppColors {
   static const Color textSecondary = greyMedium;
   static const Color textLight = white;
 
+  // UI Colors
+  static const Color cardBackground = white;
+  static const Color border = greyLight;
+
   // Additional Shades for Primary (for better theming)
   static const Color primary50 = Color(0xFFE6FFF5);
   static const Color primary100 = Color(0xFFC8F3E0);
