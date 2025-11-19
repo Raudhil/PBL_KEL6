@@ -7,12 +7,14 @@ import '../../theme/app_colors.dart';
 class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
   final bool showBackButton;
+  final VoidCallback? onBack;
   final List<Widget>? actions;
 
   const CustomTopBar({
     super.key,
     required this.title,
     this.showBackButton = false,
+    this.onBack,
     this.actions,
   });
 
@@ -46,6 +48,10 @@ class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
               ? IconButton(
                   icon: const Icon(Icons.arrow_back),
                   onPressed: () {
+                    if (onBack != null) {
+                      onBack!();
+                      return;
+                    }
                     try {
                       context.pop();
                     } catch (_) {

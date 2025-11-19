@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/warga_model.dart';
 import '../../../core/providers/warga_provider.dart';
+import '../../../theme/app_colors.dart';
+import '../../../core/widgets/custom_top_bar.dart';
 
 class WargaFormPage extends ConsumerStatefulWidget {
   final WargaModel? warga;
@@ -94,17 +96,24 @@ class _WargaFormPageState extends ConsumerState<WargaFormPage> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.warga != null;
+
     return Scaffold(
-      appBar: AppBar(title: Text(isEdit ? 'Edit Warga' : 'Tambah Warga')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      backgroundColor: AppColors.creamWhite,
+      appBar: CustomTopBar(
+        title: isEdit ? 'Edit Warga' : 'Tambah Warga',
+        showBackButton: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildLabel('NIK'),
               TextFormField(
                 controller: _nikCtrl,
-                decoration: const InputDecoration(labelText: 'NIK'),
+                decoration: const InputDecoration(hintText: 'Masukkan NIK'),
                 keyboardType: TextInputType.number,
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'NIK wajib diisi';
@@ -113,16 +122,18 @@ class _WargaFormPageState extends ConsumerState<WargaFormPage> {
                 },
               ),
               const SizedBox(height: 12),
+              _buildLabel('Nama Lengkap'),
               TextFormField(
                 controller: _namaCtrl,
-                decoration: const InputDecoration(labelText: 'Nama Lengkap'),
+                decoration: const InputDecoration(hintText: 'Nama lengkap'),
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Nama wajib diisi' : null,
               ),
               const SizedBox(height: 12),
+              _buildLabel('Jenis Kelamin'),
               DropdownButtonFormField<String>(
                 value: _jenisKel,
-                decoration: const InputDecoration(labelText: 'Jenis Kelamin'),
+                decoration: const InputDecoration(),
                 items: const [
                   DropdownMenuItem(
                     value: 'Laki-laki',
@@ -138,11 +149,10 @@ class _WargaFormPageState extends ConsumerState<WargaFormPage> {
                     (v == null || v.isEmpty) ? 'Jenis kelamin wajib' : null,
               ),
               const SizedBox(height: 12),
+              _buildLabel('Tanggal Lahir'),
               TextFormField(
                 controller: _tglCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Tanggal Lahir (YYYY-MM-DD)',
-                ),
+                decoration: const InputDecoration(hintText: 'YYYY-MM-DD'),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty)
                     return 'Tanggal lahir wajib';
@@ -155,9 +165,10 @@ class _WargaFormPageState extends ConsumerState<WargaFormPage> {
                 },
               ),
               const SizedBox(height: 12),
+              _buildLabel('Nomor HP'),
               TextFormField(
                 controller: _hpCtrl,
-                decoration: const InputDecoration(labelText: 'Nomor HP'),
+                decoration: const InputDecoration(hintText: '08xxxxxxxx'),
                 keyboardType: TextInputType.phone,
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return null;
@@ -169,16 +180,44 @@ class _WargaFormPageState extends ConsumerState<WargaFormPage> {
               ),
               const SizedBox(height: 20),
               SizedBox(
-                height: 48,
+                width: double.infinity,
+                height: 50,
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary600,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   child: _isSubmitting
-                      ? const CircularProgressIndicator()
-                      : Text(isEdit ? 'Update' : 'Simpan'),
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          isEdit ? 'Update' : 'Simpan',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
         ),
       ),
     );
