@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
 import '../../../bendahara/pages/keuangan/kelola_iuran.dart';
@@ -128,6 +129,12 @@ class PerangkatPage extends ConsumerWidget {
               label: menu['label'] as String,
               color: menu['color'] as Color,
               onTap: () {
+                final label = menu['label'] as String;
+                if (label == 'Data Warga RT') {
+                  context.go('/rt/data-warga');
+                  return;
+                }
+
                 // LOGIKA NAVIGASI KHUSUS
                 if (menu['label'] == 'Iuran RT' ||
                     menu['label'] == 'Kelola Iuran') {
@@ -139,7 +146,7 @@ class PerangkatPage extends ConsumerWidget {
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('${menu['label']} - Dalam Pengembangan'),
+                    content: Text('$label - Dalam Pengembangan'),
                     backgroundColor: menu['color'] as Color,
                   ),
                 );
