@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:auto_size_text/auto_size_text.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
 import 'order_detail_page.dart';
@@ -306,68 +305,6 @@ class _OrderCard extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(
-                        color: AppColors.greyLight,
-                        width: 1.5,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 20,
-                        horizontal: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const AutoSizeText(
-                      'Batalkan',
-                      maxLines: 1,
-                      minFontSize: 11,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 20,
-                        horizontal: 12,
-                      ),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: const AutoSizeText(
-                      'Proses Pesanan',
-                      maxLines: 1,
-                      minFontSize: 11,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ),
                 ),
               ],

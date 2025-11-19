@@ -3,17 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
+import '../../../../core/providers/role_provider.dart';
 import '../../../bendahara/pages/keuangan/kelola_iuran.dart';
+import '../../../admin/pages/kelola_pengguna_page.dart';
 
 class PerangkatPage extends ConsumerWidget {
   const PerangkatPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO: Get user role from provider
-    // final userRole = ref.watch(roleProvider);
-    const String userRole =
-        'rt'; // temporary: 'rt', 'rw', 'bendahara', 'sekretaris'
+    final roleAsync = ref.watch(roleProvider);
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
@@ -21,18 +20,25 @@ class PerangkatPage extends ConsumerWidget {
         title: 'Fitur Perangkat',
         showBackButton: true,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(userRole),
-              const SizedBox(height: 24),
-              _buildMenuGrid(context, userRole),
-            ],
-          ),
-        ),
+      body: roleAsync.when(
+        data: (role) {
+          final userRole = role.toLowerCase().trim();
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(userRole),
+                  const SizedBox(height: 24),
+                  _buildMenuGrid(context, userRole),
+                ],
+              ),
+            ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(child: Text('Error: $error')),
       ),
     );
   }
@@ -130,20 +136,33 @@ class PerangkatPage extends ConsumerWidget {
               color: menu['color'] as Color,
               onTap: () {
                 final label = menu['label'] as String;
-                if (label == 'Data Warga RT') {
+
+                // ROUTING KHUSUS
+                // Data Warga untuk RT
+                if (label == 'Data Warga') {
                   context.go('/rt/data-warga');
                   return;
                 }
 
-                // LOGIKA NAVIGASI KHUSUS
-                if (menu['label'] == 'Iuran RT' ||
-                    menu['label'] == 'Kelola Iuran') {
-                  // Gunakan rootNavigator: true untuk menutupi BottomNavBar
+                // Kelola Tagihan untuk Bendahara
+                if (label == 'Kelola Tagihan') {
                   Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(builder: (_) => const KelolaIuranPage()),
                   );
                   return;
                 }
+
+                // Kelola Pengguna untuk Admin
+                if (label == 'Kelola Pengguna') {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(
+                      builder: (_) => const KelolaPenggunaPage(),
+                    ),
+                  );
+                  return;
+                }
+
+                // Default: Tampilkan snackbar "Dalam Pengembangan"
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('$label - Dalam Pengembangan'),
@@ -165,14 +184,14 @@ class PerangkatPage extends ConsumerWidget {
           'title': 'Dashboard RT',
           'subtitle': 'Kelola data dan warga RT',
           'icon': Icons.people,
-          'gradient': [AppColors.primary600, AppColors.primary400],
+          'gradient': [AppColors.success, const Color(0xFF10B981)],
         };
       case 'rw':
         return {
           'title': 'Dashboard RW',
           'subtitle': 'Koordinasi dan kelola RW',
           'icon': Icons.groups,
-          'gradient': [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
+          'gradient': [AppColors.success, const Color(0xFF10B981)],
         };
       case 'bendahara':
         return {
@@ -186,7 +205,14 @@ class PerangkatPage extends ConsumerWidget {
           'title': 'Dashboard Sekretaris',
           'subtitle': 'Kelola administrasi dan surat',
           'icon': Icons.edit_document,
-          'gradient': [AppColors.warning, const Color(0xFFF59E0B)],
+          'gradient': [AppColors.success, const Color(0xFF10B981)],
+        };
+      case 'admin':
+        return {
+          'title': 'Dashboard Admin',
+          'subtitle': 'Kelola sistem dan pengguna',
+          'icon': Icons.admin_panel_settings,
+          'gradient': [AppColors.success, const Color(0xFF10B981)],
         };
       default:
         return {
@@ -203,25 +229,19 @@ class PerangkatPage extends ConsumerWidget {
       case 'rt':
         return [
           {
-            'icon': Icons.group,
-            'label': 'Data Warga RT',
+            'icon': Icons.people_alt,
+            'label': 'Data Warga',
             'color': AppColors.primary600,
           },
           {
-            'icon': Icons.assignment,
-            'label': 'Laporan RT',
-            'color': AppColors.primary400,
+            'icon': Icons.campaign,
+            'label': 'Pengumuman RT',
+            'color': Color(0xFF3B82F6),
           },
-          {'icon': Icons.mail, 'label': 'Surat RT', 'color': Color(0xFF3B82F6)},
           {
-            'icon': Icons.event_note,
+            'icon': Icons.event,
             'label': 'Kegiatan RT',
             'color': Color(0xFF06B6D4),
-          },
-          {
-            'icon': Icons.payments,
-            'label': 'Iuran RT',
-            'color': AppColors.success,
           },
           {
             'icon': Icons.bar_chart,
@@ -232,99 +252,97 @@ class PerangkatPage extends ConsumerWidget {
       case 'rw':
         return [
           {
-            'icon': Icons.groups,
-            'label': 'Data RW',
+            'icon': Icons.domain,
+            'label': 'Data per RT',
             'color': Color(0xFF6366F1),
           },
           {
-            'icon': Icons.people_alt,
-            'label': 'Koordinasi RT',
-            'color': Color(0xFF8B5CF6),
+            'icon': Icons.payments,
+            'label': 'Status Iuran',
+            'color': AppColors.success,
           },
           {
             'icon': Icons.assessment,
-            'label': 'Laporan RW',
+            'label': 'Laporan Warga',
             'color': AppColors.primary600,
           },
           {
-            'icon': Icons.description,
-            'label': 'Surat RW',
-            'color': Color(0xFF3B82F6),
-          },
-          {
-            'icon': Icons.calendar_today,
-            'label': 'Agenda RW',
-            'color': Color(0xFF06B6D4),
-          },
-          {
-            'icon': Icons.analytics,
-            'label': 'Statistik RW',
-            'color': AppColors.warning,
+            'icon': Icons.people_outline,
+            'label': 'Daftar Warga',
+            'color': Color(0xFF8B5CF6),
           },
         ];
       case 'bendahara':
         return [
           {
-            'icon': Icons.account_balance_wallet,
-            'label': 'Kelola Iuran',
+            'icon': Icons.receipt_long,
+            'label': 'Kelola Tagihan',
             'color': AppColors.success,
           },
           {
-            'icon': Icons.receipt_long,
-            'label': 'Transaksi',
+            'icon': Icons.account_balance_wallet,
+            'label': 'Keuangan',
             'color': Color(0xFF10B981),
           },
           {
-            'icon': Icons.summarize,
-            'label': 'Laporan Keuangan',
-            'color': AppColors.primary600,
-          },
-          {
-            'icon': Icons.pie_chart,
-            'label': 'Rekap Bulanan',
+            'icon': Icons.account_balance,
+            'label': 'Channel Transfer',
             'color': Color(0xFF3B82F6),
           },
           {
-            'icon': Icons.trending_up,
-            'label': 'Pemasukan',
-            'color': Color(0xFF10B981),
+            'icon': Icons.campaign,
+            'label': 'Pengumuman',
+            'color': AppColors.primary600,
           },
           {
-            'icon': Icons.trending_down,
-            'label': 'Pengeluaran',
-            'color': AppColors.error,
+            'icon': Icons.event,
+            'label': 'Kegiatan',
+            'color': Color(0xFF06B6D4),
           },
         ];
       case 'sekretaris':
         return [
           {
-            'icon': Icons.mail_outline,
-            'label': 'Kelola Surat',
+            'icon': Icons.campaign,
+            'label': 'Kelola Pengumuman',
             'color': AppColors.warning,
+          },
+          {
+            'icon': Icons.event_note,
+            'label': 'Kelola Kegiatan',
+            'color': Color(0xFFF59E0B),
           },
           {
             'icon': Icons.folder_open,
             'label': 'Arsip Dokumen',
-            'color': Color(0xFFF59E0B),
-          },
-          {
-            'icon': Icons.edit_note,
-            'label': 'Notulensi',
             'color': AppColors.primary600,
-          },
-          {
-            'icon': Icons.event_available,
-            'label': 'Agenda Rapat',
-            'color': Color(0xFF06B6D4),
-          },
-          {
-            'icon': Icons.announcement,
-            'label': 'Pengumuman',
-            'color': Color(0xFF3B82F6),
           },
           {
             'icon': Icons.print,
             'label': 'Cetak Dokumen',
+            'color': Color(0xFF8B5CF6),
+          },
+        ];
+      case 'admin':
+        return [
+          {
+            'icon': Icons.manage_accounts,
+            'label': 'Kelola Pengguna',
+            'color': AppColors.primary600,
+          },
+          {
+            'icon': Icons.person_add,
+            'label': 'Tambah Pengguna',
+            'color': Color(0xFF10B981),
+          },
+          {
+            'icon': Icons.security,
+            'label': 'Hak Akses',
+            'color': Color(0xFF3B82F6),
+          },
+          {
+            'icon': Icons.settings,
+            'label': 'Pengaturan Sistem',
             'color': Color(0xFF8B5CF6),
           },
         ];
