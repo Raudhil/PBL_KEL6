@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
+import '../../../bendahara/pages/keuangan/kelola_iuran.dart';
 
 class PerangkatPage extends ConsumerWidget {
   const PerangkatPage({super.key});
@@ -127,6 +128,15 @@ class PerangkatPage extends ConsumerWidget {
               label: menu['label'] as String,
               color: menu['color'] as Color,
               onTap: () {
+                // LOGIKA NAVIGASI KHUSUS
+                if (menu['label'] == 'Iuran RT' ||
+                    menu['label'] == 'Kelola Iuran') {
+                  // Gunakan rootNavigator: true untuk menutupi BottomNavBar
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(builder: (_) => const KelolaIuranPage()),
+                  );
+                  return;
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('${menu['label']} - Dalam Pengembangan'),
