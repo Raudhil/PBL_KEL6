@@ -14,52 +14,55 @@ class CustomBottomNavBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.greyDark.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
+
+    final List<Map<String, dynamic>> navItems = [
+      {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'label': 'Home'},
+      {'icon': Icons.store_outlined, 'activeIcon': Icons.store, 'label': 'Market'},
+      {'icon': Icons.payments_outlined, 'activeIcon': Icons.payments, 'label': 'Iuran'},
+      {'icon': Icons.person_outline, 'activeIcon': Icons.person, 'label': 'Profil'},
+    ];
+
+    return SafeArea(
+      child: Container(
+      color: Colors.white,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavBarItem(
-                icon: Icons.dashboard_outlined,
-                activeIcon: Icons.dashboard,
-                label: 'Dashboard',
-                isActive: currentIndex == 0,
-                onTap: () => onTap(0),
+          padding: const EdgeInsets.only(left: 10, right: 10, bottom: 10, top: 10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.greyLight,
+                width: 2.5,
               ),
-              _NavBarItem(
-                icon: Icons.store_outlined,
-                activeIcon: Icons.store,
-                label: 'Marketplace',
-                isActive: currentIndex == 1,
-                onTap: () => onTap(1),
-              ),
-              _NavBarItem(
-                icon: Icons.payment_outlined,
-                activeIcon: Icons.payment,
-                label: 'Iuran',
-                isActive: currentIndex == 2,
-                onTap: () => onTap(2),
-              ),
-              _NavBarItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
-                label: 'Profil',
-                isActive: currentIndex == 3,
-                onTap: () => onTap(3),
-              ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: navItems.asMap().entries.map((entry) {
+                int idx = entry.key;
+                Map<String, dynamic> item = entry.value;
+
+                return Flexible(
+                  fit: FlexFit.loose,
+                  child: _NavBarItem(
+                    icon: item['icon'],
+                    activeIcon: item['activeIcon'],
+                    label: item['label'],
+                    isActive: currentIndex == idx,
+                    onTap: () => onTap(idx),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ),
       ),
@@ -84,33 +87,50 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color activeColor = AppColors.primary; 
+    final Color inactiveColor = AppColors.primary; 
+    final Color activeContentColor = AppColors.white; 
+
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(15),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.mint : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              color: isActive ? AppColors.primary : AppColors.greyMedium,
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                color: isActive ? AppColors.primary : AppColors.greyMedium,
+        decoration: isActive
+            ? BoxDecoration(
+                color: activeColor,
+                borderRadius: BorderRadius.circular(15),
+              )
+            : null,
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8), 
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: 0,
+          ),
+          child: Row( 
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Icon
+              Icon(
+                isActive ? activeIcon : icon,
+                color: isActive ? activeContentColor : inactiveColor,
+                size: 24,
               ),
-            ),
-          ],
+              
+              // Teks hanya tampil jika item aktif
+              if (isActive) ...[
+                const SizedBox(width: 4), // Jarak antara ikon dan teks
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: activeContentColor,
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

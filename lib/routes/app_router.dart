@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/providers/auth_state_provider.dart';
-import '../features/auth/login_page.dart';
+import '../features/auth/auth_page.dart';
 import '../features/warga/warga_main_page.dart';
-import '../features/warga/pages/dashboard_page.dart';
-import '../features/warga/pages/marketplace_page.dart';
-import '../features/warga/pages/iuran_page.dart';
-import '../features/warga/pages/profil_page.dart';
+import '../features/warga/pages/dashboard/dashboard_page.dart';
+import '../features/warga/pages/marketplace/marketplace_page.dart';
+import '../features/warga/pages/iuran/iuran_page.dart';
+import '../features/warga/pages/profil/profil_page.dart';
 
 // Placeholder pages for unimplemented roles
 class _PlaceholderPage extends StatelessWidget {
@@ -73,7 +73,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         name: 'login',
-        builder: (context, state) => const LoginPage(),
+        builder: (context, state) => const AuthPage(),
       ),
 
       // ============= WARGA ROUTES =============
