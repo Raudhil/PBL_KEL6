@@ -45,7 +45,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/warga/dashboard',
     debugLogDiagnostics: true,
 
     // Redirect logic based on auth state and role
@@ -58,13 +58,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
 
-      // If authenticated and on login page, redirect based on role
+      // If authenticated and on login page, redirect to dashboard
       if (isAuthenticated && isLoggingIn) {
-        final user = authState.asData?.value.session?.user;
-        if (user?.email != null) {
-          // Get role synchronously from cache or default to warga
-          return '/warga/dashboard';
-        }
+        return '/warga/dashboard';
       }
 
       return null; // No redirect needed

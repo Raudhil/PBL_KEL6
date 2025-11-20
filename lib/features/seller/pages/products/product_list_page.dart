@@ -48,37 +48,37 @@ class SellerProductListPage extends ConsumerWidget {
     );
   }
 
-  void _showDeleteDialog(BuildContext context, String productName) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus Produk?'),
-        content: Text(
-          'Anda yakin ingin menghapus "$productName"? Tindakan ini tidak bisa dibatalkan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Produk "$productName" berhasil dihapus (dummy).',
-                  ),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-  }
+  // void _showDeleteDialog(BuildContext context, String productName) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (ctx) => AlertDialog(
+  //       title: const Text('Hapus Produk?'),
+  //       content: Text(
+  //         'Anda yakin ingin menghapus "$productName"? Tindakan ini tidak bisa dibatalkan.',
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(ctx),
+  //           child: const Text('Batal'),
+  //         ),
+  //         ElevatedButton(
+  //           onPressed: () {
+  //             Navigator.pop(ctx);
+  //             ScaffoldMessenger.of(context).showSnackBar(
+  //               SnackBar(
+  //                 content: Text(
+  //                   'Produk "$productName" berhasil dihapus (dummy).',
+  //                 ),
+  //               ),
+  //             );
+  //           },
+  //           style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+  //           child: const Text('Hapus'),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 }
 
 class _ProductCard extends StatelessWidget {

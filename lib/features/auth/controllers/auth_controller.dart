@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/providers/role_provider.dart';
 
 class AuthController extends StateNotifier<bool> {
-  AuthController() : super(false);
+  AuthController(this.ref) : super(false);
 
+  final Ref ref;
   final _supabase = Supabase.instance.client;
 
   // =========================
@@ -30,8 +32,11 @@ class AuthController extends StateNotifier<bool> {
       }
 
       // Ambil id_warga dari record warga (dukungan beberapa skema kolom)
-      final Map<String, dynamic> wargaMap = Map<String, dynamic>.from(warga as Map);
-      final dynamic idWarga = wargaMap['id'] ?? wargaMap['id_warga'] ?? wargaMap['idWarga'];
+      final Map<String, dynamic> wargaMap = Map<String, dynamic>.from(
+        warga as Map,
+      );
+      final dynamic idWarga =
+          wargaMap['id'] ?? wargaMap['id_warga'] ?? wargaMap['idWarga'];
       if (idWarga == null) {
         throw Exception("Kolom id pada tabel warga tidak ditemukan");
       }
@@ -48,10 +53,7 @@ class AuthController extends StateNotifier<bool> {
       }
 
       // 4. Setelah semua pemeriksaan DB berhasil, buat akun Auth
-      final res = await _supabase.auth.signUp(
-        email: email,
-        password: password,
-      );
+      final res = await _supabase.auth.signUp(email: email, password: password);
 
       final authId = res.user?.id;
       if (authId == null) {
@@ -59,12 +61,16 @@ class AuthController extends StateNotifier<bool> {
       }
 
       // 5. Insert ke tabel USERS dengan id_warga dari warga
-      final insertRes = await _supabase.from('users').insert({
-        'id_auth': authId,
-        'id_warga': idWarga,
-        'full_name': nama,
-        'status': 'Tidak Aktif', // optional, default-nya 'Tidak Aktif'
-      }).select().maybeSingle();
+      final insertRes = await _supabase
+          .from('users')
+          .insert({
+            'id_auth': authId,
+            'id_warga': idWarga,
+            'full_name': nama,
+            'status': 'Tidak Aktif', // optional, default-nya 'Tidak Aktif'
+          })
+          .select()
+          .maybeSingle();
 
       if (insertRes == null) {
         // Jika insert gagal setelah Auth dibuat, sign out dan informasikan
@@ -89,59 +95,61 @@ class AuthController extends StateNotifier<bool> {
   //          LOGIN
   // =========================
   Future<void> login(String email, String password) async {
-  state = true;
+    state = true;
 
-  try {
-    final res = await _supabase.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    try {
+      final res = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
 
-    // Login invalid tapi Supabase tidak melempar error → handle manual
-    if (res.user == null) {
-      throw Exception("Email atau password salah");
+      // Login invalid tapi Supabase tidak melempar error → handle manual
+      if (res.user == null) {
+        throw Exception("Email atau password salah");
+      }
+
+      final authId = res.user!.id;
+
+      final data = await _supabase
+          .from('users')
+          .select()
+          .eq('id_auth', authId)
+          .maybeSingle();
+
+      if (data == null) {
+        await _supabase.auth.signOut();
+        throw Exception("Data akun tidak ditemukan");
+      }
+
+      final status = data['status']?.toString().trim().toLowerCase();
+
+      if (status == 'tidak aktif') {
+        await _supabase.auth.signOut();
+        throw Exception("Akun Anda tidak aktif, silakan hubungi admin");
+      }
+
+      if (status != 'aktif') {
+        await _supabase.auth.signOut();
+        throw Exception("Status akun tidak valid");
+      }
+
+      // Refresh roleProvider setelah login berhasil
+      ref.invalidate(roleProvider);
+      print("✅ Login berhasil - roleProvider di-refresh");
+    } on AuthException catch (e) {
+      final msg = e.message.toLowerCase();
+
+      if (msg.contains("invalid") && msg.contains("credentials")) {
+        throw Exception("Email atau password salah");
+      }
+
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception(e.toString().replaceAll("Exception: ", ""));
+    } finally {
+      state = false;
     }
-
-    final authId = res.user!.id;
-
-    final data = await _supabase
-        .from('users')
-        .select()
-        .eq('id_auth', authId)
-        .maybeSingle();
-
-    if (data == null) {
-      await _supabase.auth.signOut();
-      throw Exception("Data akun tidak ditemukan");
-    }
-
-    final status = data['status']?.toString().trim().toLowerCase();
-
-    if (status == 'tidak aktif') {
-      await _supabase.auth.signOut();
-      throw Exception("Akun Anda tidak aktif, silakan hubungi admin");
-    }
-
-    if (status != 'aktif') {
-      await _supabase.auth.signOut();
-      throw Exception("Status akun tidak valid");
-    }
-
-  } on AuthException catch (e) {
-    final msg = e.message.toLowerCase();
-
-    if (msg.contains("invalid") && msg.contains("credentials")) {
-      throw Exception("Email atau password salah");
-    }
-
-    throw Exception(e.message);
-  } catch (e) {
-    throw Exception(e.toString().replaceAll("Exception: ", ""));
-  } finally {
-    state = false;
   }
-}
-
 
   // =========================
   //          LOGOUT
@@ -149,7 +157,10 @@ class AuthController extends StateNotifier<bool> {
   Future<void> logout() async {
     try {
       await _supabase.auth.signOut();
-      print("Logout berhasil");
+
+      // Refresh roleProvider setelah logout
+      ref.invalidate(roleProvider);
+      print("✅ Logout berhasil - roleProvider di-refresh");
     } catch (e) {
       print("Logout gagal: $e");
       rethrow;
@@ -158,5 +169,5 @@ class AuthController extends StateNotifier<bool> {
 }
 
 final authProvider = StateNotifierProvider<AuthController, bool>((ref) {
-  return AuthController();
+  return AuthController(ref);
 });
