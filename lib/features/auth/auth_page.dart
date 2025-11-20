@@ -31,45 +31,44 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   }
 
   Future<void> _handleSubmit() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  final auth = ref.read(authProvider.notifier);
+    final auth = ref.read(authProvider.notifier);
 
-  try {
-    if (_currentTabIndex == 0) {
-      await auth.login(
-        _emailController.text.trim(),
-        _passwordController.text,
+    try {
+      if (_currentTabIndex == 0) {
+        await auth.login(
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
+      } else {
+        await auth.register(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          nama: _namaController.text.trim(),
+          nik: _nikController.text.trim(),
+        );
+      }
+    } on Exception catch (e) {
+      // Tangkap Exception yang dilempar dari AuthController
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
       );
-    } else {
-      await auth.register(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        nama: _namaController.text.trim(),
-        nik: _nikController.text.trim(),
+    } catch (e) {
+      // Tangkap semua error lain, termasuk AuthException dari Supabase
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
-  } on Exception catch (e) {
-    // Tangkap Exception yang dilempar dari AuthController
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(e.toString().replaceAll('Exception: ', '')),
-        backgroundColor: Colors.red,
-      ),
-    );
-  } catch (e) {
-    // Tangkap semua error lain, termasuk AuthException dari Supabase
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Terjadi kesalahan: ${e.toString()}'),
-        backgroundColor: Colors.red,
-      ),
-    );
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +107,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                 ],
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 30,
+                ),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -129,7 +131,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         TextFormField(
                           controller: _namaController,
                           style: inputTextStyle,
-                          validator: (v) => v == null || v.isEmpty ? 'Nama tidak boleh kosong' : null,
+                          validator: (v) => v == null || v.isEmpty
+                              ? 'Nama tidak boleh kosong'
+                              : null,
                           decoration: const InputDecoration(
                             labelText: 'Nama Lengkap',
                           ),
@@ -141,13 +145,12 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                           style: inputTextStyle,
                           keyboardType: TextInputType.number,
                           validator: (v) {
-                            if (v == null || v.isEmpty) return 'NIK tidak boleh kosong';
+                            if (v == null || v.isEmpty)
+                              return 'NIK tidak boleh kosong';
                             if (v.length < 16) return 'NIK tidak valid';
                             return null;
                           },
-                          decoration: const InputDecoration(
-                            labelText: 'NIK',
-                          ),
+                          decoration: const InputDecoration(labelText: 'NIK'),
                         ),
                         const SizedBox(height: 20),
                       ],
@@ -156,13 +159,12 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         controller: _emailController,
                         style: inputTextStyle,
                         validator: (v) {
-                          if (v == null || v.isEmpty) return 'Email tidak boleh kosong';
+                          if (v == null || v.isEmpty)
+                            return 'Email tidak boleh kosong';
                           if (!v.contains('@')) return 'Email tidak valid';
                           return null;
                         },
-                        decoration: const InputDecoration(
-                          labelText: 'Email',
-                        ),
+                        decoration: const InputDecoration(labelText: 'Email'),
                       ),
                       const SizedBox(height: 20),
 
@@ -170,15 +172,21 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         controller: _passwordController,
                         style: inputTextStyle,
                         obscureText: _obscurePassword,
-                        validator: (v) => v == null || v.isEmpty ? 'Password tidak boleh kosong' : null,
+                        validator: (v) => v == null || v.isEmpty
+                            ? 'Password tidak boleh kosong'
+                            : null,
                         decoration: InputDecoration(
                           labelText: 'Password',
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                             ),
                             onPressed: () {
-                              setState(() => _obscurePassword = !_obscurePassword);
+                              setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              );
                             },
                           ),
                         ),
@@ -197,10 +205,16 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                             ),
                           ),
                           child: isLoading
-                              ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                )
                               : Text(
                                   _currentTabIndex == 0 ? 'Log In' : 'Register',
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                         ),
                       ),
@@ -220,11 +234,7 @@ class _AuthTabSwitcher extends StatelessWidget {
   final int currentTabIndex;
   final void Function(int) onTap;
 
-  const _AuthTabSwitcher({
-    super.key,
-    required this.currentTabIndex,
-    required this.onTap,
-  });
+  const _AuthTabSwitcher({required this.currentTabIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -261,7 +271,6 @@ class _TabButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _TabButton({
-    super.key,
     required this.label,
     required this.isSelected,
     required this.onTap,

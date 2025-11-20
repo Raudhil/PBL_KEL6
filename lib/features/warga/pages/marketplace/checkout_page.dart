@@ -366,13 +366,14 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _buildPaymentOption(
-                    title: 'QRIS',
-                    subtitle: 'Bayar dengan scan QR',
-                    icon: Icons.qr_code_2,
-                    value: 'QRIS',
-                  ),
-                  const SizedBox(height: 12),
+                  // TODO: Uncomment QRIS jika sudah siap
+                  // _buildPaymentOption(
+                  //   title: 'QRIS',
+                  //   subtitle: 'Bayar dengan scan QR',
+                  //   icon: Icons.qr_code_2,
+                  //   value: 'QRIS',
+                  // ),
+                  // const SizedBox(height: 12),
                   _buildPaymentOption(
                     title: 'Cash on Delivery (COD)',
                     subtitle: 'Bayar saat barang diterima',

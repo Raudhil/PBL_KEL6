@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../theme/app_colors.dart';
 
 class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
   final bool showBackButton;
+  final VoidCallback? onBack;
   final List<Widget>? actions;
 
   const CustomTopBar({
     super.key,
     required this.title,
     this.showBackButton = false,
+    this.onBack,
     this.actions,
   });
 
@@ -41,7 +44,23 @@ class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
       child: SafeArea(
         bottom: false,
         child: AppBar(
-          automaticallyImplyLeading: showBackButton,
+          leading: showBackButton
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    if (onBack != null) {
+                      onBack!();
+                      return;
+                    }
+                    try {
+                      context.pop();
+                    } catch (_) {
+                      context.go('/warga/dashboard');
+                    }
+                  },
+                )
+              : null,
+          automaticallyImplyLeading: false,
           backgroundColor: Colors.transparent,
           foregroundColor: AppColors.white,
           elevation: 0,
@@ -74,7 +93,8 @@ class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
               ],
             ),
           ),
-          actions: actions ??
+          actions:
+              actions ??
               [
                 Container(
                   margin: const EdgeInsets.only(right: 16),
@@ -83,7 +103,9 @@ class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Fitur notifikasi masih dalam pengembangan'),
+                          content: Text(
+                            'Fitur notifikasi masih dalam pengembangan',
+                          ),
                         ),
                       );
                     },
