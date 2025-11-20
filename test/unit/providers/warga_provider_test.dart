@@ -40,8 +40,10 @@ void main() {
       final testStackTrace = StackTrace.current;
 
       // Act
-      final errorState =
-          AsyncValue<List<dynamic>>.error(testError, testStackTrace);
+      final errorState = AsyncValue<List<dynamic>>.error(
+        testError,
+        testStackTrace,
+      );
 
       // Assert
       expect(errorState.isLoading, isFalse);
@@ -69,8 +71,10 @@ void main() {
       // Arrange
       const loadingState = AsyncValue<List<String>>.loading();
       final error = Exception('Network error');
-      final errorState =
-          AsyncValue<List<String>>.error(error, StackTrace.current);
+      final errorState = AsyncValue<List<String>>.error(
+        error,
+        StackTrace.current,
+      );
 
       // Assert - Loading state
       expect(loadingState.isLoading, isTrue);
@@ -93,7 +97,8 @@ void main() {
       };
 
       // Act
-      final hasRequiredFields = validWargaData.containsKey('id') &&
+      final hasRequiredFields =
+          validWargaData.containsKey('id') &&
           validWargaData.containsKey('nama') &&
           validWargaData.containsKey('nik');
 
@@ -189,8 +194,10 @@ void main() {
 
       for (var error in errorTypes) {
         // Act
-        final errorState =
-            AsyncValue<List<dynamic>>.error(error, StackTrace.current);
+        final errorState = AsyncValue<List<dynamic>>.error(
+          error,
+          StackTrace.current,
+        );
 
         // Assert
         expect(errorState.hasError, isTrue);
@@ -215,11 +222,17 @@ void main() {
 
         // Assert
         if (operation != 'READ') {
-          expect(needsRefresh, isTrue,
-              reason: '$operation should trigger fetchAll');
+          expect(
+            needsRefresh,
+            isTrue,
+            reason: '$operation should trigger fetchAll',
+          );
         } else {
-          expect(needsRefresh, isFalse,
-              reason: '$operation should not trigger fetchAll');
+          expect(
+            needsRefresh,
+            isFalse,
+            reason: '$operation should not trigger fetchAll',
+          );
         }
       }
     });
@@ -239,8 +252,9 @@ void main() {
       final requiredFields = ['id', 'nama', 'nik', 'alamat', 'no_telp'];
 
       // Act
-      final hasAllRequiredFields =
-          requiredFields.every((field) => completeWargaData.containsKey(field));
+      final hasAllRequiredFields = requiredFields.every(
+        (field) => completeWargaData.containsKey(field),
+      );
 
       final allFieldsNotEmpty = requiredFields.every((field) {
         final value = completeWargaData[field];
@@ -297,7 +311,8 @@ void main() {
         final hasAt = email.contains('@');
         final hasDot = email.contains('.');
         final parts = email.split('@');
-        final isValid = hasAt &&
+        final isValid =
+            hasAt &&
             hasDot &&
             !email.contains(' ') &&
             parts.length == 2 &&
