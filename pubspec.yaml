@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  integration_test:
+    sdk: flutter
 
   cupertino_icons: ^1.0.8
 
