@@ -9,6 +9,8 @@ import '../features/warga/pages/dashboard/dashboard_page.dart';
 import '../features/warga/pages/marketplace/marketplace_page.dart';
 import '../features/warga/pages/iuran/iuran_page.dart';
 import '../features/warga/pages/profil/profil_page.dart';
+import '../features/warga/pages/perangkat/perangkat_page.dart';
+import '../features/rt/pages/data_warga_page.dart';
 
 // Placeholder pages for unimplemented roles
 class _PlaceholderPage extends StatelessWidget {
@@ -43,7 +45,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/warga/dashboard',
     debugLogDiagnostics: true,
 
     // Redirect logic based on auth state and role
@@ -56,13 +58,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
 
-      // If authenticated and on login page, redirect based on role
+      // If authenticated and on login page, redirect to dashboard
       if (isAuthenticated && isLoggingIn) {
-        final user = authState.asData?.value.session?.user;
-        if (user?.email != null) {
-          // Get role synchronously from cache or default to warga
-          return '/warga/dashboard';
-        }
+        return '/warga/dashboard';
       }
 
       return null; // No redirect needed
@@ -130,6 +128,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/rt',
         name: 'rt',
         builder: (context, state) => const _PlaceholderPage(role: 'RT'),
+      ),
+      // Perangkat standalone route so pages can navigate back to it via GoRouter
+      GoRoute(
+        path: '/perangkat',
+        name: 'perangkat',
+        builder: (context, state) => const PerangkatPage(),
+      ),
+      GoRoute(
+        path: '/rt/data-warga',
+        name: 'rt-data-warga',
+        builder: (context, state) => const DataWargaPage(),
       ),
 
       // ============= RW ROUTES =============
