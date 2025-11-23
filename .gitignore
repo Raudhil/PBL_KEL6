@@ -16,6 +16,9 @@ macos/
 migrate_working_dir/
 .env
 
+# Environment Configuration (contains sensitive credentials)
+lib/core/config/env_config.dart
+
 # IntelliJ related
 *.iml
 *.ipr
