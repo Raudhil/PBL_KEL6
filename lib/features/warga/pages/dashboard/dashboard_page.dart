@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'widgets/quick_access_widget.dart';
 import 'widgets/announcement_list_widget.dart';
 import 'widgets/calendar_widget.dart';
+import '../../../../core/providers/kegiatan_provider.dart';
+import '../../../../data/models/kegiatan_model.dart';
 
 class WargaDashboardPage extends ConsumerStatefulWidget {
   const WargaDashboardPage({super.key});
@@ -13,7 +15,8 @@ class WargaDashboardPage extends ConsumerStatefulWidget {
 }
 
 class _WargaDashboardPageState extends ConsumerState<WargaDashboardPage> {
-  final List<_AgendaItem> _agendaItems = [
+  // Dummy data untuk announcements (masih static)
+  final List<_AgendaItem> _agendaItemsDummy = [
     _AgendaItem(
       title: 'Kerja Bakti Lingkungan RW 05',
       category: 'Lingkungan',
@@ -80,49 +83,136 @@ class _WargaDashboardPageState extends ConsumerState<WargaDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Quick Access - Modular widget
-          const QuickAccessWidget(),
-          const SizedBox(height: 30),
+    // Fetch kegiatan dari Supabase
+    final kegiatanAsync = ref.watch(kegiatanListProvider);
 
-          // Kalender Kegiatan - Modular widget
-          CalendarWidget(
-            agendaItems: _agendaItems
-                .map(
-                  (e) => AgendaItem(
-                    title: e.title,
-                    category: e.category,
-                    pic: e.pic,
-                    description: e.description,
-                    date: e.date,
-                    location: e.location,
-                  ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: 30),
+    return kegiatanAsync.when(
+      data: (kegiatanList) {
+        // Filter hanya kegiatan upcoming (akan datang dan sedang berlangsung)
+        final upcomingKegiatan = kegiatanList
+            .where(
+              (k) =>
+                  k.status == StatusKegiatan.akanDatang ||
+                  k.status == StatusKegiatan.sedangBerlangsung,
+            )
+            .toList();
 
-          // Pengumuman Terbaru - Modular widget
-          AnnouncementListWidget(
-            announcements: _announcements
-                .map(
-                  (e) => AnnouncementItem(
-                    title: e.title,
-                    description: e.description,
-                    date: e.date,
-                    imageUrl: e.imageUrl,
-                    documentName: e.documentName,
-                  ),
-                )
-                .toList(),
+        // Convert ke AgendaItem
+        final agendaItems = upcomingKegiatan
+            .map(
+              (kegiatan) => AgendaItem(
+                kegiatanId: kegiatan.id,
+                title: kegiatan.judul,
+                category: _getKategoriLabel(kegiatan.kategori),
+                pic: kegiatan.penyelenggara,
+                description: kegiatan.deskripsi ?? 'Tidak ada deskripsi',
+                date: kegiatan.tanggalMulai,
+                location: kegiatan.lokasi ?? 'Lokasi akan ditentukan',
+              ),
+            )
+            .toList();
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Quick Access - Modular widget
+              const QuickAccessWidget(),
+              const SizedBox(height: 30),
+
+              // Kalender Kegiatan - From Supabase
+              CalendarWidget(agendaItems: agendaItems),
+              const SizedBox(height: 30),
+
+              // Pengumuman Terbaru - Modular widget
+              AnnouncementListWidget(
+                announcements: _announcements
+                    .map(
+                      (e) => AnnouncementItem(
+                        title: e.title,
+                        description: e.description,
+                        date: e.date,
+                        imageUrl: e.imageUrl,
+                        documentName: e.documentName,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
           ),
-        ],
+        );
+      },
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32.0),
+          child: CircularProgressIndicator(),
+        ),
       ),
+      error: (error, stack) {
+        // Fallback ke dummy data jika error
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const QuickAccessWidget(),
+              const SizedBox(height: 30),
+              CalendarWidget(
+                agendaItems: _agendaItemsDummy
+                    .map(
+                      (e) => AgendaItem(
+                        title: e.title,
+                        category: e.category,
+                        pic: e.pic,
+                        description: e.description,
+                        date: e.date,
+                        location: e.location,
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 30),
+              AnnouncementListWidget(
+                announcements: _announcements
+                    .map(
+                      (e) => AnnouncementItem(
+                        title: e.title,
+                        description: e.description,
+                        date: e.date,
+                        imageUrl: e.imageUrl,
+                        documentName: e.documentName,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  // Helper method untuk convert kategori ke label
+  String _getKategoriLabel(KategoriKegiatan kategori) {
+    switch (kategori) {
+      case KategoriKegiatan.sosial:
+        return 'Sosial';
+      case KategoriKegiatan.kebersihan:
+        return 'Kebersihan';
+      case KategoriKegiatan.kesehatan:
+        return 'Kesehatan';
+      case KategoriKegiatan.pendidikan:
+        return 'Pendidikan';
+      case KategoriKegiatan.keagamaan:
+        return 'Keagamaan';
+      case KategoriKegiatan.olahraga:
+        return 'Olahraga';
+      case KategoriKegiatan.budaya:
+        return 'Budaya';
+      case KategoriKegiatan.lainnya:
+        return 'Lainnya';
+    }
   }
 }
 
