@@ -20,7 +20,7 @@ class WargaMainPage extends ConsumerWidget {
 
     if (location.contains('/dashboard')) {
       currentIndex = 0;
-      title = 'Dashboard';
+      title = 'Selamat Datang';
     } else if (location.contains('/marketplace')) {
       currentIndex = 1;
       title = 'Marketplace';
@@ -33,7 +33,7 @@ class WargaMainPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: CustomTopBar(title: title),
+      appBar: title != 'Profil' ? CustomTopBar(title: title) : null,
       body: child, // Display the child route
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: currentIndex,
