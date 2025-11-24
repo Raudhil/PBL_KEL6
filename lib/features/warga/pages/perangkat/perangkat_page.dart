@@ -7,6 +7,7 @@ import '../../../../core/providers/role_provider.dart';
 import '../../../bendahara/pages/keuangan/kelola_iuran.dart';
 import '../../../admin/pages/kelola_pengguna_page.dart';
 import '../../../bendahara/pages/keuangan_warga/keuangan_page.dart';
+import '../../../sekretaris/kegiatan/pages/kegiatan_list_page.dart';
 
 class PerangkatPage extends ConsumerWidget {
   const PerangkatPage({super.key});
@@ -167,6 +168,16 @@ class PerangkatPage extends ConsumerWidget {
                     MaterialPageRoute(
                       builder: (_) => const KelolaPenggunaPage(),
                     ),
+                  );
+                  return;
+                }
+
+                // Kelola Kegiatan untuk Sekretaris, Bendahara, RT
+                if (label == 'Kelola Kegiatan' ||
+                    label == 'Kegiatan' ||
+                    label == 'Kegiatan RT') {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(builder: (_) => const KegiatanListPage()),
                   );
                   return;
                 }
