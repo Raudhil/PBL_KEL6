@@ -19,6 +19,9 @@ migrate_working_dir/
 # Environment Configuration (contains sensitive credentials)
 lib/core/config/env_config.dart
 
+# Supabase SQL Schema (contains complete database structure)
+supabase_schema.sql
+
 # IntelliJ related
 *.iml
 *.ipr
