@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_colors.dart';
-import '../../../core/widgets/custom_top_bar.dart';
+import '../../../data/models/user_model.dart';
+import '../../../core/providers/user_management_provider.dart';
+import '../widgets/user_statistics_cards.dart';
+import '../widgets/user_search_bar.dart';
+import 'user_detail_page.dart';
+import 'create_user_page.dart';
 
 class KelolaPenggunaPage extends ConsumerStatefulWidget {
   const KelolaPenggunaPage({super.key});
@@ -12,167 +17,213 @@ class KelolaPenggunaPage extends ConsumerStatefulWidget {
 
 class _KelolaPenggunaPageState extends ConsumerState<KelolaPenggunaPage> {
   String _selectedFilter = 'Semua';
-  final List<String> _filters = ['Semua', 'Aktif', 'Tidak Aktif'];
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
-  // Dummy data - nanti diganti dengan data dari Supabase
-  final List<Map<String, dynamic>> _users = [
-    {
-      'id': 1,
-      'nama': 'Admin Jawara',
-      'email': 'admin@jawara.com',
-      'role': 'Admin',
-      'status': 'Aktif',
-    },
-    {
-      'id': 2,
-      'nama': 'Jokowi',
-      'email': 'jokowi@test.com',
-      'role': 'Warga',
-      'status': 'Aktif',
-    },
-    {
-      'id': 3,
-      'nama': 'Yanto Kopling',
-      'email': 'yanto@test.com',
-      'role': 'Bendahara',
-      'status': 'Aktif',
-    },
-    {
-      'id': 4,
-      'nama': 'Budi Santoso',
-      'email': 'budi@test.com',
-      'role': 'Sekretaris',
-      'status': 'Tidak Aktif',
-    },
-    {
-      'id': 5,
-      'nama': 'Ketua RT',
-      'email': 'rt@test.com',
-      'role': 'RT',
-      'status': 'Aktif',
-    },
-    {
-      'id': 6,
-      'nama': 'Ketua RW',
-      'email': 'rw@test.com',
-      'role': 'RW',
-      'status': 'Aktif',
-    },
-  ];
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final filteredUsers = _selectedFilter == 'Semua'
-        ? _users
-        : _users.where((user) => user['status'] == _selectedFilter).toList();
+    final userState = ref.watch(userListProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.creamWhite,
-      appBar: const CustomTopBar(
-        title: 'Kelola Pengguna',
-        showBackButton: true,
-      ),
-      body: Column(
-        children: [
-          // Filter tabs
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: _filters.map((filter) {
-                final isSelected = _selectedFilter == filter;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedFilter = filter),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? AppColors.success
-                            : AppColors.greyLight,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        filter,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected ? Colors.white : AppColors.greyDark,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+      backgroundColor: AppColors.greyLight,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: AppColors.white,
+        surfaceTintColor: AppColors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Kelola Pengguna',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
           ),
+        ),
+        centerTitle: true,
+      ),
+      body: userState.when(
+        data: (users) {
+          // Hitung statistik
+          final totalUsers = users.length;
+          final activeUsers = users
+              .where((u) => u.status == StatusUser.aktif)
+              .length;
+          final inactiveUsers = users
+              .where((u) => u.status == StatusUser.tidakAktif)
+              .length;
 
-          // User list
-          Expanded(
-            child: filteredUsers.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 64,
-                          color: AppColors.greyDark,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Tidak ada pengguna',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: AppColors.greyDark,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredUsers.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final user = filteredUsers[index];
-                      return _UserCard(
-                        nama: user['nama'],
-                        email: user['email'],
-                        role: user['role'],
-                        status: user['status'],
-                        onTap: () {
-                          // TODO: Navigate to user detail/edit page
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Edit ${user['nama']}'),
-                              backgroundColor: AppColors.success,
+          // Filter users berdasarkan status yang dipilih
+          var filteredUsers = _selectedFilter == 'Semua'
+              ? users
+              : _selectedFilter == 'Aktif'
+              ? users.where((u) => u.status == StatusUser.aktif).toList()
+              : users.where((u) => u.status == StatusUser.tidakAktif).toList();
+
+          // Filter berdasarkan search query
+          if (_searchQuery.isNotEmpty) {
+            filteredUsers = filteredUsers.where((user) {
+              final nameLower = user.displayName.toLowerCase();
+              final nikLower = user.nik?.toLowerCase() ?? '';
+              final queryLower = _searchQuery.toLowerCase();
+              return nameLower.contains(queryLower) ||
+                  nikLower.contains(queryLower);
+            }).toList();
+          }
+
+          return Column(
+            children: [
+              // Statistics Cards
+              UserStatisticsCards(
+                totalUsers: totalUsers,
+                activeUsers: activeUsers,
+                inactiveUsers: inactiveUsers,
+                selectedFilter: _selectedFilter,
+                onFilterChanged: (filter) {
+                  setState(() => _selectedFilter = filter);
+                },
+              ),
+
+              // Search Bar
+              UserSearchBar(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() => _searchQuery = value);
+                },
+                onClear: () {
+                  setState(() => _searchQuery = '');
+                },
+              ),
+
+              const SizedBox(height: 8),
+
+              // User List
+              Expanded(
+                child: filteredUsers.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.people_outline,
+                              size: 64,
+                              color: AppColors.textSecondary.withOpacity(0.5),
                             ),
-                          );
+                            const SizedBox(height: 16),
+                            Text(
+                              _searchQuery.isNotEmpty
+                                  ? 'Tidak ada hasil untuk "$_searchQuery"'
+                                  : 'Tidak ada pengguna ${_selectedFilter.toLowerCase()}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppColors.textSecondary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          ref.read(userListProvider.notifier).loadUsers();
                         },
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // TODO: Navigate to add user page
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Tambah Pengguna - Dalam Pengembangan'),
-              backgroundColor: AppColors.success,
-            ),
+                        child: ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filteredUsers.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final user = filteredUsers[index];
+                            return _UserCard(
+                              user: user,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        UserDetailPage(userId: user.id),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+              ),
+            ],
           );
         },
-        backgroundColor: AppColors.success,
-        icon: const Icon(Icons.person_add, color: Colors.white),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+        error: (error, stack) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: AppColors.danger,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Terjadi kesalahan',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error.toString(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    ref.read(userListProvider.notifier).loadUsers();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Coba Lagi'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const CreateUserPage()));
+
+          if (result == true) {
+            ref.read(userListProvider.notifier).loadUsers();
+          }
+        },
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.person_add, color: AppColors.white),
         label: const Text(
           'Tambah Pengguna',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -180,23 +231,14 @@ class _KelolaPenggunaPageState extends ConsumerState<KelolaPenggunaPage> {
 }
 
 class _UserCard extends StatelessWidget {
-  final String nama;
-  final String email;
-  final String role;
-  final String status;
+  final UserModel user;
   final VoidCallback onTap;
 
-  const _UserCard({
-    required this.nama,
-    required this.email,
-    required this.role,
-    required this.status,
-    required this.onTap,
-  });
+  const _UserCard({required this.user, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final isActive = status == 'Aktif';
+    final isActive = user.status == StatusUser.aktif;
 
     return InkWell(
       onTap: onTap,
@@ -204,7 +246,7 @@ class _UserCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -221,16 +263,18 @@ class _UserCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
+                gradient: LinearGradient(
+                  colors: [AppColors.primary600, AppColors.primary400],
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
                 child: Text(
-                  nama[0].toUpperCase(),
+                  user.displayName[0].toUpperCase(),
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.success,
+                    color: AppColors.white,
                   ),
                 ),
               ),
@@ -243,18 +287,24 @@ class _UserCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    nama,
+                    user.displayName,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    email,
-                    style: TextStyle(fontSize: 13, color: AppColors.greyDark),
-                  ),
+                  if (user.nik != null)
+                    Text(
+                      'NIK: ${user.nik}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
@@ -265,15 +315,15 @@ class _UserCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary600.withOpacity(0.1),
+                          color: AppColors.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          role,
+                          user.role?.nama ?? 'Unknown',
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.primary600,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -287,18 +337,31 @@ class _UserCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isActive
                               ? AppColors.success.withOpacity(0.1)
-                              : AppColors.error.withOpacity(0.1),
+                              : AppColors.danger.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(
-                          status,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isActive
-                                ? AppColors.success
-                                : AppColors.error,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isActive ? Icons.check_circle : Icons.cancel,
+                              size: 12,
+                              color: isActive
+                                  ? AppColors.success
+                                  : AppColors.danger,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              user.status.label,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: isActive
+                                    ? AppColors.success
+                                    : AppColors.danger,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -308,7 +371,11 @@ class _UserCard extends StatelessWidget {
             ),
 
             // Arrow icon
-            Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.greyDark),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
           ],
         ),
       ),
