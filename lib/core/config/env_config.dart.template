@@ -1,0 +1,54 @@
+/// Environment Configuration TEMPLATE
+/// ⚠️ COPY FILE INI KE: lib/core/config/env_config.dart
+/// ⚠️ ISI CREDENTIALS SUPABASE KAMU
+/// ⚠️ JANGAN COMMIT FILE env_config.dart KE GIT!
+
+class EnvConfig {
+  // ===========================================
+  // SUPABASE CONFIGURATION
+  // ===========================================
+  
+  /// Development Environment (Local Testing)
+  static const String devSupabaseUrl = 'https://qocwwkkirsscsxtfsrpk.supabase.co';
+  static const String devSupabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY_HERE'; // ⚠️ GANTI INI!
+  
+  /// Production Environment (Deployed App)
+  static const String prodSupabaseUrl = 'https://qocwwkkirsscsxtfsrpk.supabase.co';
+  static const String prodSupabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY_HERE'; // ⚠️ GANTI INI!
+  
+  // ===========================================
+  // AUTO-DETECT ENVIRONMENT
+  // ===========================================
+  
+  /// Check if running in production mode (release build)
+  /// Returns true if built with --release flag
+  static const bool isProduction = bool.fromEnvironment('dart.vm.product');
+  
+  /// Check if running in development mode
+  static bool get isDevelopment => !isProduction;
+  
+  // ===========================================
+  // GETTERS - AUTO SWITCH BASED ON ENVIRONMENT
+  // ===========================================
+  
+  /// Get Supabase URL based on current environment
+  static String get supabaseUrl => isProduction ? prodSupabaseUrl : devSupabaseUrl;
+  
+  /// Get Supabase Anon Key based on current environment
+  static String get supabaseAnonKey => isProduction ? prodSupabaseAnonKey : devSupabaseAnonKey;
+  
+  // ===========================================
+  // DEBUGGING
+  // ===========================================
+  
+  /// Print current environment info (for debugging)
+  static void printEnvironmentInfo() {
+    print('========================================');
+    print('🌍 ENVIRONMENT INFO');
+    print('========================================');
+    print('Mode: ${isProduction ? "🚀 PRODUCTION" : "🔧 DEVELOPMENT"}');
+    print('Supabase URL: $supabaseUrl');
+    print('Supabase Key: ${supabaseAnonKey.substring(0, 20)}...');
+    print('========================================');
+  }
+}

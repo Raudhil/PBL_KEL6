@@ -31,8 +31,22 @@ class IuranController extends StateNotifier<AsyncValue<List<IuranModel>>> {
   // CREATE
   Future<void> addIuran(IuranModel iuran) async {
     try {
-      await _supabase.from('iuran').insert(iuran.toJson());
-      await fetchIuran(); // Refresh list
+      final authId = _supabase.auth.currentUser!.id;
+      final user = await _supabase
+          .from('users')
+          .select('id')
+          .eq('id_auth', authId)
+          .single();
+
+      final int idBendahara = user['id'];
+
+      final data = {
+        ...iuran.toJson(),
+        'id_bendahara': idBendahara,
+      };
+
+      await _supabase.from('iuran').insert(data);
+      await fetchIuran();
     } catch (e) {
       throw Exception('Gagal menambah iuran: $e');
     }
@@ -41,7 +55,12 @@ class IuranController extends StateNotifier<AsyncValue<List<IuranModel>>> {
   // UPDATE
   Future<void> updateIuran(int id, IuranModel iuran) async {
     try {
-      await _supabase.from('iuran').update(iuran.toJson()).eq('id', id);
+      await _supabase.from('iuran').update({
+        'jenis': iuran.jenis,
+        'nominal': iuran.nominal,
+        'jatuh_tempo': iuran.jatuhTempo.toIso8601String(),
+      }).eq('id', id);
+
       await fetchIuran(); // Refresh list
     } catch (e) {
       throw Exception('Gagal update iuran: $e');

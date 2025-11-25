@@ -3,6 +3,7 @@ class IuranModel {
   final String jenis;
   final double nominal;
   final DateTime jatuhTempo;
+  final int? idBendahara;
   final DateTime? createdAt;
 
   IuranModel({
@@ -10,6 +11,7 @@ class IuranModel {
     required this.jenis,
     required this.nominal,
     required this.jatuhTempo,
+    this.idBendahara,
     this.createdAt,
   });
 
@@ -19,6 +21,7 @@ class IuranModel {
       jenis: json['jenis'] ?? '',
       nominal: (json['nominal'] as num).toDouble(),
       jatuhTempo: DateTime.parse(json['jatuh_tempo']),
+      idBendahara: json['id_bendahara'],
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,
@@ -30,6 +33,7 @@ class IuranModel {
       'jenis': jenis,
       'nominal': nominal,
       'jatuh_tempo': jatuhTempo.toIso8601String(),
+      'id_bendahara': idBendahara,
     };
   }
 }
