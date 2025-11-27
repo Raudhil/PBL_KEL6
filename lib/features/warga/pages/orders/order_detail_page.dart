@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_colors.dart';
-import '../../../../data/models/product_model.dart';
+import '../../../../data/models/transaksi_marketplace_model.dart';
+import '../../../../data/models/review_produk_model.dart';
+import '../../../../core/providers/marketplace_provider.dart';
 
 class OrderDetailPage extends ConsumerStatefulWidget {
-  final Order order;
+  final TransaksiMarketplaceModel order;
 
   const OrderDetailPage({super.key, required this.order});
 
@@ -13,45 +15,95 @@ class OrderDetailPage extends ConsumerStatefulWidget {
 }
 
 class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
-  double _rating = 0;
-  final TextEditingController _reviewController = TextEditingController();
-  bool _hasRated = false;
+  bool _isReviewing = false;
+  int _rating = 5;
+  final _commentController = TextEditingController();
+  ReviewProdukModel? _existingReview;
+  bool _isLoadingReview = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingReview();
+  }
 
   @override
   void dispose() {
-    _reviewController.dispose();
+    _commentController.dispose();
     super.dispose();
   }
 
-  void _submitRating() {
-    if (_rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan pilih rating terlebih dahulu'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
+  Future<void> _loadExistingReview() async {
+    try {
+      final review = await ref
+          .read(marketplaceRepositoryProvider)
+          .getReviewByTransaksi(widget.order.id);
+
+      if (mounted) {
+        setState(() {
+          _existingReview = review;
+          if (review != null) {
+            _rating = review.rating;
+            _commentController.text = review.komentar ?? '';
+          }
+          _isLoadingReview = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingReview = false);
+      }
+    }
+  }
+
+  Future<void> _submitReview() async {
+    if (widget.order.items == null || widget.order.items!.isEmpty) {
+      _showSnackBar('Tidak ada produk untuk direview', isError: true);
       return;
     }
 
-    setState(() {
-      _hasRated = true;
-    });
+    // Ambil produk pertama dari order
+    final firstItem = widget.order.items!.first;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Terima kasih atas rating Anda!'),
-        backgroundColor: AppColors.success,
-      ),
-    );
+    try {
+      setState(() => _isReviewing = true);
+
+      final review = ReviewProdukModel(
+        id: 0,
+        idProduk: firstItem.idProduk,
+        idTransaksi: widget.order.id,
+        rating: _rating,
+        komentar: _commentController.text.trim().isEmpty
+            ? null
+            : _commentController.text.trim(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await ref.read(marketplaceRepositoryProvider).createReview(review);
+
+      if (mounted) {
+        _showSnackBar('Review berhasil dikirim!');
+        await _loadExistingReview();
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('Gagal mengirim review: $e', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isReviewing = false);
+      }
+    }
   }
 
-  String _getRatingText(double rating) {
-    if (rating == 5) return 'Sangat Puas';
-    if (rating == 4) return 'Puas';
-    if (rating == 3) return 'Cukup';
-    if (rating == 2) return 'Kurang Puas';
-    return 'Tidak Puas';
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? AppColors.error : AppColors.success,
+      ),
+    );
   }
 
   @override
@@ -80,11 +132,13 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildOrderStatus(order),
-            if (order.status == OrderStatus.delivered)
-              _hasRated ? _buildRatedSection() : _buildRatingSection(),
             _buildOrderItems(order),
             const SizedBox(height: 16),
             _buildOrderInfo(order),
+            if (order.canBeRated && !_isLoadingReview) ...[
+              const SizedBox(height: 16),
+              _buildReviewSection(order),
+            ],
             const SizedBox(height: 32),
           ],
         ),
@@ -92,33 +146,29 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
   }
 
-  Widget _buildOrderStatus(Order order) {
+  Widget _buildOrderStatus(TransaksiMarketplaceModel order) {
+    final statusColor = _getStatusColor(order.status);
+    final statusIcon = _getStatusIcon(order.status);
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            _getStatusColor(order.status).withOpacity(0.1),
-            _getStatusColor(order.status).withOpacity(0.05),
-          ],
+          colors: [statusColor.withOpacity(0.1), statusColor.withOpacity(0.05)],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _getStatusColor(order.status), width: 2),
+        border: Border.all(color: statusColor, width: 2),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: _getStatusColor(order.status),
+              color: statusColor,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              _getStatusIcon(order.status),
-              color: AppColors.white,
-              size: 24,
-            ),
+            child: Icon(statusIcon, color: AppColors.white, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -126,16 +176,16 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  order.status.displayName,
+                  order.status.label,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: _getStatusColor(order.status),
+                    color: statusColor,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'ID: ${order.id}',
+                  'ID: #${order.id}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -149,197 +199,19 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
   }
 
-  Widget _buildRatingSection() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.warning.withOpacity(0.1),
-            AppColors.warning.withOpacity(0.05),
-          ],
+  Widget _buildOrderItems(TransaksiMarketplaceModel order) {
+    if (order.items == null || order.items!.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.warning,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.star, color: AppColors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Beri Rating Pesanan',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Bagaimana pengalaman Anda dengan pesanan ini?',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (index) {
-              return GestureDetector(
-                onTap: () => setState(() => _rating = index + 1.0),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Icon(
-                    index < _rating ? Icons.star : Icons.star_border,
-                    size: 40,
-                    color: AppColors.warning,
-                  ),
-                ),
-              );
-            }),
-          ),
-          if (_rating > 0) ...[
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                _getRatingText(_rating),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.warning,
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          TextField(
-            controller: _reviewController,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Tulis ulasan Anda (opsional)',
-              hintStyle: TextStyle(
-                color: AppColors.textSecondary.withOpacity(0.5),
-                fontSize: 13,
-              ),
-              filled: true,
-              fillColor: AppColors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: AppColors.greyDark.withOpacity(0.2),
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: AppColors.greyDark.withOpacity(0.2),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: AppColors.primary600,
-                  width: 2,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _submitRating,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary600,
-                foregroundColor: AppColors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Kirim Rating',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        child: const Text('Tidak ada item'),
+      );
+    }
 
-  Widget _buildRatedSection() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.success.withOpacity(0.1),
-            AppColors.success.withOpacity(0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.success.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.success,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.check_circle,
-              color: AppColors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Rating Terkirim',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Terima kasih atas ulasan Anda!',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOrderItems(Order order) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -366,7 +238,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
             ),
           ),
           const SizedBox(height: 16),
-          ...order.items.map(
+          ...order.items!.map(
             (item) => Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: Row(
@@ -383,12 +255,24 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                       ),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Center(
-                      child: Text(
-                        item.product.imageUrl,
-                        style: const TextStyle(fontSize: 30),
-                      ),
-                    ),
+                    child: item.fotoProduk != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              item.fotoProduk!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.image,
+                                color: AppColors.greyMedium,
+                              ),
+                            ),
+                          )
+                        : const Center(
+                            child: Icon(
+                              Icons.shopping_bag,
+                              color: AppColors.primary400,
+                            ),
+                          ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -396,7 +280,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.product.name,
+                          item.namaProduk ?? 'Produk',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -405,7 +289,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${item.quantity}x Rp ${_formatPrice(item.product.price)}',
+                          '${item.qty}x Rp ${_formatPrice(item.harga.toInt())}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -415,7 +299,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                     ),
                   ),
                   Text(
-                    'Rp ${_formatPrice(item.totalPrice)}',
+                    'Rp ${_formatPrice(item.subtotal.toInt())}',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -432,7 +316,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Total',
+                'Total Pembayaran',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -440,7 +324,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                 ),
               ),
               Text(
-                'Rp ${_formatPrice(order.totalAmount)}',
+                'Rp ${_formatPrice(order.total.toInt())}',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -454,7 +338,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
   }
 
-  Widget _buildOrderInfo(Order order) {
+  Widget _buildOrderInfo(TransaksiMarketplaceModel order) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -483,24 +367,204 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           const SizedBox(height: 16),
           _buildInfoRow(
             'Tanggal Pemesanan',
-            _formatDateTime(order.orderDate),
+            _formatDateTime(order.createdAt),
             Icons.calendar_today,
           ),
           const SizedBox(height: 12),
-          _buildInfoRow(
-            'Metode Pembayaran',
-            order.paymentMethod,
-            Icons.payment,
-          ),
-          if (order.deliveryAddress != null) ...[
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              'Alamat Pengiriman',
-              order.deliveryAddress!,
-              Icons.location_on,
-              multiline: true,
+          _buildInfoRow('Metode Pembayaran', 'COD', Icons.payment),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewSection(TransaksiMarketplaceModel order) {
+    if (_existingReview != null) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.greyDark.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.star, color: AppColors.warning, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Review Anda',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: List.generate(5, (index) {
+                return Icon(
+                  index < _existingReview!.rating
+                      ? Icons.star
+                      : Icons.star_border,
+                  color: AppColors.warning,
+                  size: 24,
+                );
+              }),
+            ),
+            if (_existingReview!.komentar != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _existingReview!.komentar!,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              'Dikirim pada ${_formatDateTime(_existingReview!.createdAt)}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.greyDark.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.rate_review,
+                color: AppColors.primary600,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Berikan Review',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Rating',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(5, (index) {
+              final starValue = index + 1;
+              return GestureDetector(
+                onTap: () => setState(() => _rating = starValue),
+                child: Icon(
+                  _rating >= starValue ? Icons.star : Icons.star_border,
+                  color: AppColors.warning,
+                  size: 32,
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Komentar (Opsional)',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _commentController,
+            maxLines: 4,
+            decoration: InputDecoration(
+              hintText: 'Tuliskan pengalaman Anda...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppColors.greyMedium),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(
+                  color: AppColors.primary600,
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isReviewing ? null : _submitReview,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary600,
+                foregroundColor: AppColors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: _isReviewing
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.white,
+                        ),
+                      ),
+                    )
+                  : const Text(
+                      'Kirim Review',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
         ],
       ),
     );
@@ -546,36 +610,6 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     );
   }
 
-  Color _getStatusColor(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.pending:
-        return AppColors.warning;
-      case OrderStatus.processing:
-        return AppColors.primary600;
-      case OrderStatus.shipped:
-        return AppColors.primary400;
-      case OrderStatus.delivered:
-        return AppColors.success;
-      case OrderStatus.cancelled:
-        return AppColors.danger;
-    }
-  }
-
-  IconData _getStatusIcon(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.pending:
-        return Icons.pending;
-      case OrderStatus.processing:
-        return Icons.autorenew;
-      case OrderStatus.shipped:
-        return Icons.local_shipping;
-      case OrderStatus.delivered:
-        return Icons.check_circle;
-      case OrderStatus.cancelled:
-        return Icons.cancel;
-    }
-  }
-
   String _formatPrice(int price) {
     return price.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -599,5 +633,31 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
       'Des',
     ];
     return '${dateTime.day} ${months[dateTime.month - 1]} ${dateTime.year}, ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  Color _getStatusColor(StatusTransaksi status) {
+    switch (status) {
+      case StatusTransaksi.pending:
+        return AppColors.warning;
+      case StatusTransaksi.dikonfirmasi:
+        return Colors.blue;
+      case StatusTransaksi.selesai:
+        return AppColors.success;
+      case StatusTransaksi.dibatalkan:
+        return AppColors.error;
+    }
+  }
+
+  IconData _getStatusIcon(StatusTransaksi status) {
+    switch (status) {
+      case StatusTransaksi.pending:
+        return Icons.access_time;
+      case StatusTransaksi.dikonfirmasi:
+        return Icons.check_circle;
+      case StatusTransaksi.selesai:
+        return Icons.done_all;
+      case StatusTransaksi.dibatalkan:
+        return Icons.cancel;
+    }
   }
 }

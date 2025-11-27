@@ -43,8 +43,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> signIn(String email, String password) async {
     print('🔄 AuthProvider: Starting login...');
-    state = state.copyWith(isLoading: true);
+
+    // Ensure clean state before login
+    state = AuthState(isLoading: true);
+
     try {
+      // Wait a bit to ensure any previous session is fully cleared
+      await Future.delayed(const Duration(milliseconds: 500));
+
       final result = await _authService.signIn(
         email: email,
         password: password,
@@ -65,14 +71,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
     } catch (e) {
       print('❌ AuthProvider: Login error - $e');
-      state = state.copyWith(isLoading: false);
+      state = AuthState(isLoading: false, error: e.toString());
       rethrow;
     }
   }
 
   Future<void> signOut() async {
-    await _authService.signOut();
-    state = AuthState();
+    print('🔄 AuthProvider: Starting logout...');
+    try {
+      await _authService.signOut();
+      // Reset state completely
+      state = AuthState();
+      print('✅ AuthProvider: Logout successful, state reset');
+    } catch (e) {
+      print('❌ AuthProvider: Logout error - $e');
+      // Still reset state even if logout fails
+      state = AuthState();
+    }
   }
 }
 

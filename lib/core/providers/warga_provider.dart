@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/warga_model.dart';
 import '../../data/repositories/warga_repository.dart';
-import '../services/supabase_service.dart';
+import '../services/kelola_warga_service.dart';
 
 final wargaRepositoryProvider = Provider<WargaRepository>((ref) {
   final service = SupabaseService();

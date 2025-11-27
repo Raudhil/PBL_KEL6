@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_colors.dart';
-import '../../../data/models/product_model.dart';
+import '../../../data/models/produk_marketplace_model.dart';
 import '../pages/marketplace/product_detail_page.dart';
 
 class ProductCard extends ConsumerWidget {
-  final Product product;
+  final ProdukMarketplaceModel product;
 
   const ProductCard({super.key, required this.product});
 
@@ -51,12 +51,30 @@ class ProductCard extends ConsumerWidget {
                         end: Alignment.bottomRight,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
-                        product.imageUrl,
-                        style: const TextStyle(fontSize: 54),
-                      ),
-                    ),
+                    child: product.fotoProduk != null
+                        ? ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(12),
+                            ),
+                            child: Image.network(
+                              product.fotoProduk!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Center(
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  size: 48,
+                                  color: AppColors.greyMedium,
+                                ),
+                              ),
+                            ),
+                          )
+                        : const Center(
+                            child: Icon(
+                              Icons.shopping_bag_outlined,
+                              size: 54,
+                              color: AppColors.primary400,
+                            ),
+                          ),
                   ),
                   Positioned(
                     top: 12,
@@ -80,7 +98,7 @@ class ProductCard extends ConsumerWidget {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            product.rating.toStringAsFixed(1),
+                            '0.0',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -100,7 +118,7 @@ class ProductCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product.name,
+                    product.nama,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -120,7 +138,7 @@ class ProductCard extends ConsumerWidget {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          product.seller,
+                          product.namaToko ?? 'Toko',
                           style: TextStyle(
                             fontSize: 11,
                             color: AppColors.textSecondary.withOpacity(0.9),
@@ -137,7 +155,7 @@ class ProductCard extends ConsumerWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          'Rp ${_formatPrice(product.price)}',
+                          'Rp ${_formatPrice(product.harga.toInt())}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -155,7 +173,7 @@ class ProductCard extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          '${product.stock} stok',
+                          '${product.stok} stok',
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,

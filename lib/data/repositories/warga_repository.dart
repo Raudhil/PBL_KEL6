@@ -1,4 +1,4 @@
-import '../../core/services/supabase_service.dart';
+import '../../core/services/kelola_warga_service.dart';
 import '../models/warga_model.dart';
 
 class WargaRepository {

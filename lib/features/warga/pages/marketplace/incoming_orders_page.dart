@@ -1,322 +1,118 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
 import '../../../../data/models/transaksi_marketplace_model.dart';
 import '../../../../core/providers/marketplace_provider.dart';
 
-class SellerOrderListPage extends ConsumerStatefulWidget {
-  const SellerOrderListPage({super.key});
+class IncomingOrdersPage extends ConsumerStatefulWidget {
+  final int tokoId;
+  final int idPenjual;
+
+  const IncomingOrdersPage({
+    super.key,
+    required this.tokoId,
+    required this.idPenjual,
+  });
 
   @override
-  ConsumerState<SellerOrderListPage> createState() =>
-      _SellerOrderListPageState();
+  ConsumerState<IncomingOrdersPage> createState() => _IncomingOrdersPageState();
 }
 
-class _SellerOrderListPageState extends ConsumerState<SellerOrderListPage> {
+class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
   String _selectedFilter = 'Semua';
-
-  Future<int?> _getUserIntId(String authId) async {
-    try {
-      final userData = await Supabase.instance.client
-          .from('users')
-          .select('id')
-          .eq('id_auth', authId)
-          .maybeSingle();
-      return userData?['id'] as int?;
-    } catch (e) {
-      print('❌ Error getting user ID: $e');
-      return null;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = Supabase.instance.client.auth.currentUser;
-    if (currentUser == null) {
-      return Scaffold(
-        backgroundColor: AppColors.creamWhite,
-        appBar: const CustomTopBar(
-          title: 'Pesanan Masuk',
-          showBackButton: true,
-        ),
-        body: const Center(child: Text('Silakan login terlebih dahulu')),
-      );
-    }
-
-    return FutureBuilder<int?>(
-      future: _getUserIntId(currentUser.id),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Scaffold(
-            backgroundColor: AppColors.creamWhite,
-            appBar: const CustomTopBar(
-              title: 'Pesanan Masuk',
-              showBackButton: true,
-            ),
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        final userId = snapshot.data;
-        if (userId == null) {
-          return Scaffold(
-            backgroundColor: AppColors.creamWhite,
-            appBar: const CustomTopBar(
-              title: 'Pesanan Masuk',
-              showBackButton: true,
-            ),
-            body: const Center(child: Text('User ID tidak ditemukan')),
-          );
-        }
-
-        return _buildOrdersPage(context, userId);
-      },
-    );
-  }
-
-  Widget _buildOrdersPage(BuildContext context, int userId) {
-    // Get incoming orders for this seller
-    final ordersAsync = ref.watch(incomingOrdersProvider(userId));
+    // Get incoming orders for seller
+    final ordersAsync = _selectedFilter == 'Semua'
+        ? ref.watch(incomingOrdersProvider(widget.idPenjual))
+        : ref.watch(incomingOrdersProvider(widget.idPenjual));
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
       appBar: const CustomTopBar(title: 'Pesanan Masuk', showBackButton: true),
-      body: ordersAsync.when(
-        data: (orders) {
-          // Filter orders by status
-          List<TransaksiMarketplaceModel> filteredOrders = orders;
-          if (_selectedFilter != 'Semua') {
-            filteredOrders = orders.where((order) {
-              switch (_selectedFilter) {
-                case 'Pending':
-                  return order.status == StatusTransaksi.pending;
-                case 'Dikonfirmasi':
-                  return order.status == StatusTransaksi.dikonfirmasi;
-                case 'Selesai':
-                  return order.status == StatusTransaksi.selesai;
-                case 'Dibatalkan':
-                  return order.status == StatusTransaksi.dibatalkan;
-                default:
-                  return true;
-              }
-            }).toList();
-          }
+      body: Column(
+        children: [
+          _buildFilterChips(),
+          Expanded(
+            child: ordersAsync.when(
+              data: (orders) {
+                // Filter by status
+                List<TransaksiMarketplaceModel> filteredOrders = orders;
+                if (_selectedFilter != 'Semua') {
+                  filteredOrders = orders.where((order) {
+                    switch (_selectedFilter) {
+                      case 'Pending':
+                        return order.status == StatusTransaksi.pending;
+                      case 'Dikonfirmasi':
+                        return order.status == StatusTransaksi.dikonfirmasi;
+                      case 'Selesai':
+                        return order.status == StatusTransaksi.selesai;
+                      case 'Dibatalkan':
+                        return order.status == StatusTransaksi.dibatalkan;
+                      default:
+                        return true;
+                    }
+                  }).toList();
+                }
 
-          return Column(
-            children: [
-              _buildFilterChips(),
-              Expanded(
-                child: filteredOrders.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          ref.invalidate(incomingOrdersProvider(userId));
-                        },
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: filteredOrders.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final order = filteredOrders[index];
-                            return _OrderCard(
-                              order: order,
-                              onConfirm: () => _confirmOrder(order.id, userId),
-                              onComplete: () =>
-                                  _completeOrder(order.id, userId),
-                              onCancel: () => _cancelOrder(order.id, userId),
-                            );
-                          },
-                        ),
+                if (filteredOrders.isEmpty) {
+                  return _buildEmptyOrders();
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(incomingOrdersProvider(widget.idPenjual));
+                  },
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filteredOrders.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      return _OrderCard(
+                        order: filteredOrders[index],
+                        onConfirm: () =>
+                            _confirmOrder(filteredOrders[index].id),
+                        onComplete: () =>
+                            _completeOrder(filteredOrders[index].id),
+                        onCancel: () => _cancelOrder(filteredOrders[index].id),
+                      );
+                    },
+                  ),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: AppColors.error,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Gagal memuat pesanan\n${error.toString()}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => ref.invalidate(
+                        incomingOrdersProvider(widget.idPenjual),
                       ),
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          );
-        },
-        loading: () => Scaffold(
-          backgroundColor: AppColors.creamWhite,
-          appBar: const CustomTopBar(
-            title: 'Pesanan Masuk',
-            showBackButton: true,
-          ),
-          body: const Center(child: CircularProgressIndicator()),
-        ),
-        error: (error, stack) => Scaffold(
-          backgroundColor: AppColors.creamWhite,
-          appBar: const CustomTopBar(
-            title: 'Pesanan Masuk',
-            showBackButton: true,
-          ),
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: AppColors.error,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Gagal memuat pesanan\n${error.toString()}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () =>
-                      ref.invalidate(incomingOrdersProvider(userId)),
-                  child: const Text('Coba Lagi'),
-                ),
-              ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmOrder(int orderId, int userId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Konfirmasi Pesanan'),
-        content: const Text(
-          'Stok produk akan dikurangi sesuai jumlah pesanan. Lanjutkan?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-            child: const Text('Konfirmasi'),
-          ),
         ],
       ),
     );
-
-    if (confirm != true || !mounted) return;
-
-    try {
-      await ref.read(confirmOrderProvider(orderId).future);
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pesanan berhasil dikonfirmasi & stok dikurangi'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-
-      // Refresh orders
-      ref.invalidate(incomingOrdersProvider(userId));
-      ref.invalidate(todayOrdersCountProvider(userId));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal konfirmasi pesanan: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
-
-  Future<void> _completeOrder(int orderId, int userId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Selesaikan Pesanan'),
-        content: const Text('Tandai pesanan ini sebagai selesai?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
-            child: const Text('Selesaikan'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true || !mounted) return;
-
-    try {
-      await ref.read(marketplaceRepositoryProvider).completeOrder(orderId);
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pesanan diselesaikan'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-
-      // Refresh orders
-      ref.invalidate(incomingOrdersProvider(userId));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal menyelesaikan pesanan: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
-
-  Future<void> _cancelOrder(int orderId, int userId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Batalkan Pesanan'),
-        content: const Text('Yakin ingin membatalkan pesanan ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Tidak'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Batalkan'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true || !mounted) return;
-
-    try {
-      await ref.read(marketplaceRepositoryProvider).cancelOrder(orderId);
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pesanan dibatalkan'),
-          backgroundColor: AppColors.warning,
-        ),
-      );
-
-      // Refresh orders
-      ref.invalidate(incomingOrdersProvider(userId));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal membatalkan pesanan: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
   }
 
   Widget _buildFilterChips() {
@@ -381,28 +177,177 @@ class _SellerOrderListPageState extends ConsumerState<SellerOrderListPage> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyOrders() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             Icons.inbox_outlined,
-            size: 80,
+            size: 100,
             color: AppColors.greyMedium.withOpacity(0.5),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Belum ada pesanan',
+          const SizedBox(height: 24),
+          const Text(
+            'Belum Ada Pesanan',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.greyMedium,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Pesanan masuk akan muncul di sini',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary.withOpacity(0.7),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmOrder(int orderId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Pesanan'),
+        content: const Text(
+          'Stok produk akan dikurangi sesuai jumlah pesanan. Lanjutkan?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text('Konfirmasi'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await ref.read(confirmOrderProvider(orderId).future);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pesanan berhasil dikonfirmasi & stok dikurangi'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Refresh orders
+      ref.invalidate(incomingOrdersProvider(widget.idPenjual));
+      ref.invalidate(todayOrdersCountProvider(widget.idPenjual));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal konfirmasi pesanan: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _completeOrder(int orderId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Selesaikan Pesanan'),
+        content: const Text('Tandai pesanan ini sebagai selesai?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text('Selesaikan'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await ref.read(marketplaceRepositoryProvider).completeOrder(orderId);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pesanan diselesaikan'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Refresh orders
+      ref.invalidate(incomingOrdersProvider(widget.idPenjual));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal menyelesaikan pesanan: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _cancelOrder(int orderId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Batalkan Pesanan'),
+        content: const Text('Yakin ingin membatalkan pesanan ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Tidak'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Batalkan'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    try {
+      await ref.read(marketplaceRepositoryProvider).cancelOrder(orderId);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pesanan dibatalkan'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+
+      // Refresh orders
+      ref.invalidate(incomingOrdersProvider(widget.idPenjual));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal membatalkan pesanan: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 }
 

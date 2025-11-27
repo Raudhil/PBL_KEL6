@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
-import '../../../../data/models/product_model.dart';
+import '../../../../data/models/transaksi_marketplace_model.dart';
 import '../../../../core/providers/marketplace_provider.dart';
 import 'order_detail_page.dart';
 
@@ -16,29 +17,99 @@ class MyOrdersPage extends ConsumerStatefulWidget {
 class _MyOrdersPageState extends ConsumerState<MyOrdersPage> {
   String _selectedFilter = 'Semua';
 
-  final Map<String, OrderStatus> _statusMap = {
-    'Menunggu': OrderStatus.pending,
-    'Diproses': OrderStatus.processing,
-    'Dikirim': OrderStatus.shipped,
-    'Selesai': OrderStatus.delivered,
-    'Dibatalkan': OrderStatus.cancelled,
-  };
-
   @override
   Widget build(BuildContext context) {
-    final orders = ref.watch(ordersHistoryProvider);
-    final filteredOrders = _selectedFilter == 'Semua'
-        ? orders
-        : orders
-              .where((order) => order.status == _statusMap[_selectedFilter])
-              .toList();
+    // Get current user ID
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: AppColors.creamWhite,
+        appBar: const CustomTopBar(title: 'Pesanan Saya', showBackButton: true),
+        body: const Center(child: Text('Silakan login terlebih dahulu')),
+      );
+    }
+
+    return FutureBuilder<int?>(
+      future: _getUserIntId(currentUser.id),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Scaffold(
+            backgroundColor: AppColors.creamWhite,
+            appBar: const CustomTopBar(
+              title: 'Pesanan Saya',
+              showBackButton: true,
+            ),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final userId = snapshot.data;
+        if (userId == null) {
+          return Scaffold(
+            backgroundColor: AppColors.creamWhite,
+            appBar: const CustomTopBar(
+              title: 'Pesanan Saya',
+              showBackButton: true,
+            ),
+            body: const Center(child: Text('User ID tidak ditemukan')),
+          );
+        }
+
+        return _buildOrdersPage(context, userId);
+      },
+    );
+  }
+
+  Future<int?> _getUserIntId(String authId) async {
+    try {
+      final userData = await Supabase.instance.client
+          .from('users')
+          .select('id')
+          .eq('id_auth', authId)
+          .maybeSingle();
+      return userData?['id'] as int?;
+    } catch (e) {
+      print('❌ Error getting user ID: $e');
+      return null;
+    }
+  }
+
+  Widget _buildOrdersPage(BuildContext context, int userId) {
+    final ordersAsync = ref.watch(transaksiHistoryProvider(userId));
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
       appBar: const CustomTopBar(title: 'Pesanan Saya', showBackButton: true),
-      body: orders.isEmpty
-          ? _buildEmptyOrders(context)
-          : Column(
+      body: ordersAsync.when(
+        data: (orders) {
+          // Filter orders by status
+          List<TransaksiMarketplaceModel> filteredOrders = orders;
+          if (_selectedFilter != 'Semua') {
+            filteredOrders = orders.where((order) {
+              switch (_selectedFilter) {
+                case 'Pending':
+                  return order.status == StatusTransaksi.pending;
+                case 'Dikonfirmasi':
+                  return order.status == StatusTransaksi.dikonfirmasi;
+                case 'Selesai':
+                  return order.status == StatusTransaksi.selesai;
+                case 'Dibatalkan':
+                  return order.status == StatusTransaksi.dibatalkan;
+                default:
+                  return true;
+              }
+            }).toList();
+          }
+
+          if (orders.isEmpty) {
+            return _buildEmptyOrders(context);
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(transaksiHistoryProvider(userId));
+            },
+            child: Column(
               children: [
                 _OrderFilterChips(
                   selected: _selectedFilter,
@@ -47,27 +118,61 @@ class _MyOrdersPageState extends ConsumerState<MyOrdersPage> {
                   },
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredOrders.length,
-                    itemBuilder: (context, index) {
-                      return _OrderCard(
-                        order: filteredOrders[index],
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  OrderDetailPage(order: filteredOrders[index]),
+                  child: filteredOrders.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Tidak ada pesanan $_selectedFilter',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
                             ),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filteredOrders.length,
+                          itemBuilder: (context, index) {
+                            return _OrderCard(
+                              order: filteredOrders[index],
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => OrderDetailPage(
+                                      order: filteredOrders[index],
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+              const SizedBox(height: 16),
+              Text(
+                'Gagal memuat pesanan\n${error.toString()}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () =>
+                    ref.invalidate(transaksiHistoryProvider(userId)),
+                child: const Text('Coba Lagi'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -130,9 +235,8 @@ class _OrderFilterChips extends StatelessWidget {
   Widget build(BuildContext context) {
     const filters = [
       'Semua',
-      'Menunggu',
-      'Diproses',
-      'Dikirim',
+      'Pending',
+      'Dikonfirmasi',
       'Selesai',
       'Dibatalkan',
     ];
@@ -170,13 +274,17 @@ class _OrderFilterChips extends StatelessWidget {
 }
 
 class _OrderCard extends StatelessWidget {
-  final Order order;
+  final TransaksiMarketplaceModel order;
   final VoidCallback onTap;
 
   const _OrderCard({required this.order, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    // Use actual status from order
+    final statusDisplay = order.status.label;
+    final statusColor = _getStatusColor(order.status);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -215,7 +323,7 @@ class _OrderCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
-                              order.id,
+                              '#${order.id}',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -235,21 +343,18 @@ class _OrderCard extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(order.status).withOpacity(0.1),
+                          color: statusColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: _getStatusColor(order.status),
-                            width: 1,
-                          ),
+                          border: Border.all(color: statusColor, width: 1),
                         ),
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            order.status.displayName,
+                            statusDisplay,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: _getStatusColor(order.status),
+                              color: statusColor,
                             ),
                           ),
                         ),
@@ -268,7 +373,7 @@ class _OrderCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        _formatDateTime(order.orderDate),
+                        _formatDate(order.createdAt),
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -289,7 +394,7 @@ class _OrderCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        order.paymentMethod,
+                        'COD',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -316,7 +421,7 @@ class _OrderCard extends StatelessWidget {
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          'Rp ${_formatPrice(order.totalAmount)}',
+                          'Rp ${_formatPrice(order.total.toInt())}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -335,29 +440,7 @@ class _OrderCard extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(OrderStatus status) {
-    switch (status) {
-      case OrderStatus.pending:
-        return AppColors.warning;
-      case OrderStatus.processing:
-        return AppColors.primary600;
-      case OrderStatus.shipped:
-        return AppColors.primary400;
-      case OrderStatus.delivered:
-        return AppColors.success;
-      case OrderStatus.cancelled:
-        return AppColors.danger;
-    }
-  }
-
-  String _formatPrice(int price) {
-    return price.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
-    );
-  }
-
-  String _formatDateTime(DateTime dateTime) {
+  String _formatDate(DateTime date) {
     final months = [
       'Jan',
       'Feb',
@@ -372,6 +455,26 @@ class _OrderCard extends StatelessWidget {
       'Nov',
       'Des',
     ];
-    return '${dateTime.day} ${months[dateTime.month - 1]} ${dateTime.year}, ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  String _formatPrice(int price) {
+    return price.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
+  }
+
+  Color _getStatusColor(StatusTransaksi status) {
+    switch (status) {
+      case StatusTransaksi.pending:
+        return AppColors.warning;
+      case StatusTransaksi.dikonfirmasi:
+        return Colors.blue;
+      case StatusTransaksi.selesai:
+        return AppColors.success;
+      case StatusTransaksi.dibatalkan:
+        return AppColors.error;
+    }
   }
 }
