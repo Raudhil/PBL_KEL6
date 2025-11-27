@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
-import '../../../../data/models/product_model.dart';
-import 'checkout_page.dart';
+import '../../../../data/models/produk_marketplace_model.dart';
+import '../../../../core/providers/marketplace_provider.dart';
 
 class ProductDetailPage extends ConsumerStatefulWidget {
-  final Product product;
+  final ProdukMarketplaceModel product;
 
   const ProductDetailPage({super.key, required this.product});
 
@@ -16,6 +17,34 @@ class ProductDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
+  Future<bool> _isOwnProduct() async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) return false;
+
+    try {
+      // Get integer user ID from users table
+      final userData = await Supabase.instance.client
+          .from('users')
+          .select('id')
+          .eq('id_auth', currentUser.id)
+          .maybeSingle();
+
+      if (userData == null) return false;
+
+      final userId = userData['id'] as int;
+      // Check if this product belongs to user's store
+      final myStoreAsync = ref.read(myStoreProvider(userId));
+      return myStoreAsync.when(
+        data: (store) => store != null && store.id == widget.product.idToko,
+        loading: () => false,
+        error: (_, __) => false,
+      );
+    } catch (e) {
+      print('❌ Error checking own product: $e');
+      return false;
+    }
+  }
+
   void _showQuantityBottomSheet() {
     int quantity = 1;
 
@@ -74,12 +103,24 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                           color: AppColors.creamWhite,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Center(
-                          child: Text(
-                            widget.product.imageUrl,
-                            style: const TextStyle(fontSize: 32),
-                          ),
-                        ),
+                        child: widget.product.fotoProduk != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  widget.product.fotoProduk!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.image,
+                                    color: AppColors.greyMedium,
+                                  ),
+                                ),
+                              )
+                            : const Center(
+                                child: Icon(
+                                  Icons.shopping_bag,
+                                  color: AppColors.primary400,
+                                ),
+                              ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -87,7 +128,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.product.name,
+                              widget.product.nama,
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -96,7 +137,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Rp ${_formatPrice(widget.product.price)} / kg',
+                              'Rp ${_formatPrice(widget.product.harga.toInt())} / kg',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -162,7 +203,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                       ),
                       InkWell(
                         onTap: () {
-                          if (quantity < widget.product.stock) {
+                          if (quantity < widget.product.stok) {
                             setModalState(() => quantity++);
                           }
                         },
@@ -195,7 +236,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                         ),
                       ),
                       Text(
-                        'Rp ${_formatPrice(widget.product.price * quantity)}',
+                        'Rp ${_formatPrice((widget.product.harga * quantity).toInt())}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -239,23 +280,130 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
     );
   }
 
-  void _buyNow(int quantity) {
-    final cartItem = CartItem(product: widget.product, quantity: quantity);
-
-    Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(
-        builder: (_) => CheckoutPage(
-          cartItems: [cartItem],
-          totalAmount: widget.product.price * quantity,
+  Future<void> _buyNow(int quantity) async {
+    // Check if user is trying to buy their own product
+    if (await _isOwnProduct()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Anda tidak bisa membeli produk sendiri'),
+          backgroundColor: AppColors.warning,
         ),
-      ),
-    );
+      );
+      return;
+    }
+
+    // Check stock availability
+    if (widget.product.stok < quantity) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Stok tidak mencukupi'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // Get current user integer ID
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan login terlebih dahulu'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // Get buyer integer ID from users table
+      final userData = await Supabase.instance.client
+          .from('users')
+          .select('id')
+          .eq('id_auth', currentUser.id)
+          .maybeSingle();
+
+      if (userData == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User ID tidak ditemukan'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      final buyerId = userData['id'] as int;
+
+      // Get seller ID from toko
+      final tokoData = await Supabase.instance.client
+          .from('toko')
+          .select('id_pemilik')
+          .eq('id', widget.product.idToko)
+          .single();
+
+      final sellerId = tokoData['id_pemilik'] as int;
+
+      // Show loading
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Create transaction
+      final subtotal = widget.product.harga * quantity;
+      await ref
+          .read(marketplaceRepositoryProvider)
+          .createTransaksi(
+            idPembeli: buyerId,
+            idPenjual: sellerId,
+            total: subtotal,
+            items: [
+              {
+                'id_produk': widget.product.id,
+                'qty': quantity,
+                'harga': widget.product.harga,
+                'subtotal': subtotal,
+              },
+            ],
+          );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+
+      // Show success
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pesanan berhasil dibuat! Menunggu konfirmasi penjual'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      // Refresh product list
+      ref.invalidate(produkByTokoProvider);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading if open
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal membuat pesanan: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Future<void> _contactWhatsApp() async {
     final phoneNumber = '6281234567890'; // Replace with actual seller phone
     final message = Uri.encodeComponent(
-      'Halo, saya tertarik dengan produk ${widget.product.name}',
+      'Halo, saya tertarik dengan produk ${widget.product.nama}',
     );
     final whatsappUrl = 'https://wa.me/$phoneNumber?text=$message';
 
@@ -296,12 +444,28 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                           ),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: Center(
-                          child: Text(
-                            widget.product.imageUrl,
-                            style: const TextStyle(fontSize: 100),
-                          ),
-                        ),
+                        child: widget.product.fotoProduk != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: Image.network(
+                                  widget.product.fotoProduk!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Center(
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      size: 100,
+                                      color: AppColors.greyMedium,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : const Center(
+                                child: Icon(
+                                  Icons.shopping_bag_outlined,
+                                  size: 100,
+                                  color: AppColors.primary400,
+                                ),
+                              ),
                       ),
                     ),
                   ),
@@ -317,52 +481,57 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Category Badge & Rating
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 5,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary50,
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: AppColors.primary200,
-                                        width: 1,
+                              // Category Badge & Rating - Category removed for now
+                              // Rating dari database
+                              Consumer(
+                                builder: (context, ref, child) {
+                                  final avgRatingAsync = ref.watch(
+                                    averageRatingProvider(widget.product.id),
+                                  );
+
+                                  return Row(
+                                    children: [
+                                      const Spacer(),
+                                      const Icon(
+                                        Icons.star,
+                                        size: 16,
+                                        color: AppColors.yellowGold,
                                       ),
-                                    ),
-                                    child: Text(
-                                      widget.product.category,
-                                      style: const TextStyle(
-                                        color: AppColors.primary600,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
+                                      const SizedBox(width: 4),
+                                      avgRatingAsync.when(
+                                        data: (rating) => Text(
+                                          rating.toStringAsFixed(1),
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        loading: () => const Text(
+                                          '0.0',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        error: (_, __) => const Text(
+                                          '0.0',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  const Icon(
-                                    Icons.star,
-                                    size: 16,
-                                    color: AppColors.yellowGold,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    widget.product.rating.toStringAsFixed(1),
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ],
+                                    ],
+                                  );
+                                },
                               ),
                               const SizedBox(height: 12),
                               // Product Name
                               Text(
-                                widget.product.name,
+                                widget.product.nama,
                                 style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
@@ -388,7 +557,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    widget.product.seller,
+                                    widget.product.namaToko ?? 'Toko',
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: AppColors.textPrimary,
@@ -420,7 +589,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Rp ${_formatPrice(widget.product.price)}',
+                                'Rp ${_formatPrice(widget.product.harga.toInt())}',
                                 style: const TextStyle(
                                   fontSize: 26,
                                   fontWeight: FontWeight.bold,
@@ -442,17 +611,9 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                             children: [
                               Expanded(
                                 child: _InfoCard(
-                                  icon: Icons.category_outlined,
-                                  label: 'Kategori',
-                                  value: widget.product.category,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _InfoCard(
                                   icon: Icons.inventory_2_outlined,
                                   label: 'Stok',
-                                  value: '${widget.product.stock} Item',
+                                  value: '${widget.product.stok} Item',
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -486,7 +647,8 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                widget.product.description,
+                                widget.product.deskripsi ??
+                                    'Belum ada deskripsi produk.',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   height: 1.6,
@@ -588,6 +750,10 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   }
 
   Widget _buildRatingPreview() {
+    // Watch untuk rating dan review dari database
+    final avgRatingAsync = ref.watch(averageRatingProvider(widget.product.id));
+    final reviewsAsync = ref.watch(reviewByProdukProvider(widget.product.id));
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -603,22 +769,44 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
             children: [
               const Icon(Icons.reviews_outlined, color: AppColors.warning),
               const SizedBox(width: 8),
-              Text(
-                'Rating ${widget.product.rating.toStringAsFixed(1)} / 5',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+              avgRatingAsync.when(
+                data: (rating) => Text(
+                  'Rating ${rating.toStringAsFixed(1)} / 5',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                loading: () => const Text(
+                  'Rating 0.0 / 5',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                error: (_, __) => const Text(
+                  'Rating 0.0 / 5',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
               const Spacer(),
-              Text(
-                'Lihat semua',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.primary600,
-                  fontWeight: FontWeight.w600,
+              reviewsAsync.when(
+                data: (reviews) => Text(
+                  '(${reviews.length} ulasan)',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
               ),
             ],
           ),
@@ -630,26 +818,72 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
               color: AppColors.creamWhite,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Budi Santoso',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '“Produknya segar sekali, pengiriman cepat!”',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
+            child: reviewsAsync.when(
+              data: (reviews) {
+                if (reviews.isEmpty) {
+                  return const Text(
+                    'Belum ada ulasan untuk produk ini',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  );
+                }
+
+                final latestReview = reviews.first;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          latestReview.namaPembeli ?? 'Pembeli',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Row(
+                          children: List.generate(
+                            5,
+                            (index) => Icon(
+                              index < latestReview.rating
+                                  ? Icons.star
+                                  : Icons.star_border,
+                              size: 14,
+                              color: AppColors.yellowGold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (latestReview.komentar != null &&
+                        latestReview.komentar!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        '"${latestReview.komentar}"',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => const Text(
+                'Gagal memuat ulasan',
+                style: TextStyle(fontSize: 12, color: AppColors.error),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ],

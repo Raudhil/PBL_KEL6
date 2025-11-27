@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
 import '../../../../data/models/product_model.dart';
-import '../orders/order_detail_page.dart';
 
 class OrderSuccessPage extends ConsumerWidget {
   final Order order;
@@ -211,12 +210,18 @@ class OrderSuccessPage extends ConsumerWidget {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => OrderDetailPage(order: order),
+                        // TODO: Update to use TransaksiMarketplaceModel once checkout flow is updated
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Detail pesanan akan segera tersedia',
+                            ),
+                            backgroundColor: AppColors.primary600,
                           ),
                         );
+                        Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary600,
