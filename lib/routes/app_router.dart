@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/providers/auth_state_provider.dart';
-import '../features/auth/auth_page.dart';
+import '../features/auth/pages/onboarding_page.dart';
+import '../features/auth/pages/login_page.dart';
+import '../features/auth/pages/splash_page.dart';
+import '../core/onboarding_state.dart';
 import '../features/warga/warga_main_page.dart';
 import '../features/warga/pages/dashboard/dashboard_page.dart';
 import '../features/warga/pages/marketplace/marketplace_page.dart';
@@ -45,11 +48,32 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
   return GoRouter(
-    initialLocation: '/warga/dashboard',
+    // Start at a short Splash page which will decide where to navigate next
+    // (onboarding / login / dashboard). Using a splash avoids racing with
+    // redirect logic and gives a consistent startup UX.
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
 
     // Redirect logic based on auth state and role
     redirect: (context, state) {
+      // Debug log: show current onboarding flag and requested route
+      debugPrint('[Router] redirect check - seenOnboarding=${OnboardingState.seenOnboarding}, uri.path=${state.uri.path}');
+      final location = state.uri.path; // use uri.path to check requested path
+      debugPrint('[Router] uri.path=$location');
+
+      // Allow the splash page to load and perform its own navigation.
+      if (location == '/splash') return null;
+      // If onboarding hasn't been seen yet, short-circuit: allow staying on
+      // `/onboarding` but force other routes to `/onboarding`. This prevents
+      // the auth redirect from kicking in while onboarding is shown.
+      if (!OnboardingState.seenOnboarding) {
+        // While onboarding hasn't been seen, allow both splash and onboarding
+        // to render so the splash can route to onboarding without being
+        // redirected away prematurely.
+        if (location == '/onboarding' || location == '/splash') return null;
+        return '/onboarding';
+      }
+
       final isAuthenticated = authState.asData?.value.session != null;
       final isLoggingIn = state.matchedLocation == '/login';
 
@@ -69,9 +93,19 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       // ============= AUTH ROUTES =============
       GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingPage(),
+      ),
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => const SplashPage(),
+      ),
+      GoRoute(
         path: '/login',
         name: 'login',
-        builder: (context, state) => const AuthPage(),
+        builder: (context, state) => const LoginPage(),
       ),
 
       // ============= WARGA ROUTES =============

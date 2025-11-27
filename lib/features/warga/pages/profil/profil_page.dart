@@ -22,7 +22,7 @@ class WargaProfilPage extends ConsumerWidget {
         final displayName = profil.namaLengkap ?? profil.email.split('@')[0];
 
         return Scaffold(
-          backgroundColor: AppColors.greyLight,
+          backgroundColor: AppColors.creamWhite,
           body: CustomScrollView(
             slivers: [
               // Header dengan gradient dan profile
