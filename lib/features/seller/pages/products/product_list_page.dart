@@ -1,45 +1,164 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
+import '../../../../core/providers/marketplace_provider.dart';
+import '../../../../data/models/produk_marketplace_model.dart';
 import 'product_form_page.dart';
 
-class SellerProductListPage extends ConsumerWidget {
+class SellerProductListPage extends ConsumerStatefulWidget {
   const SellerProductListPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // TODO: Replace with actual provider
-    final products = _dummyProducts;
+  ConsumerState<SellerProductListPage> createState() =>
+      _SellerProductListPageState();
+}
+
+class _SellerProductListPageState extends ConsumerState<SellerProductListPage> {
+  int? _storeId;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStoreId();
+  }
+
+  Future<void> _loadStoreId() async {
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return;
+
+      // Get user integer ID
+      final userData = await Supabase.instance.client
+          .from('users')
+          .select('id')
+          .eq('id_auth', currentUser.id)
+          .maybeSingle();
+
+      if (userData == null) return;
+
+      final userId = userData['id'] as int;
+
+      // Get store
+      final myStoreAsync = ref.read(myStoreProvider(userId));
+      myStoreAsync.when(
+        data: (store) {
+          if (mounted && store != null) {
+            setState(() {
+              _storeId = store.id;
+              _isLoading = false;
+            });
+          }
+        },
+        loading: () {},
+        error: (_, __) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.creamWhite,
+        appBar: const CustomTopBar(title: 'Produk Saya', showBackButton: true),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_storeId == null) {
+      return Scaffold(
+        backgroundColor: AppColors.creamWhite,
+        appBar: const CustomTopBar(title: 'Produk Saya', showBackButton: true),
+        body: const Center(child: Text('Toko tidak ditemukan')),
+      );
+    }
+
+    final productsAsync = ref.watch(produkByTokoProvider(_storeId!));
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
       appBar: const CustomTopBar(title: 'Produk Saya', showBackButton: true),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: products.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final product = products[index];
-          return _ProductCard(
-            product: product,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProductFormPage(product: product),
-                ),
-              );
+      body: productsAsync.when(
+        data: (products) {
+          if (products.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    size: 80,
+                    color: AppColors.greyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Belum ada produk',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(produkByTokoProvider(_storeId!));
             },
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: products.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final product = products[index];
+                return _ProductCard(
+                  product: product,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProductFormPage(
+                          product: product,
+                          storeId: _storeId!,
+                        ),
+                      ),
+                    ).then((_) {
+                      // Refresh after edit
+                      ref.invalidate(produkByTokoProvider(_storeId!));
+                    });
+                  },
+                );
+              },
+            ),
           );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(child: Text('Error: $error')),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const ProductFormPage()),
-          );
+            MaterialPageRoute(
+              builder: (_) => ProductFormPage(storeId: _storeId!),
+            ),
+          ).then((_) {
+            // Refresh after add
+            ref.invalidate(produkByTokoProvider(_storeId!));
+          });
         },
         backgroundColor: AppColors.primary600,
         icon: const Icon(Icons.add),
@@ -47,42 +166,10 @@ class SellerProductListPage extends ConsumerWidget {
       ),
     );
   }
-
-  // void _showDeleteDialog(BuildContext context, String productName) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (ctx) => AlertDialog(
-  //       title: const Text('Hapus Produk?'),
-  //       content: Text(
-  //         'Anda yakin ingin menghapus "$productName"? Tindakan ini tidak bisa dibatalkan.',
-  //       ),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(ctx),
-  //           child: const Text('Batal'),
-  //         ),
-  //         ElevatedButton(
-  //           onPressed: () {
-  //             Navigator.pop(ctx);
-  //             ScaffoldMessenger.of(context).showSnackBar(
-  //               SnackBar(
-  //                 content: Text(
-  //                   'Produk "$productName" berhasil dihapus (dummy).',
-  //                 ),
-  //               ),
-  //             );
-  //           },
-  //           style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-  //           child: const Text('Hapus'),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 }
 
 class _ProductCard extends StatelessWidget {
-  final Map<String, dynamic> product;
+  final ProdukMarketplaceModel product;
   final VoidCallback onTap;
 
   const _ProductCard({required this.product, required this.onTap});
@@ -102,10 +189,8 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stock = product['stock'] as int;
-    final isOutOfStock = stock == 0;
-    final category = product['category'] as String;
-    final emoji = _getCategoryEmoji(category);
+    final isOutOfStock = product.stok == 0;
+    final emoji = _getCategoryEmoji(product.nama);
 
     return Opacity(
       opacity: isOutOfStock ? 0.5 : 1.0,
@@ -144,7 +229,7 @@ class _ProductCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      product['name'] as String,
+                      product.nama,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -155,7 +240,7 @@ class _ProductCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Rp ${product['price']}',
+                      'Rp ${product.harga}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -172,7 +257,7 @@ class _ProductCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Stok $stock',
+                          'Stok ${product.stok}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -216,34 +301,3 @@ class _ProductCard extends StatelessWidget {
     );
   }
 }
-
-// Dummy data
-final _dummyProducts = [
-  {
-    'id': '1',
-    'name': 'Kentang Organik',
-    'price': '15.000',
-    'stock': 50,
-    'image': 'assets/images/kentang.png',
-    'isActive': true,
-    'category': 'Kentang',
-  },
-  {
-    'id': '2',
-    'name': 'Kentang Premium',
-    'price': '20.000',
-    'stock': 30,
-    'image': 'assets/images/kentang.png',
-    'isActive': true,
-    'category': 'Kentang',
-  },
-  {
-    'id': '3',
-    'name': 'Wortel Segar',
-    'price': '12.000',
-    'stock': 0,
-    'image': 'assets/images/wortel.png',
-    'isActive': false,
-    'category': 'Wortel',
-  },
-];

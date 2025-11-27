@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
+import '../../../../data/models/produk_marketplace_model.dart';
+import '../../../../core/providers/marketplace_provider.dart';
 
 class ProductFormPage extends ConsumerStatefulWidget {
-  final Map<String, dynamic>? product;
+  final ProdukMarketplaceModel? product;
+  final int storeId;
 
-  const ProductFormPage({super.key, this.product});
+  const ProductFormPage({super.key, this.product, required this.storeId});
 
   @override
   ConsumerState<ProductFormPage> createState() => _ProductFormPageState();
@@ -18,6 +22,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   final _priceController = TextEditingController();
   final _stockController = TextEditingController();
   final _descController = TextEditingController();
+  bool _isSaving = false;
 
   String _selectedCategory = 'Kentang';
   late String _selectedImagePath;
@@ -34,13 +39,13 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     super.initState();
     _selectedImagePath = _categoryImages[_selectedCategory]!;
     if (widget.product != null) {
-      _nameController.text = widget.product!['name'] as String;
-      _priceController.text = widget.product!['price'] as String;
-      _stockController.text = widget.product!['stock'].toString();
-      _selectedCategory = widget.product!['category'] as String;
+      _nameController.text = widget.product!.nama;
+      _priceController.text = widget.product!.harga.toInt().toString();
+      _stockController.text = widget.product!.stok.toString();
+      _descController.text = widget.product!.deskripsi ?? '';
+      _selectedCategory = 'Lainnya'; // Default category for existing products
       _selectedImagePath =
-          widget.product!['image'] as String? ??
-          _categoryImages[_selectedCategory]!;
+          widget.product!.fotoProduk ?? _categoryImages[_selectedCategory]!;
     } else {
       _selectedImagePath = _categoryImages[_selectedCategory]!;
     }
@@ -124,7 +129,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _saveProduct,
+                  onPressed: _isSaving ? null : _saveProduct,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary600,
                     foregroundColor: Colors.white,
@@ -132,13 +137,24 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: Text(
-                    isEdit ? 'Simpan Perubahan' : 'Tambah Produk',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          isEdit ? 'Simpan Perubahan' : 'Tambah Produk',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -297,20 +313,78 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     );
   }
 
-  void _saveProduct() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: Save to database
+  void _saveProduct() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final price = double.parse(_priceController.text.trim());
+      final stock = int.parse(_stockController.text.trim());
+
+      if (widget.product != null) {
+        // Update existing product
+        final updates = {
+          'nama': _nameController.text.trim(),
+          'harga': price,
+          'stok': stock,
+          'deskripsi': _descController.text.trim(),
+          'foto_produk': _selectedImagePath,
+        };
+
+        await ref
+            .read(marketplaceRepositoryProvider)
+            .updateProduk(widget.product!.id, updates);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Produk berhasil diupdate'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        // Create new product
+        final newProduct = ProdukMarketplaceModel(
+          id: 0,
+          idToko: widget.storeId,
+          nama: _nameController.text.trim(),
+          deskripsi: _descController.text.trim(),
+          harga: price,
+          fotoProduk: _selectedImagePath,
+          stok: stock,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await ref.read(marketplaceRepositoryProvider).createProduk(newProduct);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Produk berhasil ditambahkan'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+
+      // Invalidate providers to refresh product list
+      if (mounted) {
+        ref.invalidate(produkByTokoProvider(widget.storeId));
+        Navigator.pop(context, true); // Return true to indicate success
+      }
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            widget.product != null
-                ? 'Produk berhasil diupdate'
-                : 'Produk berhasil ditambahkan',
-          ),
-          backgroundColor: AppColors.success,
+          content: Text('Gagal menyimpan produk: $e'),
+          backgroundColor: AppColors.error,
         ),
       );
-      Navigator.pop(context);
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -329,16 +403,36 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: Delete from database
-              Navigator.pop(ctx); // Close dialog
-              Navigator.pop(context); // Close form page
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Produk "$productName" berhasil dihapus'),
-                  backgroundColor: AppColors.success,
-                ),
-              );
+            onPressed: () async {
+              try {
+                await ref
+                    .read(marketplaceRepositoryProvider)
+                    .deleteProduk(widget.product!.id);
+
+                if (!mounted) return;
+                Navigator.pop(ctx); // Close dialog
+
+                // Invalidate and refresh
+                ref.invalidate(produkByTokoProvider(widget.storeId));
+
+                Navigator.pop(context, true); // Close form page with success
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Produk "$productName" berhasil dihapus'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.pop(ctx); // Close dialog
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Gagal menghapus produk: $e'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.danger,

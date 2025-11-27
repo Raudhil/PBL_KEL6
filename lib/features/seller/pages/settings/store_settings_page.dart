@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
+import '../../../../core/providers/marketplace_provider.dart';
 
 class StoreSettingsPage extends ConsumerStatefulWidget {
   const StoreSettingsPage({super.key});
@@ -11,13 +13,77 @@ class StoreSettingsPage extends ConsumerStatefulWidget {
 }
 
 class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
-  final _nameController = TextEditingController(text: 'Toko Mas Azril');
-  final _addressController = TextEditingController(text: 'Jl. Mawar No. 123');
-  final _phoneController = TextEditingController(text: '0812-3456-7890');
-  final _hoursController = TextEditingController(text: '08:00 - 17:00');
+  final _nameController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _hoursController = TextEditingController();
+  bool _isLoading = true;
+
+  Future<int?> _getUserIntId(String authId) async {
+    try {
+      final userData = await Supabase.instance.client
+          .from('users')
+          .select('id')
+          .eq('id_auth', authId)
+          .maybeSingle();
+      return userData?['id'] as int?;
+    } catch (e) {
+      print('❌ Error getting user ID: $e');
+      return null;
+    }
+  }
+
+  Future<void> _loadStoreData() async {
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return;
+
+      final userId = await _getUserIntId(currentUser.id);
+      if (userId == null || !mounted) return;
+
+      final store = await ref.read(myStoreProvider(userId).future);
+
+      if (!mounted) return;
+
+      if (store != null) {
+        _nameController.text = store.nama;
+        _addressController.text = ''; // Alamat belum ada di model
+        // Phone and hours not in current schema, keep empty or add later
+        _phoneController.text = '';
+        _hoursController.text = '';
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ Error loading store data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStoreData();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.creamWhite,
+        appBar: const CustomTopBar(
+          title: 'Pengaturan Toko',
+          showBackButton: true,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
       appBar: const CustomTopBar(
