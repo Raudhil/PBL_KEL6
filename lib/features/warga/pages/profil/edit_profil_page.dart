@@ -26,7 +26,7 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
     final state = ref.watch(profilControllerProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.white,
+      backgroundColor: AppColors.creamWhite,
       appBar: const CustomTopBar(
         title: 'Edit Akun & Profil',
         showBackButton: true,

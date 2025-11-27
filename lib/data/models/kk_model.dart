@@ -1,6 +1,6 @@
 class KKModel {
   final int id;
-  final int nomor;
+  final String nomor;
   final int idAlamat;
 
   KKModel({

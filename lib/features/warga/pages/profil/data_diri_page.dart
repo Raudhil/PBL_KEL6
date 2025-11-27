@@ -31,7 +31,7 @@ class DataDiriPage extends ConsumerWidget {
         final noKkStr = profil.noKk ?? warga?.idKk.toString() ?? '-';
 
         return Scaffold(
-          backgroundColor: AppColors.greyLight,
+          backgroundColor: AppColors.creamWhite,
           appBar: AppBar(
             elevation: 0,
             backgroundColor: AppColors.white,
@@ -174,7 +174,15 @@ class DataDiriPage extends ConsumerWidget {
                     _buildInfoRow(
                       icon: Icons.cake_outlined,
                       label: "Tanggal Lahir",
-                      value: formatDate(warga?.tanggalLahir),
+                      value: (() {
+                        final d = warga?.tanggalLahir;
+                        if (d == null) return '-';
+                        final local = d.toLocal();
+                        final dd = local.day.toString().padLeft(2, '0');
+                        final mm = local.month.toString().padLeft(2, '0');
+                        final yyyy = local.year.toString();
+                        return '$dd-$mm-$yyyy';
+                      })(),
                       iconColor: AppColors.primary400,
                     ),
                     _buildDivider(),
