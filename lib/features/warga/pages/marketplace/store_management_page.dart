@@ -59,14 +59,14 @@ class StoreManagementPage extends ConsumerWidget {
     final storeAsync = ref.watch(myStoreProvider(userId));
     final todayOrdersAsync = storeAsync.when(
       data: (store) => store != null
-          ? ref.watch(todayOrdersCountProvider(userId))
+          ? ref.watch(todayOrdersCountProvider(store.id))
           : const AsyncValue.data(0),
       loading: () => const AsyncValue.loading(),
       error: (e, st) => AsyncValue.error(e, st),
     );
     final pendingOrdersAsync = storeAsync.when(
       data: (store) => store != null
-          ? ref.watch(pendingOrdersProvider(userId))
+          ? ref.watch(pendingOrdersProvider(store.id))
           : const AsyncValue.data(<dynamic>[]),
       loading: () => const AsyncValue.loading(),
       error: (e, st) => AsyncValue.error(e, st),

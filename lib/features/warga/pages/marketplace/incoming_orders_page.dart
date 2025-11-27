@@ -24,10 +24,10 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Get incoming orders for seller
+    // Get incoming orders for seller (using tokoId)
     final ordersAsync = _selectedFilter == 'Semua'
-        ? ref.watch(incomingOrdersProvider(widget.idPenjual))
-        : ref.watch(incomingOrdersProvider(widget.idPenjual));
+        ? ref.watch(incomingOrdersProvider(widget.tokoId))
+        : ref.watch(incomingOrdersProvider(widget.tokoId));
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
@@ -63,7 +63,7 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
 
                 return RefreshIndicator(
                   onRefresh: () async {
-                    ref.invalidate(incomingOrdersProvider(widget.idPenjual));
+                    ref.invalidate(incomingOrdersProvider(widget.tokoId));
                   },
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
@@ -100,9 +100,8 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => ref.invalidate(
-                        incomingOrdersProvider(widget.idPenjual),
-                      ),
+                      onPressed: () =>
+                          ref.invalidate(incomingOrdersProvider(widget.tokoId)),
                       child: const Text('Coba Lagi'),
                     ),
                   ],
@@ -245,8 +244,8 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
       );
 
       // Refresh orders
-      ref.invalidate(incomingOrdersProvider(widget.idPenjual));
-      ref.invalidate(todayOrdersCountProvider(widget.idPenjual));
+      ref.invalidate(incomingOrdersProvider(widget.tokoId));
+      ref.invalidate(todayOrdersCountProvider(widget.tokoId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -292,7 +291,7 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
       );
 
       // Refresh orders
-      ref.invalidate(incomingOrdersProvider(widget.idPenjual));
+      ref.invalidate(incomingOrdersProvider(widget.tokoId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -338,7 +337,7 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
       );
 
       // Refresh orders
-      ref.invalidate(incomingOrdersProvider(widget.idPenjual));
+      ref.invalidate(incomingOrdersProvider(widget.tokoId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
