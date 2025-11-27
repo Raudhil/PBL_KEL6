@@ -262,13 +262,13 @@ class MarketplaceService {
     required List<Map<String, dynamic>> items,
   }) async {
     try {
-      // Insert transaksi with status pending (without id_penjual column)
+      // Insert transaksi with status Pending (database enum value)
       final transaksiResponse = await _client
           .from('transaksi_marketplace')
           .insert({
             'id_pembeli': idPembeli,
             'total': total,
-            'status': 'pending',
+            'status': 'Pending',
           })
           .select()
           .single();
@@ -358,47 +358,22 @@ class MarketplaceService {
     String? status,
   }) async {
     try {
-      // Get transactions through detail items and products
-      // First get all transaction IDs that have products from this seller's store
-      final storeProducts = await _client
-          .from('produk')
-          .select('id')
-          .eq('id_toko', idPenjual); // idPenjual is the store ID
+      print('🔍 DEBUG: Fetching transaksi for toko ID: $idPenjual');
 
-      final productIds = (storeProducts as List)
-          .map((p) => p['id'] as int)
-          .toList();
-
-      if (productIds.isEmpty) {
-        return [];
-      }
-
-      // Get transaction IDs from detail that contain these products
-      final detailResponse = await _client
-          .from('detail_t_marketplace')
-          .select('id_transaksi')
-          .inFilter('id_produk', productIds);
-
-      final transactionIds = (detailResponse as List)
-          .map((d) => d['id_transaksi'] as int)
-          .toSet()
-          .toList();
-
-      if (transactionIds.isEmpty) {
-        return [];
-      }
-
-      // Fetch full transaction data
+      // TEMPORARY: Fetch ALL transactions untuk debug
+      // Nanti akan dikembalikan ke filter by toko setelah data detail_t_marketplace diisi
       var query = _client
           .from('transaksi_marketplace')
-          .select('*, users!transaksi_marketplace_id_pembeli_fkey(full_name)')
-          .inFilter('id', transactionIds);
+          .select('*, users!transaksi_marketplace_id_pembeli_fkey(full_name)');
 
       if (status != null) {
         query = query.eq('status', status);
+        print('🔍 DEBUG: Filtering by status: $status');
       }
 
       final response = await query.order('created_at', ascending: false);
+
+      print('✅ DEBUG: Returning ${(response as List).length} transactions');
 
       return (response as List)
           .map(
@@ -409,6 +384,7 @@ class MarketplaceService {
           )
           .toList();
     } catch (e) {
+      print('❌ DEBUG: Error fetching transaksi penjual: $e');
       throw Exception('Gagal fetch transaksi penjual: $e');
     }
   }
@@ -453,7 +429,7 @@ class MarketplaceService {
       // Update status transaksi ke dikonfirmasi
       final response = await _client
           .from('transaksi_marketplace')
-          .update({'status': 'dikonfirmasi'})
+          .update({'status': 'Dikonfirmasi'})
           .eq('id', idTransaksi)
           .select()
           .single();
@@ -469,7 +445,7 @@ class MarketplaceService {
     try {
       final response = await _client
           .from('transaksi_marketplace')
-          .update({'status': 'selesai'})
+          .update({'status': 'Selesai'})
           .eq('id', idTransaksi)
           .select()
           .single();
@@ -485,7 +461,7 @@ class MarketplaceService {
     try {
       final response = await _client
           .from('transaksi_marketplace')
-          .update({'status': 'dibatalkan'})
+          .update({'status': 'Dibatalkan'})
           .eq('id', idTransaksi)
           .select()
           .single();

@@ -1,9 +1,9 @@
 /// Status transaksi marketplace
 enum StatusTransaksi {
-  pending('pending', 'Menunggu Konfirmasi'),
-  dikonfirmasi('dikonfirmasi', 'Dikonfirmasi'),
-  selesai('selesai', 'Selesai'),
-  dibatalkan('dibatalkan', 'Dibatalkan');
+  pending('Pending', 'Menunggu Konfirmasi'),
+  dikonfirmasi('Dikonfirmasi', 'Dikonfirmasi'),
+  selesai('Selesai', 'Selesai'),
+  dibatalkan('Dibatalkan', 'Dibatalkan');
 
   final String value;
   final String label;
