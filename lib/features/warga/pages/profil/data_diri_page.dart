@@ -12,9 +12,8 @@ class DataDiriPage extends ConsumerWidget {
     final state = ref.watch(profilControllerProvider);
 
     return state.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
         appBar: const CustomTopBar(
           title: 'Data Diri',
@@ -29,40 +28,213 @@ class DataDiriPage extends ConsumerWidget {
         String formatDate(DateTime? d) =>
             d == null ? '-' : d.toLocal().toString().split(' ')[0];
 
-        final noKkStr = profil.noKk?.toString() ?? warga?.idKk.toString() ?? '-';
+        final noKkStr = profil.noKk ?? warga?.idKk.toString() ?? '-';
 
         return Scaffold(
-          backgroundColor: AppColors.white,
-          appBar: const CustomTopBar(
-            title: 'Data Diri',
-            showBackButton: true,
-            actions: [],
+          backgroundColor: AppColors.greyLight,
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: AppColors.white,
+            surfaceTintColor: AppColors.white,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: const Text(
+              'Data Diri',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            centerTitle: true,
           ),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildSectionCard(
-                  title: 'Data Diri',
+                // Header card dengan foto profil
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary600, AppColors.primary400],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // Avatar
+                      Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child:
+                            profil.fotoProfile != null &&
+                                profil.fotoProfile!.isNotEmpty
+                            ? CircleAvatar(
+                                radius: 45,
+                                backgroundImage: NetworkImage(
+                                  profil.fotoProfile!,
+                                ),
+                                backgroundColor: AppColors.white,
+                              )
+                            : const CircleAvatar(
+                                radius: 45,
+                                backgroundColor: AppColors.white,
+                                child: Icon(
+                                  Icons.person,
+                                  size: 45,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Nama
+                      Text(
+                        warga?.namaLengkap ?? profil.namaLengkap ?? 'User',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                          letterSpacing: 0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 6),
+                      // NIK
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.badge_outlined,
+                              size: 16,
+                              color: AppColors.white.withOpacity(0.9),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'NIK: ${warga?.nik ?? '-'}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.white.withOpacity(0.95),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Section: Informasi Pribadi
+                _buildSectionTitle('Informasi Pribadi'),
+                const SizedBox(height: 12),
+                _buildModernCard(
                   items: [
-                    _buildListTile("NIK", warga?.nik ?? '-'),
-                    _buildListTile("Nama Lengkap", warga?.namaLengkap ?? profil.namaLengkap ?? '-'),
-                    _buildListTile("Tanggal Lahir", formatDate(warga?.tanggalLahir)),
-                    _buildListTile("Jenis Kelamin", warga?.jenisKelamin ?? '-'),
-                    _buildListTile("Nomor HP", warga?.nomorHp ?? '-'),
-                    _buildListTile("No. KK", noKkStr),
+                    _buildInfoRow(
+                      icon: Icons.person_outline,
+                      label: "Nama Lengkap",
+                      value: warga?.namaLengkap ?? profil.namaLengkap ?? '-',
+                      iconColor: AppColors.primary,
+                    ),
+                    _buildDivider(),
+                    _buildInfoRow(
+                      icon: Icons.cake_outlined,
+                      label: "Tanggal Lahir",
+                      value: formatDate(warga?.tanggalLahir),
+                      iconColor: AppColors.primary400,
+                    ),
+                    _buildDivider(),
+                    _buildInfoRow(
+                      icon: Icons.wc_outlined,
+                      label: "Jenis Kelamin",
+                      value: warga?.jenisKelamin ?? '-',
+                      iconColor: AppColors.primary600,
+                    ),
+                    _buildDivider(),
+                    _buildInfoRow(
+                      icon: Icons.phone_outlined,
+                      label: "Nomor HP",
+                      value: warga?.nomorHp ?? '-',
+                      iconColor: AppColors.success,
+                    ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                _buildSectionCard(
-                  title: 'Alamat',
+
+                const SizedBox(height: 24),
+
+                // Section: Informasi Keluarga
+                _buildSectionTitle('Informasi Keluarga'),
+                const SizedBox(height: 12),
+                _buildModernCard(
                   items: [
-                    _buildListTile("Alamat", profil.alamat ?? '-'),
-                    _buildListTile("RT", profil.rt?.toString() ?? '-'),
-                    _buildListTile("RW", profil.rw?.toString() ?? '-'),
+                    _buildInfoRow(
+                      icon: Icons.family_restroom_outlined,
+                      label: "No. Kartu Keluarga",
+                      value: noKkStr,
+                      iconColor: AppColors.primary,
+                    ),
                   ],
                 ),
+
+                const SizedBox(height: 24),
+
+                // Section: Alamat
+                _buildSectionTitle('Alamat'),
+                const SizedBox(height: 12),
+                _buildModernCard(
+                  items: [
+                    _buildInfoRow(
+                      icon: Icons.home_outlined,
+                      label: "Alamat Lengkap",
+                      value: profil.alamat ?? '-',
+                      iconColor: AppColors.primary,
+                      isMultiline: true,
+                    ),
+                    _buildDivider(),
+                    _buildInfoRow(
+                      icon: Icons.location_on_outlined,
+                      label: "RT / RW",
+                      value: '${profil.rt ?? '-'} / ${profil.rw ?? '-'}',
+                      iconColor: AppColors.primary400,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -71,34 +243,103 @@ class DataDiriPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionCard({required String title, required List<Widget> items}) {
-    return Card(
-      color: AppColors.white, // Warna kartu putih
-      elevation: 2,
-      shadowColor: Colors.grey.shade200,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
-            const Divider(height: 20, thickness: 1),
-            ...items,
-          ],
+  // Helper: Section title
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textSecondary,
+          letterSpacing: 0.5,
         ),
       ),
     );
   }
 
-  Widget _buildListTile(String title, String value) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
-      title: Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: AppColors.textPrimary)),
-      trailing: Text(
-        value,
-        style: const TextStyle(color: AppColors.textPrimary),
+  // Helper: Modern card container
+  Widget _buildModernCard({required List<Widget> items}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
+      child: Column(children: items),
+    );
+  }
+
+  // Helper: Info row dengan icon
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color iconColor,
+    bool isMultiline = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: isMultiline
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
+        children: [
+          // Icon container
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 16),
+          // Text content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary.withOpacity(0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: isMultiline ? null : 1,
+                  overflow: isMultiline ? null : TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper: Divider
+  Widget _buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Divider(height: 1, thickness: 1, color: AppColors.greyLight),
     );
   }
 }

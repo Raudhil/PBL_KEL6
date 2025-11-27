@@ -26,6 +26,10 @@ class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
     final user = Supabase.instance.client.auth.currentUser;
     final userName = user?.email?.split('@')[0] ?? 'User';
 
+    // Tentukan apakah menampilkan subtitle
+    final showSubtitle =
+        !showBackButton && title != 'Marketplace' && title != 'Iuran';
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -80,7 +84,7 @@ class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
                     letterSpacing: 0.5,
                   ),
                 ),
-                if (!showBackButton)
+                if (showSubtitle)
                   Text(
                     'Halo, $userName',
                     style: TextStyle(

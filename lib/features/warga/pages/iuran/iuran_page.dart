@@ -1,228 +1,161 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_colors.dart';
+import '../../controllers/iuran_warga_controller.dart';
+import '../../widgets/iuran_summary_card.dart';
+import '../../widgets/iuran_list_item.dart';
 
 class WargaIuranPage extends ConsumerWidget {
   const WargaIuranPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Summary Card
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primary, AppColors.primary400],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Total Iuran Bulan Ini',
-                  style: TextStyle(fontSize: 14, color: AppColors.white),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Rp 50.000',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.white,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
+    final iuranState = ref.watch(iuranWargaProvider);
+    final controller = ref.read(iuranWargaProvider.notifier);
+
+    return Scaffold(
+      backgroundColor: AppColors.creamWhite,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await controller.fetchData();
+        },
+        child: iuranState.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : iuranState.errorMessage != null
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'Belum Bayar',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.white,
-                        ),
-                      ),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: AppColors.danger,
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Jatuh tempo: 25 Nov 2025',
-                      style: TextStyle(fontSize: 12, color: AppColors.white),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Terjadi Kesalahan',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(iuranState.errorMessage!),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () => controller.fetchData(),
+                      child: const Text('Coba Lagi'),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
+              )
+            : SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. Summary Card (Total & Jatuh Tempo)
+                    IuranSummaryCard(
+                      totalTagihan: iuranState.totalTagihan,
+                      jatuhTempo: iuranState.jatuhTempoTerdekat,
+                    ),
+                    const SizedBox(height: 24),
 
-          // Pay Button
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // TODO: Handle payment
-              },
-              icon: const Icon(Icons.payment),
-              label: const Text('Bayar Sekarang'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.white,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
+                    // 2. Section Title
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Daftar Tagihan',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        // Filter sederhana (Opsional)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.greyLight),
+                          ),
+                          child: const Row(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
 
-          // Payment History
-          const Text(
-            'Riwayat Pembayaran',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _PaymentHistoryCard(
-            month: 'Oktober 2025',
-            amount: 'Rp 50.000',
-            status: 'Lunas',
-            date: '10 Okt 2025',
-            isPaid: true,
-          ),
-          const SizedBox(height: 8),
-          _PaymentHistoryCard(
-            month: 'September 2025',
-            amount: 'Rp 50.000',
-            status: 'Lunas',
-            date: '15 Sep 2025',
-            isPaid: true,
-          ),
-          const SizedBox(height: 8),
-          _PaymentHistoryCard(
-            month: 'Agustus 2025',
-            amount: 'Rp 50.000',
-            status: 'Lunas',
-            date: '12 Agt 2025',
-            isPaid: true,
-          ),
-        ],
-      ),
-    );
-  }
-}
+                    // 3. List Iuran (Flow: Expand -> Bayar -> Selesai)
+                    if (iuranState.listIuran.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 40),
+                          child: Text("Tidak ada data iuran"),
+                        ),
+                      )
+                    else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: iuranState.listIuran.length,
+                        itemBuilder: (context, index) {
+                          final item = iuranState.listIuran[index];
+                          return IuranListItem(
+                            data: item,
+                            onPay: (idIuran) async {
+                              // Tampilkan konfirmasi sebelum bayar
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Konfirmasi Pembayaran'),
+                                  content: Text(
+                                    'Bayar tagihan "${item.iuran.jenis}"?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text('Batal'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                      ),
+                                      child: const Text(
+                                        'Ya, Bayar',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
 
-class _PaymentHistoryCard extends StatelessWidget {
-  final String month;
-  final String amount;
-  final String status;
-  final String date;
-  final bool isPaid;
+                              if (confirm == true) {
+                                await controller.bayarIuran(idIuran);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Pembayaran berhasil!'),
+                                      backgroundColor: AppColors.success,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                          );
+                        },
+                      ),
 
-  const _PaymentHistoryCard({
-    required this.month,
-    required this.amount,
-    required this.status,
-    required this.date,
-    required this.isPaid,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.greyLight),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isPaid
-                  ? AppColors.success.withOpacity(0.1)
-                  : AppColors.warning.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              isPaid ? Icons.check_circle : Icons.pending,
-              color: isPaid ? AppColors.success : AppColors.warning,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  month,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  date,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                amount,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                    // Spacer bawah agar tidak tertutup navbar
+                    const SizedBox(height: 80),
+                  ],
                 ),
               ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isPaid ? AppColors.success : AppColors.warning,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  status,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

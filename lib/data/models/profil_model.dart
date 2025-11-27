@@ -10,10 +10,10 @@ class ProfilModel {
   final String? fotoProfile;
 
   // Tambahan baru
-  final int? noKk;
+  final String? noKk;
   final String? alamat;
-  final int? rt;
-  final int? rw;
+  final String? rt;
+  final String? rw;
 
   ProfilModel({
     required this.id,
@@ -45,13 +45,15 @@ class ProfilModel {
       avatarUrl: foto,
       fotoProfile: foto,
       namaLengkap: warga?["nama_lengkap"],
-      warga: warga != null ? WargaModel.fromJson(Map<String, dynamic>.from(warga)) : null,
+      warga: warga != null
+          ? WargaModel.fromJson(Map<String, dynamic>.from(warga))
+          : null,
 
-      // Tambahan
-      noKk: kk?["nomor"],
-      alamat: alamat?["alamat"],
-      rt: rt?["nomor"],
-      rw: rw?["nomor"],
+      // Convert to String untuk display (handle int/string dari database)
+      noKk: kk?["nomor"]?.toString(),
+      alamat: alamat?["alamat"]?.toString(),
+      rt: rt?["nomor"]?.toString(),
+      rw: rw?["nomor"]?.toString(),
     );
   }
 
@@ -63,10 +65,10 @@ class ProfilModel {
     WargaModel? warga,
     String? fotoProfile,
 
-    int? noKk,
+    String? noKk,
     String? alamat,
-    int? rt,
-    int? rw,
+    String? rt,
+    String? rw,
   }) {
     return ProfilModel(
       id: id ?? this.id,

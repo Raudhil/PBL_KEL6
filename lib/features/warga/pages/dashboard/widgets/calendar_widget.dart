@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../../theme/app_colors.dart';
-import '../kegiatan_detail_page.dart';
+import '../../../../sekretaris/kegiatan/pages/kegiatan_detail_page.dart';
 
 class AgendaItem {
+  final String? kegiatanId; // ID dari database
   final String title;
   final String category;
   final String pic;
@@ -11,6 +12,7 @@ class AgendaItem {
   final String location;
 
   AgendaItem({
+    this.kegiatanId,
     required this.title,
     required this.category,
     required this.pic,
@@ -409,6 +411,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
               screenWidth: screenWidth,
               onTap: () => _openKegiatanDetail(
                 context,
+                kegiatanId: agenda.kegiatanId,
                 namaKegiatan: agenda.title,
                 kategori: agenda.category,
                 penanggungJawab: agenda.pic,
@@ -425,6 +428,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
 
   void _openKegiatanDetail(
     BuildContext context, {
+    String? kegiatanId,
     required String namaKegiatan,
     required String kategori,
     required String penanggungJawab,
@@ -432,18 +436,23 @@ class _CalendarWidgetState extends State<CalendarWidget> {
     required String lokasi,
     required String deskripsi,
   }) {
-    Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(
-        builder: (_) => KegiatanDetailPage(
-          namaKegiatan: namaKegiatan,
-          kategori: kategori,
-          penanggungJawab: penanggungJawab,
-          tanggalPelaksanaan: tanggalPelaksanaan,
-          lokasi: lokasi,
-          deskripsi: deskripsi,
+    if (kegiatanId != null) {
+      // Jika ada ID, navigate ke detail page yang proper dengan readOnly
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              KegiatanDetailPage(kegiatanId: kegiatanId, readOnly: true),
         ),
-      ),
-    );
+      );
+    } else {
+      // Fallback untuk dummy data - show snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Detail kegiatan tidak tersedia'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _onMonthChanged(int offset) {
