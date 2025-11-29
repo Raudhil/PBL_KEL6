@@ -68,6 +68,42 @@ class SellerHomePage extends ConsumerWidget {
     );
   }
 
+  Future<void> _showNoStoreDialog(BuildContext context) async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.store_outlined, color: AppColors.warning, size: 28),
+            SizedBox(width: 12),
+            Text('Toko Belum Tersedia'),
+          ],
+        ),
+        content: Text(
+          'Silakan atur informasi toko Anda terlebih dahulu sebelum melakukan penjualan. Anda akan diarahkan ke halaman Pengaturan Toko.',
+          style: TextStyle(fontSize: 15),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StoreSettingsPage()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary600,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Atur Toko Sekarang'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHomePage(BuildContext context, WidgetRef ref, int userId) {
     // Get store data
     final storeAsync = ref.watch(myStoreProvider(userId));
@@ -114,7 +150,7 @@ class SellerHomePage extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _buildMenuGrid(context),
+                _buildMenuGrid(context, ref, userId),
               ],
             ),
           ),
@@ -242,31 +278,35 @@ class SellerHomePage extends ConsumerWidget {
     );
   }
 
-  Widget _buildMenuGrid(BuildContext context) {
+  Widget _buildMenuGrid(BuildContext context, WidgetRef ref, int userId) {
     final menus = [
       {
         'icon': Icons.inventory_2,
         'label': 'Produk Saya',
         'color': AppColors.primary600,
         'page': const SellerProductListPage(),
+        'requiresStore': true,
       },
       {
         'icon': Icons.receipt_long,
         'label': 'Pesanan Masuk',
         'color': AppColors.success,
         'page': const SellerOrderListPage(),
+        'requiresStore': true,
       },
       {
         'icon': Icons.star,
         'label': 'Ulasan Pembeli',
         'color': AppColors.warning,
         'page': const SellerReviewListPage(),
+        'requiresStore': true,
       },
       {
         'icon': Icons.settings,
         'label': 'Pengaturan Toko',
         'color': AppColors.greyDark,
         'page': const StoreSettingsPage(),
+        'requiresStore': false,
       },
     ];
 
@@ -282,14 +322,29 @@ class SellerHomePage extends ConsumerWidget {
       itemCount: menus.length,
       itemBuilder: (context, index) {
         final menu = menus[index];
+        final requiresStore = menu['requiresStore'] as bool;
+
         return _MenuCard(
           icon: menu['icon'] as IconData,
           label: menu['label'] as String,
           color: menu['color'] as Color,
-          onTap: () {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => menu['page'] as Widget));
+          onTap: () async {
+            if (requiresStore) {
+              // Check if user has a store
+              final store = await ref.read(myStoreProvider(userId).future);
+              if (store == null) {
+                if (context.mounted) {
+                  _showNoStoreDialog(context);
+                }
+                return;
+              }
+            }
+
+            if (context.mounted) {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => menu['page'] as Widget));
+            }
           },
         );
       },
