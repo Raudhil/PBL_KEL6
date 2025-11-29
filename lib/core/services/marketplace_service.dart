@@ -340,13 +340,41 @@ class MarketplaceService {
     try {
       final response = await _client
           .from('transaksi_marketplace')
-          .select('*')
+          .select('*, users!transaksi_marketplace_id_pembeli_fkey(full_name)')
           .eq('id_pembeli', idPembeli)
           .order('created_at', ascending: false);
 
-      return (response as List)
-          .map((item) => TransaksiMarketplaceModel.fromJson(item))
-          .toList();
+      final transactions = <TransaksiMarketplaceModel>[];
+
+      for (final item in response as List) {
+        // Fetch detail items untuk setiap transaksi
+        final detailResponse = await _client
+            .from('detail_t_marketplace')
+            .select(
+              '*, produk!detail_t_marketplace_id_produk_fkey(nama, foto_produk)',
+            )
+            .eq('id_transaksi', item['id']);
+
+        final items = (detailResponse as List)
+            .map(
+              (d) => DetailTransaksiModel.fromJson({
+                ...d,
+                'nama_produk': d['produk']?['nama'],
+                'foto_produk': d['produk']?['foto_produk'],
+              }),
+            )
+            .toList();
+
+        transactions.add(
+          TransaksiMarketplaceModel.fromJson({
+            ...item,
+            'nama_pembeli': item['users']?['full_name'],
+            'items': items.map((e) => e.toJson()).toList(),
+          }),
+        );
+      }
+
+      return transactions;
     } catch (e) {
       throw Exception('Gagal fetch transaksi: $e');
     }
@@ -416,14 +444,37 @@ class MarketplaceService {
 
       final response = await query.order('created_at', ascending: false);
 
-      return (response as List)
-          .map(
-            (item) => TransaksiMarketplaceModel.fromJson({
-              ...item,
-              'nama_pembeli': item['users']?['full_name'],
-            }),
-          )
-          .toList();
+      final transactions = <TransaksiMarketplaceModel>[];
+
+      for (final item in response as List) {
+        // Fetch detail items untuk setiap transaksi
+        final detailItemResponse = await _client
+            .from('detail_t_marketplace')
+            .select(
+              '*, produk!detail_t_marketplace_id_produk_fkey(nama, foto_produk)',
+            )
+            .eq('id_transaksi', item['id']);
+
+        final items = (detailItemResponse as List)
+            .map(
+              (d) => DetailTransaksiModel.fromJson({
+                ...d,
+                'nama_produk': d['produk']?['nama'],
+                'foto_produk': d['produk']?['foto_produk'],
+              }),
+            )
+            .toList();
+
+        transactions.add(
+          TransaksiMarketplaceModel.fromJson({
+            ...item,
+            'nama_pembeli': item['users']?['full_name'],
+            'items': items.map((e) => e.toJson()).toList(),
+          }),
+        );
+      }
+
+      return transactions;
     } catch (e) {
       throw Exception('Gagal fetch transaksi penjual: $e');
     }
