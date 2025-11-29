@@ -358,22 +358,63 @@ class MarketplaceService {
     String? status,
   }) async {
     try {
-      print('🔍 DEBUG: Fetching transaksi for toko ID: $idPenjual');
+      // Step 1: Get toko ID from owner ID
+      final tokoResponse = await _client
+          .from('toko')
+          .select('id')
+          .eq('id_pemilik', idPenjual)
+          .maybeSingle();
 
-      // TEMPORARY: Fetch ALL transactions untuk debug
-      // Nanti akan dikembalikan ke filter by toko setelah data detail_t_marketplace diisi
+      if (tokoResponse == null) {
+        // User doesn't have a store, return empty list
+        return [];
+      }
+
+      final idToko = tokoResponse['id'] as int;
+
+      // Step 2: Get all product IDs from this toko
+      final storeProducts = await _client
+          .from('produk')
+          .select('id')
+          .eq('id_toko', idToko);
+
+      if ((storeProducts as List).isEmpty) {
+        // Store has no products, return empty list
+        return [];
+      }
+
+      final productIds = (storeProducts as List)
+          .map((p) => p['id'] as int)
+          .toList();
+
+      // Step 3: Get transaction IDs that contain these products
+      final detailResponse = await _client
+          .from('detail_t_marketplace')
+          .select('id_transaksi')
+          .inFilter('id_produk', productIds);
+
+      if ((detailResponse as List).isEmpty) {
+        // No transactions with these products
+        return [];
+      }
+
+      // Get unique transaction IDs
+      final transactionIds = (detailResponse as List)
+          .map((d) => d['id_transaksi'] as int)
+          .toSet()
+          .toList();
+
+      // Step 4: Fetch the actual transactions
       var query = _client
           .from('transaksi_marketplace')
-          .select('*, users!transaksi_marketplace_id_pembeli_fkey(full_name)');
+          .select('*, users!transaksi_marketplace_id_pembeli_fkey(full_name)')
+          .inFilter('id', transactionIds);
 
       if (status != null) {
         query = query.eq('status', status);
-        print('🔍 DEBUG: Filtering by status: $status');
       }
 
       final response = await query.order('created_at', ascending: false);
-
-      print('✅ DEBUG: Returning ${(response as List).length} transactions');
 
       return (response as List)
           .map(
@@ -384,7 +425,6 @@ class MarketplaceService {
           )
           .toList();
     } catch (e) {
-      print('❌ DEBUG: Error fetching transaksi penjual: $e');
       throw Exception('Gagal fetch transaksi penjual: $e');
     }
   }
