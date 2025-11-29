@@ -45,34 +45,24 @@ class _SellerOrderListPageState extends ConsumerState<SellerOrderListPage> {
       );
     }
 
-    return FutureBuilder<int?>(
-      future: _getUserIntId(currentUser.id),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Scaffold(
-            backgroundColor: AppColors.creamWhite,
-            appBar: const CustomTopBar(
-              title: 'Pesanan Masuk',
-              showBackButton: true,
-            ),
-            body: const Center(child: CircularProgressIndicator()),
-          );
-        }
+    return Scaffold(
+      backgroundColor: AppColors.creamWhite,
+      appBar: const CustomTopBar(title: 'Pesanan Masuk', showBackButton: true),
+      body: FutureBuilder<int?>(
+        future: _getUserIntId(currentUser.id),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final userId = snapshot.data;
-        if (userId == null) {
-          return Scaffold(
-            backgroundColor: AppColors.creamWhite,
-            appBar: const CustomTopBar(
-              title: 'Pesanan Masuk',
-              showBackButton: true,
-            ),
-            body: const Center(child: Text('User ID tidak ditemukan')),
-          );
-        }
+          final userId = snapshot.data;
+          if (userId == null) {
+            return const Center(child: Text('User ID tidak ditemukan'));
+          }
 
-        return _buildOrdersPage(context, userId);
-      },
+          return _buildOrdersPage(context, userId);
+        },
+      ),
     );
   }
 
@@ -80,99 +70,74 @@ class _SellerOrderListPageState extends ConsumerState<SellerOrderListPage> {
     // Get incoming orders for this seller
     final ordersAsync = ref.watch(incomingOrdersProvider(userId));
 
-    return Scaffold(
-      backgroundColor: AppColors.creamWhite,
-      appBar: const CustomTopBar(title: 'Pesanan Masuk', showBackButton: true),
-      body: ordersAsync.when(
-        data: (orders) {
-          // Filter orders by status
-          List<TransaksiMarketplaceModel> filteredOrders = orders;
-          if (_selectedFilter != 'Semua') {
-            filteredOrders = orders.where((order) {
-              switch (_selectedFilter) {
-                case 'Pending':
-                  return order.status == StatusTransaksi.pending;
-                case 'Dikonfirmasi':
-                  return order.status == StatusTransaksi.dikonfirmasi;
-                case 'Selesai':
-                  return order.status == StatusTransaksi.selesai;
-                case 'Dibatalkan':
-                  return order.status == StatusTransaksi.dibatalkan;
-                default:
-                  return true;
-              }
-            }).toList();
-          }
+    return ordersAsync.when(
+      data: (orders) {
+        // Filter orders by status
+        List<TransaksiMarketplaceModel> filteredOrders = orders;
+        if (_selectedFilter != 'Semua') {
+          filteredOrders = orders.where((order) {
+            switch (_selectedFilter) {
+              case 'Pending':
+                return order.status == StatusTransaksi.pending;
+              case 'Dikonfirmasi':
+                return order.status == StatusTransaksi.dikonfirmasi;
+              case 'Selesai':
+                return order.status == StatusTransaksi.selesai;
+              case 'Dibatalkan':
+                return order.status == StatusTransaksi.dibatalkan;
+              default:
+                return true;
+            }
+          }).toList();
+        }
 
-          return Column(
-            children: [
-              _buildFilterChips(),
-              Expanded(
-                child: filteredOrders.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          ref.invalidate(incomingOrdersProvider(userId));
+        return Column(
+          children: [
+            _buildFilterChips(),
+            Expanded(
+              child: filteredOrders.isEmpty
+                  ? _buildEmptyState()
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        ref.invalidate(incomingOrdersProvider(userId));
+                      },
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: filteredOrders.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final order = filteredOrders[index];
+                          return _OrderCard(
+                            order: order,
+                            onConfirm: () => _confirmOrder(order.id, userId),
+                            onComplete: () => _completeOrder(order.id, userId),
+                            onCancel: () => _cancelOrder(order.id, userId),
+                          );
                         },
-                        child: ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: filteredOrders.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final order = filteredOrders[index];
-                            return _OrderCard(
-                              order: order,
-                              onConfirm: () => _confirmOrder(order.id, userId),
-                              onComplete: () =>
-                                  _completeOrder(order.id, userId),
-                              onCancel: () => _cancelOrder(order.id, userId),
-                            );
-                          },
-                        ),
                       ),
-              ),
-            ],
-          );
-        },
-        loading: () => Scaffold(
-          backgroundColor: AppColors.creamWhite,
-          appBar: const CustomTopBar(
-            title: 'Pesanan Masuk',
-            showBackButton: true,
-          ),
-          body: const Center(child: CircularProgressIndicator()),
-        ),
-        error: (error, stack) => Scaffold(
-          backgroundColor: AppColors.creamWhite,
-          appBar: const CustomTopBar(
-            title: 'Pesanan Masuk',
-            showBackButton: true,
-          ),
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: AppColors.error,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Gagal memuat pesanan\n${error.toString()}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () =>
-                      ref.invalidate(incomingOrdersProvider(userId)),
-                  child: const Text('Coba Lagi'),
-                ),
-              ],
+                    ),
             ),
-          ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+            const SizedBox(height: 16),
+            Text(
+              'Gagal memuat pesanan\n${error.toString()}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => ref.invalidate(incomingOrdersProvider(userId)),
+              child: const Text('Coba Lagi'),
+            ),
+          ],
         ),
       ),
     );

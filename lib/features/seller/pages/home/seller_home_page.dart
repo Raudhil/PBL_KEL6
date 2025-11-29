@@ -289,7 +289,6 @@ class SellerHomePage extends ConsumerWidget {
           onTap: () {
             Navigator.of(
               context,
-              rootNavigator: true,
             ).push(MaterialPageRoute(builder: (_) => menu['page'] as Widget));
           },
         );
