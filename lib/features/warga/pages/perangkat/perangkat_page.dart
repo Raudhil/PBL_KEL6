@@ -8,6 +8,7 @@ import '../../../bendahara/pages/keuangan/kelola_iuran.dart';
 import '../../../admin/pages/kelola_pengguna_page.dart';
 import '../../../bendahara/pages/keuangan_warga/keuangan_page.dart';
 import '../../../sekretaris/kegiatan/pages/kegiatan_list_page.dart';
+import '../../../sekretaris/pengumuman/pengumuman_page.dart';
 
 class PerangkatPage extends ConsumerWidget {
   const PerangkatPage({super.key});
@@ -182,6 +183,16 @@ class PerangkatPage extends ConsumerWidget {
                   return;
                 }
 
+                // Kelola Pengumuman untuk Sekretaris, Bendahara, RT
+                if (label == 'Kelola Pengumuman' ||
+                    label == 'Pengumuman' ||
+                    label == 'Pengumuman RT') {
+                  Navigator.of(context, rootNavigator: true).push(
+                    MaterialPageRoute(builder: (_) => const PengumumanPage()),
+                  );
+                  return;
+                }
+
                 // Default: Tampilkan snackbar "Dalam Pengembangan"
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -332,16 +343,17 @@ class PerangkatPage extends ConsumerWidget {
             'label': 'Kelola Kegiatan',
             'color': Color(0xFFF59E0B),
           },
-          {
-            'icon': Icons.folder_open,
-            'label': 'Arsip Dokumen',
-            'color': AppColors.primary600,
-          },
-          {
-            'icon': Icons.print,
-            'label': 'Cetak Dokumen',
-            'color': Color(0xFF8B5CF6),
-          },
+          // Fitur belum dikembangkan
+          // {
+          //   'icon': Icons.folder_open,
+          //   'label': 'Arsip Dokumen',
+          //   'color': AppColors.primary600,
+          // },
+          // {
+          //   'icon': Icons.print,
+          //   'label': 'Cetak Dokumen',
+          //   'color': Color(0xFF8B5CF6),
+          // },
         ];
       case 'admin':
         return [
