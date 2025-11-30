@@ -48,8 +48,9 @@ dependencies:
   # HTTP (PCVK FastAPI)
   dio: ^5.4.3
 
-  # KAMERA
+  # KAMERA & FILE PICKER
   image_picker: ^1.1.0
+  file_picker: ^10.3.7
 
   # UI
   auto_size_text: ^3.0.0
