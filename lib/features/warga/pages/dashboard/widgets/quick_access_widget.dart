@@ -56,14 +56,14 @@ class QuickAccessWidget extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Quick Access',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
+        // const Text(
+        //   'Quick Access',
+        //   style: TextStyle(
+        //     fontSize: 20,
+        //     fontWeight: FontWeight.bold,
+        //     color: AppColors.textPrimary,
+        //   ),
+        // ),
         const SizedBox(height: 12),
         InkWell(
           onTap: () {
