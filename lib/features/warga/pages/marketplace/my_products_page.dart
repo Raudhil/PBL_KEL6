@@ -312,13 +312,11 @@ class _ProductCard extends StatelessWidget {
               onPressed: () async {
                 Navigator.pop(dialogContext);
                 try {
-                  // Soft delete: set is_deleted to true
-                  await ref
-                      .read(marketplaceRepositoryProvider)
-                      .updateProduk(product.id, {
-                        'is_deleted': true,
-                        'updated_at': DateTime.now().toIso8601String(),
-                      });
+                  // Soft delete: set is_deleted to true (without updating other columns)
+                  await ref.read(marketplaceRepositoryProvider).updateProduk(
+                    product.id,
+                    {'is_deleted': true},
+                  );
 
                   if (context.mounted) {
                     // Refresh product list

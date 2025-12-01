@@ -226,10 +226,10 @@ class MarketplaceService {
     }
   }
 
-  /// Hapus produk
+  /// Hapus produk (soft delete)
   Future<void> deleteProduk(int id) async {
     try {
-      await _client.from('produk').delete().eq('id', id);
+      await _client.from('produk').update({'is_deleted': true}).eq('id', id);
     } catch (e) {
       throw Exception('Gagal hapus produk: $e');
     }
