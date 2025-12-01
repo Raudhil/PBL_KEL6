@@ -138,6 +138,7 @@ class MarketplaceService {
       final response = await _client
           .from('produk')
           .select('*, toko!produk_id_toko_fkey(nama)')
+          .eq('is_deleted', false) // Only fetch non-deleted products
           .order('created_at', ascending: false);
 
       return (response as List)
@@ -160,6 +161,7 @@ class MarketplaceService {
           .from('produk')
           .select('*')
           .eq('id_toko', idToko)
+          .eq('is_deleted', false) // Only fetch non-deleted products
           .order('created_at', ascending: false);
 
       return (response as List)
@@ -224,10 +226,10 @@ class MarketplaceService {
     }
   }
 
-  /// Hapus produk
+  /// Hapus produk (soft delete)
   Future<void> deleteProduk(int id) async {
     try {
-      await _client.from('produk').delete().eq('id', id);
+      await _client.from('produk').update({'is_deleted': true}).eq('id', id);
     } catch (e) {
       throw Exception('Gagal hapus produk: $e');
     }
