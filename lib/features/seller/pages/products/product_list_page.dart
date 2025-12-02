@@ -191,6 +191,10 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isOutOfStock = product.stok == 0;
     final emoji = _getCategoryEmoji(product.nama);
+    final hasPhoto =
+        product.fotoProduk != null && product.fotoProduk!.isNotEmpty;
+    final isNetworkImage = hasPhoto && product.fotoProduk!.startsWith('http');
+    final isAssetImage = hasPhoto && product.fotoProduk!.startsWith('assets/');
 
     return Opacity(
       opacity: isOutOfStock ? 0.5 : 1.0,
@@ -219,8 +223,36 @@ class _ProductCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   color: AppColors.greyLight,
                 ),
-                child: Center(
-                  child: Text(emoji, style: const TextStyle(fontSize: 36)),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: isNetworkImage
+                      ? Image.network(
+                          product.fotoProduk!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Center(
+                            child: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 36),
+                            ),
+                          ),
+                        )
+                      : isAssetImage
+                      ? Image.asset(
+                          product.fotoProduk!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Center(
+                            child: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 36),
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 36),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 14),
