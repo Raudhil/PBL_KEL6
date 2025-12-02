@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/toko_model.dart';
 import '../../data/models/produk_marketplace_model.dart';
@@ -235,12 +235,15 @@ class MarketplaceService {
     }
   }
 
-  /// Upload foto produk ke Supabase Storage
-  Future<String> uploadFotoProduk(File imageFile, int produkId) async {
+  /// Upload foto produk ke Supabase Storage (accepts bytes for web compatibility)
+  Future<String> uploadFotoProduk(Uint8List imageBytes, int produkId) async {
     try {
       final fileName =
           'produk_${produkId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await _client.storage.from('product-images').upload(fileName, imageFile);
+
+      await _client.storage
+          .from('product-images')
+          .uploadBinary(fileName, imageBytes);
 
       final publicUrl = _client.storage
           .from('product-images')

@@ -1,9 +1,9 @@
+import 'dart:typed_data';
 import '../../core/services/marketplace_service.dart';
 import '../../data/models/toko_model.dart';
 import '../../data/models/produk_marketplace_model.dart';
 import '../../data/models/transaksi_marketplace_model.dart';
 import '../../data/models/review_produk_model.dart';
-import 'dart:io';
 
 /// Repository untuk marketplace (wraps service calls)
 class MarketplaceRepository {
@@ -77,8 +77,8 @@ class MarketplaceRepository {
     await _service.deleteProduk(id);
   }
 
-  Future<String> uploadFotoProduk(File imageFile, int produkId) async {
-    return await _service.uploadFotoProduk(imageFile, produkId);
+  Future<String> uploadFotoProduk(Uint8List imageBytes, int produkId) async {
+    return await _service.uploadFotoProduk(imageBytes, produkId);
   }
 
   // ============================================
