@@ -6,6 +6,7 @@ import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
 import '../../../../data/models/produk_marketplace_model.dart';
 import '../../../../core/providers/marketplace_provider.dart';
+import 'product_checkout_page.dart';
 
 class ProductDetailPage extends ConsumerStatefulWidget {
   final ProdukMarketplaceModel product;
@@ -251,7 +252,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        _buyNow(quantity);
+                        _navigateToCheckout(quantity);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary600,
@@ -263,7 +264,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                         elevation: 0,
                       ),
                       child: const Text(
-                        'Beli Sekarang',
+                        'Lanjutkan',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -280,7 +281,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
     );
   }
 
-  Future<void> _buyNow(int quantity) async {
+  Future<void> _navigateToCheckout(int quantity) async {
     // Check if user is trying to buy their own product
     if (await _isOwnProduct()) {
       if (!mounted) return;
@@ -305,7 +306,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
       return;
     }
 
-    // Get current user integer ID
+    // Check if user is logged in
     final currentUser = Supabase.instance.client.auth.currentUser;
     if (currentUser == null) {
       if (!mounted) return;
@@ -318,86 +319,14 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
       return;
     }
 
-    try {
-      // Get buyer integer ID from users table
-      final userData = await Supabase.instance.client
-          .from('users')
-          .select('id')
-          .eq('id_auth', currentUser.id)
-          .maybeSingle();
-
-      if (userData == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User ID tidak ditemukan'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-        return;
-      }
-
-      final buyerId = userData['id'] as int;
-
-      // Get seller ID from toko
-      final tokoData = await Supabase.instance.client
-          .from('toko')
-          .select('id_pemilik')
-          .eq('id', widget.product.idToko)
-          .single();
-
-      final sellerId = tokoData['id_pemilik'] as int;
-
-      // Show loading
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-
-      // Create transaction
-      final subtotal = widget.product.harga * quantity;
-      await ref
-          .read(marketplaceRepositoryProvider)
-          .createTransaksi(
-            idPembeli: buyerId,
-            idPenjual: sellerId,
-            total: subtotal,
-            items: [
-              {
-                'id_produk': widget.product.id,
-                'qty': quantity,
-                'harga': widget.product.harga,
-                'subtotal': subtotal,
-              },
-            ],
-          );
-
-      if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
-
-      // Show success
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pesanan berhasil dibuat! Menunggu konfirmasi penjual'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-
-      // Refresh product list
-      ref.invalidate(produkByTokoProvider);
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context); // Close loading if open
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal membuat pesanan: $e'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
+    // Navigate to checkout page
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            ProductCheckoutPage(product: widget.product, quantity: quantity),
+      ),
+    );
   }
 
   Future<void> _contactWhatsApp() async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../data/models/transaksi_marketplace_model.dart';
 import '../../../../data/models/review_produk_model.dart';
@@ -7,8 +8,10 @@ import '../../../../core/providers/marketplace_provider.dart';
 
 class OrderDetailPage extends ConsumerStatefulWidget {
   final TransaksiMarketplaceModel order;
+  final String?
+  paymentMethod; // Optional: untuk menampilkan metode pembayaran dari checkout
 
-  const OrderDetailPage({super.key, required this.order});
+  const OrderDetailPage({super.key, required this.order, this.paymentMethod});
 
   @override
   ConsumerState<OrderDetailPage> createState() => _OrderDetailPageState();
@@ -20,17 +23,33 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
   final _commentController = TextEditingController();
   ReviewProdukModel? _existingReview;
   bool _isLoadingReview = true;
+  String? _loadedPaymentMethod;
 
   @override
   void initState() {
     super.initState();
     _loadExistingReview();
+    _loadPaymentMethod();
   }
 
   @override
   void dispose() {
     _commentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPaymentMethod() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedMethod = prefs.getString('payment_method_${widget.order.id}');
+      if (mounted && savedMethod != null) {
+        setState(() {
+          _loadedPaymentMethod = savedMethod;
+        });
+      }
+    } catch (e) {
+      // Ignore error, will use default COD
+    }
   }
 
   Future<void> _loadExistingReview() async {
@@ -371,7 +390,11 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
             Icons.calendar_today,
           ),
           const SizedBox(height: 12),
-          _buildInfoRow('Metode Pembayaran', 'COD', Icons.payment),
+          _buildInfoRow(
+            'Metode Pembayaran',
+            widget.paymentMethod ?? _loadedPaymentMethod ?? 'COD',
+            Icons.payment,
+          ),
         ],
       ),
     );
