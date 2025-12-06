@@ -12,7 +12,10 @@ class QuickAccessWidget extends ConsumerWidget {
     final roleAsync = ref.watch(roleProvider);
 
     return roleAsync.maybeWhen(
-      data: (role) => _buildQuickAccess(context, role),
+      data: (role) => KeyedSubtree(
+        key: ValueKey('quick_access_$role'),
+        child: _buildQuickAccess(context, role),
+      ),
       orElse: () => const SizedBox.shrink(),
     );
   }
