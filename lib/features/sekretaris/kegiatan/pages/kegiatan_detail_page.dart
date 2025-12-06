@@ -20,7 +20,7 @@ class KegiatanDetailPage extends ConsumerWidget {
     final kegiatanAsync = ref.watch(kegiatanDetailProvider(kegiatanId));
 
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       body: kegiatanAsync.when(
         data: (kegiatan) {
           if (kegiatan == null) {
@@ -210,13 +210,13 @@ class KegiatanDetailPage extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
+                              color: AppColors.primary600.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
                               Icons.person_outline,
                               size: 20,
-                              color: AppColors.primary,
+                              color: AppColors.primary600,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -256,13 +256,13 @@ class KegiatanDetailPage extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.1),
+                                color: AppColors.primary600.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Icon(
                                 Icons.person,
                                 size: 20,
-                                color: AppColors.success,
+                                color: AppColors.primary600,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -323,7 +323,7 @@ class KegiatanDetailPage extends ConsumerWidget {
                   icon: Icons.calendar_today,
                   title: 'Tanggal',
                   value: kegiatan.durasi,
-                  iconColor: AppColors.primary,
+                  iconColor: AppColors.primary600,
                 ),
 
                 const SizedBox(height: 12),
@@ -332,7 +332,7 @@ class KegiatanDetailPage extends ConsumerWidget {
                   icon: Icons.location_on,
                   title: 'Lokasi',
                   value: kegiatan.lokasi ?? 'Belum ditentukan',
-                  iconColor: AppColors.primary400,
+                  iconColor: AppColors.primary600,
                 ),
 
                 if (kegiatan.kuotaPeserta != null) ...[
@@ -341,7 +341,7 @@ class KegiatanDetailPage extends ConsumerWidget {
                     icon: Icons.people,
                     title: 'Kuota Peserta',
                     value: '${kegiatan.kuotaPeserta} orang',
-                    iconColor: AppColors.success,
+                    iconColor: AppColors.primary600,
                   ),
                 ],
 
@@ -711,19 +711,19 @@ class KegiatanDetailPage extends ConsumerWidget {
   Color _getKategoriColor(KategoriKegiatan kategori) {
     switch (kategori) {
       case KategoriKegiatan.sosial:
-        return AppColors.primary;
+        return AppColors.primary600;
       case KategoriKegiatan.kebersihan:
         return AppColors.success;
       case KategoriKegiatan.kesehatan:
-        return const Color(0xFFEF4444);
+        return AppColors.danger;
       case KategoriKegiatan.pendidikan:
-        return const Color(0xFF8B5CF6);
+        return AppColors.info;
       case KategoriKegiatan.keagamaan:
-        return const Color(0xFF10B981);
+        return AppColors.success;
       case KategoriKegiatan.olahraga:
-        return const Color(0xFFF59E0B);
+        return AppColors.warning;
       case KategoriKegiatan.budaya:
-        return const Color(0xFFEC4899);
+        return AppColors.primary400;
       case KategoriKegiatan.lainnya:
         return AppColors.textSecondary;
     }
@@ -732,7 +732,7 @@ class KegiatanDetailPage extends ConsumerWidget {
   Color _getStatusColor(StatusKegiatan status) {
     switch (status) {
       case StatusKegiatan.akanDatang:
-        return AppColors.primary;
+        return AppColors.primary600;
       case StatusKegiatan.sedangBerlangsung:
         return AppColors.warning;
       case StatusKegiatan.selesai:

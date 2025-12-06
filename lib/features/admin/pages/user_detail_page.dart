@@ -15,7 +15,7 @@ class UserDetailPage extends ConsumerWidget {
     final userAsync = ref.watch(userDetailProvider(userId));
 
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       body: userAsync.when(
         data: (user) {
           if (user == null) {

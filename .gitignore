@@ -43,6 +43,24 @@ supabase_schema.sql
 /build/
 /coverage/
 
+# Android Gradle build files
+android/.gradle/
+android/app/build/
+android/build/
+android/gradle/
+*.lock
+*.bin
+
+# Build reports
+android/build/reports/
+
+# Build artifacts and logs
+build_log.txt
+*.apk
+*.aab
+*.ap_
+*.dex
+
 # Symbolication related
 app.*.symbols
 

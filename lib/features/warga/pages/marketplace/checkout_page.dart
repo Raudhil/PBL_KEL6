@@ -74,7 +74,7 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       appBar: const CustomTopBar(title: 'Checkout', showBackButton: true),
       body: SingleChildScrollView(
         child: Column(

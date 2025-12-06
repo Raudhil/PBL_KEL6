@@ -572,9 +572,9 @@ class _AgendaEventCard extends StatelessWidget {
       case 'sosial':
         return AppColors.success;
       case 'lingkungan':
-        return const Color(0xFF10B981);
+        return AppColors.success;
       case 'kesehatan':
-        return const Color(0xFFEF4444);
+        return AppColors.danger;
       default:
         return AppColors.primary400;
     }

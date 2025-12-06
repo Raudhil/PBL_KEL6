@@ -111,7 +111,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     final order = widget.order;
 
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.white,
         elevation: 0,
