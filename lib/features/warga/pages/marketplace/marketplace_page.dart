@@ -73,7 +73,8 @@ class WargaMarketplacePage extends ConsumerWidget {
                             crossAxisCount: 2,
                             mainAxisSpacing: 8,
                             crossAxisSpacing: 8,
-                            childAspectRatio: 0.72,
+                            childAspectRatio:
+                                0.62, // Further reduced for more height
                           ),
                       itemCount: products.length,
                       itemBuilder: (context, index) {
