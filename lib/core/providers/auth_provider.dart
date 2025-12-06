@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
+import 'role_provider.dart';
 
 // Auth Service Provider
 final authServiceProvider = Provider<AuthService>((ref) {
@@ -28,8 +29,9 @@ class AuthState {
 // Auth Notifier
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _authService;
+  final Ref _ref;
 
-  AuthNotifier(this._authService) : super(AuthState()) {
+  AuthNotifier(this._authService, this._ref) : super(AuthState()) {
     _init();
   }
 
@@ -37,6 +39,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _authService.authStateChanges.listen((event) {
       if (event.session == null) {
         state = AuthState();
+        // Invalidate roleProvider saat logout
+        _ref.invalidate(roleProvider);
+        print('🔄 AuthNotifier: Session cleared, roleProvider invalidated');
       }
     });
   }
@@ -66,6 +71,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isLoading: false,
       );
 
+      // Invalidate roleProvider untuk memastikan fresh data
+      _ref.invalidate(roleProvider);
+
       print(
         '✅ AuthProvider: State updated - User: ${state.user?.email}, Role: ${state.role}',
       );
@@ -82,11 +90,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _authService.signOut();
       // Reset state completely
       state = AuthState();
-      print('✅ AuthProvider: Logout successful, state reset');
+      // Invalidate roleProvider
+      _ref.invalidate(roleProvider);
+      print(
+        '✅ AuthProvider: Logout successful, state reset, roleProvider invalidated',
+      );
     } catch (e) {
       print('❌ AuthProvider: Logout error - $e');
       // Still reset state even if logout fails
       state = AuthState();
+      _ref.invalidate(roleProvider);
     }
   }
 }
@@ -94,5 +107,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
 // Auth State Notifier Provider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authService = ref.watch(authServiceProvider);
-  return AuthNotifier(authService);
+  return AuthNotifier(authService, ref);
 });
