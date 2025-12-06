@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
 import '../../../../data/models/transaksi_marketplace_model.dart';
@@ -273,17 +274,44 @@ class _OrderFilterChips extends StatelessWidget {
   }
 }
 
-class _OrderCard extends StatelessWidget {
+class _OrderCard extends StatefulWidget {
   final TransaksiMarketplaceModel order;
   final VoidCallback onTap;
 
   const _OrderCard({required this.order, required this.onTap});
 
   @override
+  State<_OrderCard> createState() => _OrderCardState();
+}
+
+class _OrderCardState extends State<_OrderCard> {
+  String _paymentMethod = 'COD'; // Default
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPaymentMethod();
+  }
+
+  Future<void> _loadPaymentMethod() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedMethod = prefs.getString('payment_method_${widget.order.id}');
+      if (mounted && savedMethod != null) {
+        setState(() {
+          _paymentMethod = savedMethod;
+        });
+      }
+    } catch (e) {
+      // Ignore error, will use default COD
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Use actual status from order
-    final statusDisplay = order.status.label;
-    final statusColor = _getStatusColor(order.status);
+    final statusDisplay = widget.order.status.label;
+    final statusColor = _getStatusColor(widget.order.status);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -301,7 +329,7 @@ class _OrderCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: widget.onTap,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -323,7 +351,7 @@ class _OrderCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
-                              '#${order.id}',
+                              '#${widget.order.id}',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -373,7 +401,7 @@ class _OrderCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        _formatDate(order.createdAt),
+                        _formatDate(widget.order.createdAt),
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -394,7 +422,7 @@ class _OrderCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'COD',
+                        _paymentMethod,
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -408,7 +436,8 @@ class _OrderCard extends StatelessWidget {
                 const Divider(height: 1),
                 const SizedBox(height: 12),
                 // Display items
-                if (order.items != null && order.items!.isNotEmpty) ...[
+                if (widget.order.items != null &&
+                    widget.order.items!.isNotEmpty) ...[
                   const Text(
                     'Produk Dipesan',
                     style: TextStyle(
@@ -418,7 +447,7 @@ class _OrderCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...order.items!
+                  ...widget.order.items!
                       .take(2)
                       .map(
                         (item) => Padding(
@@ -489,11 +518,11 @@ class _OrderCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                  if (order.items!.length > 2)
+                  if (widget.order.items!.length > 2)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        '+${order.items!.length - 2} produk lainnya',
+                        '+${widget.order.items!.length - 2} produk lainnya',
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.textSecondary,
@@ -519,7 +548,7 @@ class _OrderCard extends StatelessWidget {
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          'Rp ${_formatPrice(order.total.toInt())}',
+                          'Rp ${_formatPrice(widget.order.total.toInt())}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
