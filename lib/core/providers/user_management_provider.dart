@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/user_model.dart';
 import '../services/user_management_service.dart';
 
@@ -17,13 +18,37 @@ final userListProvider =
 /// Notifier untuk manage user list
 class UserListNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
   final UserManagementService _service;
+  RealtimeChannel? _realtimeChannel;
 
   UserListNotifier(this._service) : super(const AsyncValue.loading()) {
+    _setupRealtimeSubscription();
     loadUsers();
   }
 
   StatusUser? _statusFilter;
   int? _roleFilter;
+
+  /// Setup realtime subscription untuk auto-refresh
+  void _setupRealtimeSubscription() {
+    _realtimeChannel = Supabase.instance.client
+        .channel('users_realtime_channel')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'users',
+          callback: (payload) {
+            // Refresh data ketika ada perubahan
+            loadUsers();
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _realtimeChannel?.unsubscribe();
+    super.dispose();
+  }
 
   /// Load users dengan filter
   Future<void> loadUsers() async {
@@ -58,14 +83,8 @@ class UserListNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
   /// Update user status
   Future<void> updateUserStatus(int userId, StatusUser status) async {
     try {
-      final updatedUser = await _service.updateUserStatus(userId, status);
-
-      // Update specific user in list
-      state = state.whenData((users) {
-        return users.map((user) {
-          return user.id == userId ? updatedUser : user;
-        }).toList();
-      });
+      await _service.updateUserStatus(userId, status);
+      // Data akan otomatis refresh via realtime subscription
     } catch (e) {
       throw Exception('Gagal mengupdate status: $e');
     }
@@ -74,14 +93,8 @@ class UserListNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
   /// Update user role
   Future<void> updateUserRole(int userId, int roleId) async {
     try {
-      final updatedUser = await _service.updateUserRole(userId, roleId);
-
-      // Update specific user in list
-      state = state.whenData((users) {
-        return users.map((user) {
-          return user.id == userId ? updatedUser : user;
-        }).toList();
-      });
+      await _service.updateUserRole(userId, roleId);
+      // Data akan otomatis refresh via realtime subscription
     } catch (e) {
       throw Exception('Gagal mengupdate role: $e');
     }

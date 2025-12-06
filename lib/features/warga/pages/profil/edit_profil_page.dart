@@ -346,95 +346,6 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
         controller.newAvatarBytes != null ||
         user.avatarUrl != null;
 
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Title
-              const Text(
-                'Ubah Foto Profil',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Options
-              _buildPhotoOption(
-                icon: Icons.camera_alt_rounded,
-                title: 'Ambil Foto',
-                subtitle: 'Gunakan kamera',
-                color: AppColors.primary,
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildPhotoOption(
-                icon: Icons.photo_library_rounded,
-                title: 'Pilih dari Galeri',
-                subtitle: 'Pilih foto dari perangkat',
-                color: AppColors.secondary,
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              if (hasPhoto) ...[
-                const SizedBox(height: 12),
-                _buildPhotoOption(
-                  icon: Icons.delete_rounded,
-                  title: 'Hapus Foto Profil',
-                  subtitle: 'Gunakan foto default',
-                  color: AppColors.danger,
-                  onTap: () {
-                    Navigator.pop(context);
-                    _deletePhoto();
-                  },
-                ),
-              ],
-              const SizedBox(height: 16),
-              // Cancel button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: BorderSide(color: AppColors.greyLight, width: 1.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Batal',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showImageSourceOptions() async {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -447,33 +358,33 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
             topRight: Radius.circular(24),
           ),
         ),
-        child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 12),
+              // Handle bar
               Container(
                 width: 40,
                 height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
                   color: AppColors.greyLight,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  'Pilih Sumber Foto',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
+              // Title
+              const Text(
+                'Ubah Foto Profil',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(height: 16),
-              _buildPhotoOption(
+              const SizedBox(height: 20),
+              // Options
+              _buildBottomSheetOption(
                 icon: Icons.camera_alt_rounded,
                 title: 'Ambil Foto',
                 subtitle: 'Gunakan kamera',
@@ -483,7 +394,8 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
                   _pickImage(ImageSource.camera);
                 },
               ),
-              _buildPhotoOption(
+              const SizedBox(height: 12),
+              _buildBottomSheetOption(
                 icon: Icons.photo_library_rounded,
                 title: 'Pilih dari Galeri',
                 subtitle: 'Pilih foto dari perangkat',
@@ -493,7 +405,19 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
                   _pickImage(ImageSource.gallery);
                 },
               ),
-              const SizedBox(height: 20),
+              if (hasPhoto) ...[
+                const SizedBox(height: 12),
+                _buildBottomSheetOption(
+                  icon: Icons.delete_rounded,
+                  title: 'Hapus Foto Profil',
+                  subtitle: 'Gunakan foto default',
+                  color: AppColors.danger,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deletePhoto();
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -501,66 +425,66 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
     );
   }
 
-  Widget _buildPhotoOption({
+  Widget _buildBottomSheetOption({
     required IconData icon,
     required String title,
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color.withOpacity(0.3), width: 2),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withOpacity(0.4), width: 2),
-                  ),
-                  child: Icon(icon, color: color, size: 26),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary.withOpacity(0.8),
-                        ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary.withOpacity(0.7),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Icon(Icons.chevron_right_rounded, color: color, size: 24),
-              ],
-            ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: color.withOpacity(0.5),
+                size: 24,
+              ),
+            ],
           ),
         ),
       ),
@@ -650,131 +574,53 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
     );
   }
 
-  void _showSuccessModal({
-    required String title,
-    required String message,
-    required IconData icon,
-    required Color color,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.5),
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.3),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon dengan animasi
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 48, color: color),
-              ),
-              const SizedBox(height: 24),
-              // Title
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Message
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary.withOpacity(0.8),
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Button
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: color,
-                    foregroundColor: AppColors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'OK',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    // Auto close after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted && Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-    });
-  }
-
   Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: source,
-      maxWidth: 1024,
-      maxHeight: 1024,
-      imageQuality: 85,
-    );
-    if (picked == null) return;
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+        requestFullMetadata: false,
+      );
 
-    final controller = ref.read(profilControllerProvider.notifier);
+      if (picked == null) return;
 
-    if (kIsWeb) {
-      controller.setAvatar(null, await picked.readAsBytes());
-    } else {
-      controller.setAvatar(File(picked.path), null);
+      final controller = ref.read(profilControllerProvider.notifier);
+
+      if (kIsWeb) {
+        final bytes = await picked.readAsBytes();
+        controller.setAvatar(null, bytes);
+      } else {
+        controller.setAvatar(File(picked.path), null);
+      }
+
+      if (!mounted) return;
+      setState(() {});
+
+      // Show simple snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Foto dipilih. Klik Simpan untuk menyimpan'),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal memilih foto: $e'),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
     }
-
-    if (!mounted) return;
-    setState(() {});
-
-    // Show success modal
-    _showSuccessModal(
-      title: 'Berhasil!',
-      message:
-          'Foto berhasil dipilih. Jangan lupa klik tombol Simpan untuk menyimpan perubahan.',
-      icon: Icons.check_circle_rounded,
-      color: Colors.green,
-    );
   }
 
   Future<void> _deletePhoto() async {
@@ -817,30 +663,42 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
       // Clear local state
       setState(() {});
 
-      // Hide loading
+      // Hide loading and show success
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-      // Show success modal
-      _showSuccessModal(
-        title: 'Berhasil Dihapus!',
-        message:
-            'Foto profil Anda telah dihapus dan diganti dengan foto default.',
-        icon: Icons.check_circle_rounded,
-        color: Colors.green,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.white),
+              SizedBox(width: 8),
+              Text("Foto profil berhasil dihapus"),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 2),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
 
-      // Hide loading
+      // Hide loading and show error
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-      // Show error modal
-      _showSuccessModal(
-        title: 'Gagal Menghapus',
-        message:
-            'Terjadi kesalahan saat menghapus foto profil. Silakan coba lagi.',
-        icon: Icons.error_outline_rounded,
-        color: AppColors.danger,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text("Gagal menghapus foto: $e")),
+            ],
+          ),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 3),
+        ),
       );
     }
   }
@@ -951,27 +809,121 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
     if (!mounted) return;
     setState(() => _loading = true);
 
-    await controller.saveProfile(
-      password: _passwordController.text.isNotEmpty
-          ? _passwordController.text
-          : null,
-    );
+    try {
+      await controller.saveProfile(
+        password: _passwordController.text.isNotEmpty
+            ? _passwordController.text
+            : null,
+      );
 
-    if (!mounted) return;
-    setState(() => _loading = false);
+      if (!mounted) return;
+      setState(() => _loading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle_rounded, color: Colors.white),
-            SizedBox(width: 8),
-            Text("Profil berhasil diperbarui"),
-          ],
+      // Invalidate provider untuk force refresh data
+      ref.invalidate(profilControllerProvider);
+
+      // Show success modal
+      await _showSuccessModal();
+
+      // Navigate back to profile page
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text("Gagal menyimpan: $e")),
+            ],
+          ),
+          backgroundColor: AppColors.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          duration: const Duration(seconds: 3),
         ),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      );
+    }
+  }
+
+  Future<void> _showSuccessModal() async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Success icon
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  size: 50,
+                  color: Colors.green.shade600,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Success title
+              const Text(
+                'Berhasil!',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Success message
+              const Text(
+                'Profil Anda berhasil diperbarui',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              // OK button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

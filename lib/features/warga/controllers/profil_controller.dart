@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jawara/data/models/profil_model.dart';
 import 'package:jawara/core/services/profil_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 final profilControllerProvider =
     StateNotifierProvider<ProfilController, AsyncValue<ProfilModel>>(
@@ -13,6 +14,7 @@ final profilControllerProvider =
 class ProfilController extends StateNotifier<AsyncValue<ProfilModel>> {
   ProfilController() : super(const AsyncValue.loading()) {
     loadData();
+    _setupRealtimeSubscription();
     // listen to auth state changes so UI updates automatically when user switches account
     _authSub = service.supabase.auth.onAuthStateChange.listen((_) {
       loadData();
@@ -20,11 +22,35 @@ class ProfilController extends StateNotifier<AsyncValue<ProfilModel>> {
   }
 
   StreamSubscription<dynamic>? _authSub;
+  RealtimeChannel? _realtimeChannel;
 
   final service = ProfilService();
 
   File? newAvatarFile;
   Uint8List? newAvatarBytes;
+
+  void _setupRealtimeSubscription() {
+    final userId = service.supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    _realtimeChannel = service.supabase
+        .channel('profil_realtime_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'users',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id_auth',
+            value: userId,
+          ),
+          callback: (payload) {
+            debugPrint('Realtime update detected: ${payload.eventType}');
+            loadData();
+          },
+        )
+        .subscribe();
+  }
 
   Future<void> loadData() async {
     // set loading state so UI shows loader while fetching
@@ -51,6 +77,7 @@ class ProfilController extends StateNotifier<AsyncValue<ProfilModel>> {
   @override
   void dispose() {
     _authSub?.cancel();
+    _realtimeChannel?.unsubscribe();
     super.dispose();
   }
 
@@ -116,12 +143,11 @@ class ProfilController extends StateNotifier<AsyncValue<ProfilModel>> {
 
     await service.updateUserData(password: password, avatarUrl: avatarUrl);
 
-    // update state untuk UI
-    state = AsyncValue.data(
-      data.copyWith(fotoProfile: avatarUrl, avatarUrl: avatarUrl),
-    );
-
+    // Clear temporary files
     newAvatarBytes = null;
     newAvatarFile = null;
+
+    // Force reload data dari database untuk memastikan sinkronisasi
+    await loadData();
   }
 }
