@@ -7,8 +7,8 @@ import 'package:jawara/core/services/profil_service.dart';
 
 final profilControllerProvider =
     StateNotifierProvider<ProfilController, AsyncValue<ProfilModel>>(
-  (ref) => ProfilController(),
-);
+      (ref) => ProfilController(),
+    );
 
 class ProfilController extends StateNotifier<AsyncValue<ProfilModel>> {
   ProfilController() : super(const AsyncValue.loading()) {
@@ -59,35 +59,66 @@ class ProfilController extends StateNotifier<AsyncValue<ProfilModel>> {
     newAvatarBytes = b;
   }
 
-  Future<void> saveProfile({
-    required String? password,
-  }) async {
+  Future<void> deleteAvatar() async {
     final data = state.value;
     if (data == null) return;
 
-    String? avatarUrl;
+    // Hapus file dari storage jika ada
+    if (data.avatarUrl != null && data.avatarUrl!.isNotEmpty) {
+      try {
+        // Extract filename from URL
+        final uri = Uri.parse(data.avatarUrl!);
+        final fileName = uri.pathSegments.last;
 
+        await service.deleteAvatarFromStorage(fileName);
+      } catch (e) {
+        debugPrint("Error deleting avatar from storage: $e");
+      }
+    }
+
+    // Update database to set avatar to null
+    await service.updateUserData(password: null, avatarUrl: null);
+
+    // Clear local state
+    newAvatarBytes = null;
+    newAvatarFile = null;
+
+    // Update UI state
+    state = AsyncValue.data(data.copyWith(fotoProfile: null, avatarUrl: null));
+  }
+
+  Future<void> saveProfile({required String? password}) async {
+    final data = state.value;
+    if (data == null) return;
+
+    String? avatarUrl = data.avatarUrl;
+
+    // Upload foto baru jika ada
     if (newAvatarFile != null || newAvatarBytes != null) {
+      // Hapus foto lama dari storage jika ada
+      if (data.avatarUrl != null && data.avatarUrl!.isNotEmpty) {
+        try {
+          final uri = Uri.parse(data.avatarUrl!);
+          final oldFileName = uri.pathSegments.last;
+          await service.deleteAvatarFromStorage(oldFileName);
+        } catch (e) {
+          debugPrint("Error deleting old avatar: $e");
+        }
+      }
+
+      // Upload foto baru
       avatarUrl = await service.uploadAvatar(
         file: newAvatarFile,
         bytes: newAvatarBytes,
         userId: data.id,
       );
-    } else {
-      avatarUrl = data.avatarUrl;
     }
 
-    await service.updateUserData(
-      password: password,
-      avatarUrl: avatarUrl,
-    );
+    await service.updateUserData(password: password, avatarUrl: avatarUrl);
 
     // update state untuk UI
     state = AsyncValue.data(
-      data.copyWith(
-        fotoProfile: avatarUrl,
-        avatarUrl: avatarUrl,
-      ),
+      data.copyWith(fotoProfile: avatarUrl, avatarUrl: avatarUrl),
     );
 
     newAvatarBytes = null;

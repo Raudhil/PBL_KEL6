@@ -32,23 +32,10 @@ class DataDiriPage extends ConsumerWidget {
 
         return Scaffold(
           backgroundColor: AppColors.creamWhite,
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: AppColors.white,
-            surfaceTintColor: AppColors.white,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            title: const Text(
-              'Data Diri',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            centerTitle: true,
+          appBar: const CustomTopBar(
+            title: 'Data Diri',
+            showBackButton: true,
+            actions: [],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -197,7 +184,7 @@ class DataDiriPage extends ConsumerWidget {
                       icon: Icons.phone_outlined,
                       label: "Nomor HP",
                       value: warga?.nomorHp ?? '-',
-                      iconColor: AppColors.success,
+                      iconColor: AppColors.primary600,
                     ),
                   ],
                 ),
