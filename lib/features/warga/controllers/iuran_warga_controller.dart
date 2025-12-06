@@ -119,7 +119,7 @@ class IuranWargaController extends StateNotifier<IuranWargaState> {
       await _updateOrCreateTransaksi(idIuran, userId);
 
       print('========== BAYAR IURAN SUCCESS ==========\n');
-      await fetchData();
+      // REMOVED: await fetchData();
     } catch (e) {
       _logError('BAYAR IURAN ERROR', e);
       rethrow;
