@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/providers/pengumuman_provider.dart';
 import '../../../theme/app_colors.dart';
 import 'create_pengumuman_page.dart';
@@ -29,6 +30,16 @@ class _PengumumanPageState extends ConsumerState<PengumumanPage> {
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/warga/dashboard');
+            }
+          },
+        ),
         title: const Text('Pengumuman'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

@@ -12,8 +12,15 @@ import '../features/warga/pages/dashboard/dashboard_page.dart';
 import '../features/warga/pages/marketplace/marketplace_page.dart';
 import '../features/warga/pages/iuran/iuran_page.dart';
 import '../features/warga/pages/profil/profil_page.dart';
-import '../features/warga/pages/perangkat/perangkat_page.dart';
 import '../features/rt/pages/data_warga_page.dart';
+import '../features/sekretaris/kegiatan/pages/kegiatan_list_page.dart';
+import '../features/sekretaris/pengumuman/pengumuman_page.dart';
+import '../features/bendahara/pages/keuangan/kelola_iuran.dart';
+import '../features/bendahara/pages/keuangan_warga/keuangan_page.dart';
+import '../features/admin/pages/kelola_pengguna_page.dart';
+import '../core/widgets/app_error_page.dart';
+import '../core/widgets/maintenance_page.dart';
+import '../core/utils/page_transitions.dart';
 
 // Placeholder pages for unimplemented roles
 class _PlaceholderPage extends StatelessWidget {
@@ -57,7 +64,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     // Redirect logic based on auth state and role
     redirect: (context, state) {
       // Debug log: show current onboarding flag and requested route
-      debugPrint('[Router] redirect check - seenOnboarding=${OnboardingState.seenOnboarding}, uri.path=${state.uri.path}');
+      debugPrint(
+        '[Router] redirect check - seenOnboarding=${OnboardingState.seenOnboarding}, uri.path=${state.uri.path}',
+      );
       final location = state.uri.path; // use uri.path to check requested path
       debugPrint('[Router] uri.path=$location');
 
@@ -150,29 +159,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const _PlaceholderPage(role: 'Seller'),
       ),
 
-      // ============= ADMIN ROUTES =============
-      GoRoute(
-        path: '/admin',
-        name: 'admin',
-        builder: (context, state) => const _PlaceholderPage(role: 'Admin'),
-      ),
-
       // ============= RT ROUTES =============
       GoRoute(
         path: '/rt',
         name: 'rt',
         builder: (context, state) => const _PlaceholderPage(role: 'RT'),
       ),
-      // Perangkat standalone route so pages can navigate back to it via GoRouter
-      GoRoute(
-        path: '/perangkat',
-        name: 'perangkat',
-        builder: (context, state) => const PerangkatPage(),
-      ),
       GoRoute(
         path: '/rt/data-warga',
         name: 'rt-data-warga',
-        builder: (context, state) => const DataWargaPage(),
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const DataWargaPage(),
+          state: state,
+        ),
       ),
 
       // ============= RW ROUTES =============
@@ -188,6 +187,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'sekretaris',
         builder: (context, state) => const _PlaceholderPage(role: 'Sekretaris'),
       ),
+      GoRoute(
+        path: '/sekretaris/kegiatan',
+        name: 'sekretaris-kegiatan',
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const KegiatanListPage(),
+          state: state,
+        ),
+      ),
+      GoRoute(
+        path: '/sekretaris/pengumuman',
+        name: 'sekretaris-pengumuman',
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const PengumumanPage(),
+          state: state,
+        ),
+      ),
 
       // ============= BENDAHARA ROUTES =============
       GoRoute(
@@ -195,24 +210,83 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'bendahara',
         builder: (context, state) => const _PlaceholderPage(role: 'Bendahara'),
       ),
-    ],
-
-    // Error page
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              'Error: ${state.error}',
-              style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-          ],
+      GoRoute(
+        path: '/bendahara/kelola-iuran',
+        name: 'bendahara-kelola-iuran',
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const KelolaIuranPage(),
+          state: state,
         ),
       ),
-    ),
+      GoRoute(
+        path: '/bendahara/keuangan',
+        name: 'bendahara-keuangan',
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const KeuanganPage(),
+          state: state,
+        ),
+      ),
+
+      // ============= ADMIN ROUTES =============
+      GoRoute(
+        path: '/admin',
+        name: 'admin',
+        builder: (context, state) => const _PlaceholderPage(role: 'Admin'),
+      ),
+      GoRoute(
+        path: '/admin/kelola-pengguna',
+        name: 'admin-kelola-pengguna',
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const KelolaPenggunaPage(),
+          state: state,
+        ),
+      ),
+      GoRoute(
+        path: '/admin/log-aktivitas',
+        name: 'admin-log-aktivitas',
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const MaintenancePage(
+            featureName: 'Log Aktivitas',
+            message:
+                'Fitur Log Aktivitas sedang dalam tahap pengembangan dan perbaikan untuk memberikan pengalaman terbaik.',
+            estimatedTime: 'Segera hadir',
+          ),
+          state: state,
+        ),
+      ),
+      GoRoute(
+        path: '/admin/monitoring-sistem',
+        name: 'admin-monitoring-sistem',
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const AppErrorPage(
+            errorMessage: 'Simulasi Error: Koneksi ke server monitoring gagal',
+            errorDetails:
+                'Error Code: 503\nService Unavailable\n\nDetail:\n- Database monitoring service sedang offline\n- Uptime monitor tidak dapat diakses\n- Real-time analytics unavailable',
+          ),
+          state: state,
+        ),
+      ),
+
+      // ============= MAINTENANCE PAGE =============
+      GoRoute(
+        path: '/maintenance',
+        name: 'maintenance',
+        builder: (context, state) {
+          final featureName = state.uri.queryParameters['feature'];
+          final message = state.uri.queryParameters['message'];
+          final estimatedTime = state.uri.queryParameters['time'];
+
+          return MaintenancePage(
+            featureName: featureName,
+            message: message,
+            estimatedTime: estimatedTime,
+          );
+        },
+      ),
+    ],
+
+    // Error page dengan UI yang lebih baik
+    errorBuilder: (context, state) =>
+        AppErrorPage(errorMessage: state.error?.toString()),
   );
 });

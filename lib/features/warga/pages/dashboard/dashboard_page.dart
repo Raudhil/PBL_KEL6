@@ -51,7 +51,7 @@ class _WargaDashboardPageState extends ConsumerState<WargaDashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Quick Access - Modular widget
+              // Quick Access - Modular widget with inline feature cards
               const QuickAccessWidget(),
               const SizedBox(height: 30),
 
