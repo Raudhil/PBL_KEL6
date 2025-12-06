@@ -13,7 +13,14 @@ final userInfoServiceProvider = Provider<UserInfoService>((ref) {
   return UserInfoService();
 });
 
-/// Provider untuk list kegiatan dengan filter
+/// Provider untuk stream realtime kegiatan dengan filter
+final kegiatanStreamWithFilterProvider =
+    StreamProvider.autoDispose<List<KegiatanModel>>((ref) {
+      final service = ref.watch(kegiatanServiceProvider);
+      return service.watchKegiatan();
+    });
+
+/// Provider untuk list kegiatan dengan filter (untuk backward compatibility)
 final kegiatanListProvider =
     StateNotifierProvider<
       KegiatanListNotifier,
@@ -130,6 +137,13 @@ final kegiatanStreamProvider = StreamProvider.autoDispose<List<KegiatanModel>>((
   return service.watchKegiatan();
 });
 
+/// Provider untuk stream realtime kegiatan (hanya kegiatan user yang login)
+final kegiatanStreamByUserProvider =
+    StreamProvider.autoDispose<List<KegiatanModel>>((ref) {
+      final service = ref.watch(kegiatanServiceProvider);
+      return service.watchKegiatanByUser();
+    });
+
 /// Provider untuk form state (create/edit)
 final kegiatanFormProvider =
     StateNotifierProvider.autoDispose<KegiatanFormNotifier, KegiatanFormState>((
@@ -224,14 +238,14 @@ class KegiatanFormNotifier extends StateNotifier<KegiatanFormState> {
   /// Update kegiatan
   Future<void> updateKegiatan({
     required String id,
-    String? judul,
+    required String judul,
     String? deskripsi,
-    DateTime? tanggalMulai,
+    required DateTime tanggalMulai,
     DateTime? tanggalSelesai,
     String? lokasi,
-    String? penyelenggara,
-    KategoriKegiatan? kategori,
-    StatusKegiatan? status,
+    required String penyelenggara,
+    required KategoriKegiatan kategori,
+    required StatusKegiatan status,
     int? kuotaPeserta,
     String? fotoUrl,
   }) async {

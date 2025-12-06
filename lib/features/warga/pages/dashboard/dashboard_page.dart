@@ -17,8 +17,8 @@ class WargaDashboardPage extends ConsumerStatefulWidget {
 class _WargaDashboardPageState extends ConsumerState<WargaDashboardPage> {
   @override
   Widget build(BuildContext context) {
-    // Fetch kegiatan dari Supabase
-    final kegiatanAsync = ref.watch(kegiatanListProvider);
+    // Fetch kegiatan dari Supabase dengan realtime updates
+    final kegiatanAsync = ref.watch(kegiatanStreamProvider);
 
     return kegiatanAsync.when(
       data: (kegiatanList) {

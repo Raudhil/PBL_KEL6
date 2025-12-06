@@ -21,30 +21,30 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
   @override
   void initState() {
     super.initState();
-    // Set filter untuk hanya menampilkan kegiatan user yang login
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(kegiatanListProvider.notifier).setCreatedByCurrentUser(true);
-    });
+    // Stream will automatically provide realtime data
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    // Reset filter saat keluar dari halaman
+    _selectedStatus = null;
+    _selectedKategori = null;
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final kegiatanState = ref.watch(kegiatanListProvider);
+    // Watch realtime stream untuk auto-update (hanya kegiatan user yang login)
+    final kegiatanStreamAsync = ref.watch(kegiatanStreamByUserProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.creamWhite,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: AppColors.white,
-        surfaceTintColor: AppColors.white,
+        backgroundColor: AppColors.primary,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
@@ -52,7 +52,7 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color: Colors.white,
           ),
         ),
         centerTitle: true,
@@ -61,7 +61,7 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
         children: [
           // Search & Filter bar
           Container(
-            color: AppColors.white,
+            color: AppColors.creamWhite,
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
@@ -88,17 +88,28 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
                                 setState(() {
                                   _searchController.clear();
                                 });
-                                ref
-                                    .read(kegiatanListProvider.notifier)
-                                    .setSearchQuery(null);
                               },
                             )
                           : null,
                       filled: true,
-                      fillColor: AppColors.greyLight,
+                      fillColor: Colors.white,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: AppColors.greyLight,
+                          width: 1,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -106,10 +117,8 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
                       ),
                     ),
                     onChanged: (value) {
+                      // Just trigger rebuild, filter applied in build method
                       setState(() {});
-                      ref
-                          .read(kegiatanListProvider.notifier)
-                          .setSearchQuery(value.isEmpty ? null : value);
                     },
                   ),
                 ),
@@ -123,43 +132,101 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
           // Filter chips
           if (_selectedStatus != null || _selectedKategori != null)
             Container(
-              color: AppColors.white,
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+              color: AppColors.creamWhite,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(
                 children: [
                   if (_selectedStatus != null)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
-                      child: Chip(
-                        label: Text(_selectedStatus!.label),
-                        deleteIcon: const Icon(Icons.close, size: 18),
-                        onDeleted: () {
-                          setState(() => _selectedStatus = null);
-                          ref
-                              .read(kegiatanListProvider.notifier)
-                              .setStatusFilter(null);
-                        },
-                        backgroundColor: AppColors.primary.withOpacity(0.1),
-                        labelStyle: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.filter_alt,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _selectedStatus!.label,
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            InkWell(
+                              onTap: () {
+                                setState(() => _selectedStatus = null);
+                              },
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   if (_selectedKategori != null)
-                    Chip(
-                      label: Text(_selectedKategori!.label),
-                      deleteIcon: const Icon(Icons.close, size: 18),
-                      onDeleted: () {
-                        setState(() => _selectedKategori = null);
-                        ref
-                            .read(kegiatanListProvider.notifier)
-                            .setKategoriFilter(null);
-                      },
-                      backgroundColor: AppColors.primary400.withOpacity(0.1),
-                      labelStyle: const TextStyle(
-                        color: AppColors.primary400,
-                        fontSize: 12,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.primary.withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.category,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _selectedKategori!.label,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          InkWell(
+                            onTap: () {
+                              setState(() => _selectedKategori = null);
+                            },
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -168,23 +235,44 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
 
           // List kegiatan
           Expanded(
-            child: kegiatanState.when(
-              data: (kegiatanList) {
-                if (kegiatanList.isEmpty) {
+            child: kegiatanStreamAsync.when(
+              data: (allKegiatan) {
+                // Apply filters locally
+                var filteredKegiatan = allKegiatan;
+
+                // Filter by status if selected
+                if (_selectedStatus != null) {
+                  filteredKegiatan = filteredKegiatan
+                      .where((k) => k.status == _selectedStatus)
+                      .toList();
+                }
+
+                // Filter by kategori if selected
+                if (_selectedKategori != null) {
+                  filteredKegiatan = filteredKegiatan
+                      .where((k) => k.kategori == _selectedKategori)
+                      .toList();
+                }
+
+                // Filter by search query
+                if (_searchController.text.isNotEmpty) {
+                  final query = _searchController.text.toLowerCase();
+                  filteredKegiatan = filteredKegiatan.where((k) {
+                    return k.judul.toLowerCase().contains(query) ||
+                        (k.deskripsi?.toLowerCase().contains(query) ?? false);
+                  }).toList();
+                }
+
+                if (filteredKegiatan.isEmpty) {
                   return _buildEmptyState();
                 }
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    ref.read(kegiatanListProvider.notifier).loadKegiatan();
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredKegiatan.length,
+                  itemBuilder: (context, index) {
+                    final kegiatan = filteredKegiatan[index];
+                    return _buildKegiatanCard(kegiatan);
                   },
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: kegiatanList.length,
-                    itemBuilder: (context, index) {
-                      final kegiatan = kegiatanList[index];
-                      return _buildKegiatanCard(kegiatan);
-                    },
-                  ),
                 );
               },
               loading: () => const Center(
@@ -253,48 +341,70 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
   }
 
   Widget _buildKegiatanCard(KegiatanModel kegiatan) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.greyLight.withOpacity(0.5), width: 1),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => KegiatanDetailPage(kegiatanId: kegiatan.id),
-            ),
-          );
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left side - Icon
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: _getKategoriColor(kegiatan.kategori).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  _getKategoriIcon(kegiatan.kategori),
-                  color: _getKategoriColor(kegiatan.kategori),
-                  size: 28,
-                ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => KegiatanDetailPage(kegiatanId: kegiatan.id),
               ),
-              const SizedBox(width: 16),
-              // Right side - Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Baris 1: Kategori (Kiri) - Status (Kanan)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Status badge
+                    // Kiri: Icon + Kategori
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            _getKategoriIcon(kegiatan.kategori),
+                            color: AppColors.primary,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          kegiatan.kategori.label,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Kanan: Status badge
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -302,85 +412,178 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
                       ),
                       decoration: BoxDecoration(
                         color: _getStatusColor(kegiatan.status),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         kegiatan.status.label,
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.white,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    // Judul
-                    Text(
-                      kegiatan.judul,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                        letterSpacing: -0.3,
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Baris 2: Judul (Full Width)
+                Text(
+                  kegiatan.judul,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                    height: 1.3,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+
+                // Baris 3: Tanggal (Kiri) - Lokasi (Kanan)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              _formatDateShort(kegiatan.tanggalMulai),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
-                    // Kategori
-                    Row(
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: _getKategoriColor(kegiatan.kategori),
-                            shape: BoxShape.circle,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 14,
+                            color: AppColors.primary,
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          kegiatan.kategori.label,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: _getKategoriColor(kegiatan.kategori),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              kegiatan.lokasi ?? 'TBA',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    // Info rows
-                    _buildInfoRow(
-                      Icons.calendar_today_rounded,
-                      kegiatan.durasi,
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Baris 4: Penyelenggara (Kiri) - Kuota (Kanan jika ada)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.person_outline_rounded,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              kegiatan.penyelenggara,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    _buildInfoRow(
-                      Icons.location_on_rounded,
-                      kegiatan.lokasi ?? 'Belum ditentukan',
-                    ),
+                    // Tampilkan kuota hanya jika ditentukan
                     if (kegiatan.kuotaPeserta != null) ...[
-                      const SizedBox(height: 4),
-                      _buildInfoRow(
-                        Icons.people_rounded,
-                        'Kuota: ${kegiatan.kuotaPeserta} orang',
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.groups_outlined,
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                '${kegiatan.kuotaPeserta} peserta',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
+  String _formatDateShort(DateTime date) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Agu',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: AppColors.textSecondary),
+        Icon(icon, size: 14, color: AppColors.textSecondary.withOpacity(0.7)),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
@@ -423,11 +626,11 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
 
     return Container(
       decoration: BoxDecoration(
-        color: hasFilter ? AppColors.primary : AppColors.greyLight,
+        color: hasFilter ? AppColors.primary : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: hasFilter ? AppColors.primary : AppColors.greyLight,
-          width: 1.5,
+          width: 1,
         ),
       ),
       child: Material(
@@ -442,7 +645,7 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
               children: [
                 Icon(
                   Icons.tune_rounded,
-                  color: hasFilter ? AppColors.white : AppColors.textPrimary,
+                  color: hasFilter ? Colors.white : AppColors.textPrimary,
                   size: 22,
                 ),
                 if (hasFilter)
@@ -677,7 +880,7 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton(
+                          child: OutlinedButton.icon(
                             onPressed: () {
                               setModalState(() {
                                 _selectedStatus = null;
@@ -687,53 +890,54 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
                                 _selectedStatus = null;
                                 _selectedKategori = null;
                               });
-                              ref
-                                  .read(kegiatanListProvider.notifier)
-                                  .clearFilters();
                               Navigator.pop(context);
                             },
+                            icon: const Icon(Icons.refresh_rounded, size: 20),
+                            label: const Text(
+                              'Reset',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                            ),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.textPrimary,
+                              foregroundColor: AppColors.danger,
                               side: const BorderSide(
-                                color: AppColors.greyLight,
-                                width: 1.5,
+                                color: AppColors.danger,
+                                width: 2,
                               ),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text(
-                              'Reset',
-                              style: TextStyle(fontWeight: FontWeight.w600),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: ElevatedButton(
+                          child: ElevatedButton.icon(
                             onPressed: () {
-                              setState(() {});
-                              ref
-                                  .read(kegiatanListProvider.notifier)
-                                  .setStatusFilter(_selectedStatus);
-                              ref
-                                  .read(kegiatanListProvider.notifier)
-                                  .setKategoriFilter(_selectedKategori);
+                              setState(
+                                () {},
+                              ); // Trigger rebuild with new filters
                               Navigator.pop(context);
                             },
+                            icon: const Icon(Icons.check_circle, size: 20),
+                            label: const Text(
+                              'Terapkan',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                            ),
                             style: ElevatedButton.styleFrom(
                               foregroundColor: AppColors.white,
                               backgroundColor: AppColors.primary,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text(
-                              'Terapkan',
-                              style: TextStyle(fontWeight: FontWeight.w600),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                           ),
                         ),
