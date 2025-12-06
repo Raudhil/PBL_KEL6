@@ -79,7 +79,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Kalender Kegiatan',
+          'Kegiatan Terbaru',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,

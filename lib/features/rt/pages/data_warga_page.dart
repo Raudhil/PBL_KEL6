@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// go_router not required here (we use CustomTopBar for back navigation)
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/warga_provider.dart';
 import '../../../core/widgets/custom_top_bar.dart';
@@ -20,7 +19,13 @@ class DataWargaPage extends ConsumerWidget {
       appBar: CustomTopBar(
         title: 'Data Warga RT',
         showBackButton: true,
-        onBack: () => context.go('/perangkat'),
+        onBack: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/warga/dashboard');
+          }
+        },
       ),
       body: state.when(
         data: (list) => list.isEmpty
@@ -81,112 +86,120 @@ class DataWargaPage extends ConsumerWidget {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text('NIK: ${w.nik}',
-                                          style: TextStyle(
-                                              color:
-                                                  AppColors.textPrimary.withOpacity(0.8))),
+                                      Text(
+                                        'NIK: ${w.nik}',
+                                        style: TextStyle(
+                                          color: AppColors.textPrimary
+                                              .withOpacity(0.8),
+                                        ),
+                                      ),
                                       const SizedBox(height: 4),
-                                      Text('HP: ${w.nomorHp ?? '-'}',
-                                          style: TextStyle(
-                                              color:
-                                                  AppColors.textPrimary.withOpacity(0.8))),
+                                      Text(
+                                        'HP: ${w.nomorHp ?? '-'}',
+                                        style: TextStyle(
+                                          color: AppColors.textPrimary
+                                              .withOpacity(0.8),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
                                 isThreeLine: false,
                                 trailing: PopupMenuButton<String>(
-                                onSelected: (value) async {
-                                  if (value == 'edit') {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => WargaFormPage(warga: w),
-                                      ),
-                                    );
-                                  } else if (value == 'delete') {
-                                    final confirmed = await showDialog<bool>(
-                                      context: context,
-                                      builder: (_) => AlertDialog(
-                                        title: const Text('Konfirmasi'),
-                                        content: const Text(
-                                          'Hapus data warga ini?',
+                                  onSelected: (value) async {
+                                    if (value == 'edit') {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              WargaFormPage(warga: w),
                                         ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, false),
-                                            child: const Text('Batal'),
+                                      );
+                                    } else if (value == 'delete') {
+                                      final confirmed = await showDialog<bool>(
+                                        context: context,
+                                        builder: (_) => AlertDialog(
+                                          title: const Text('Konfirmasi'),
+                                          content: const Text(
+                                            'Hapus data warga ini?',
                                           ),
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, true),
-                                            child: const Text('Hapus'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                    if (confirmed == true) {
-                                      if (!context.mounted) return;
-                                      try {
-                                        await ref
-                                            .read(
-                                              wargaNotifierProvider.notifier,
-                                            )
-                                            .deleteWarga(w.id);
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Batal'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text('Hapus'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirmed == true) {
                                         if (!context.mounted) return;
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Data dihapus'),
-                                          ),
-                                        );
-                                      } catch (e) {
-                                        if (!context.mounted) return;
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Gagal hapus: $e'),
-                                          ),
-                                        );
+                                        try {
+                                          await ref
+                                              .read(
+                                                wargaNotifierProvider.notifier,
+                                              )
+                                              .deleteWarga(w.id);
+                                          if (!context.mounted) return;
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Data dihapus'),
+                                            ),
+                                          );
+                                        } catch (e) {
+                                          if (!context.mounted) return;
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Gagal hapus: $e'),
+                                            ),
+                                          );
+                                        }
                                       }
                                     }
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  PopupMenuItem(
-                                    value: 'edit',
-                                    child: Row(
-                                      children: const [
-                                        Icon(
-                                          Icons.edit,
-                                          size: 18,
-                                          color: Colors.blue,
-                                        ),
-                                        SizedBox(width: 12),
-                                        Text('Edit'),
-                                      ],
+                                  },
+                                  itemBuilder: (context) => [
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: const [
+                                          Icon(
+                                            Icons.edit,
+                                            size: 18,
+                                            color: Colors.blue,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text('Edit'),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Row(
-                                      children: const [
-                                        Icon(
-                                          Icons.delete,
-                                          size: 18,
-                                          color: Colors.red,
-                                        ),
-                                        SizedBox(width: 12),
-                                        Text('Hapus'),
-                                      ],
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: const [
+                                          Icon(
+                                            Icons.delete,
+                                            size: 18,
+                                            color: Colors.red,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text('Hapus'),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ));
+                          );
                         },
                       ),
                       const SizedBox(height: 24),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../data/models/kegiatan_model.dart';
 import '../../../../core/providers/kegiatan_provider.dart';
@@ -45,7 +46,13 @@ class _KegiatanListPageState extends ConsumerState<KegiatanListPage> {
         backgroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/warga/dashboard');
+            }
+          },
         ),
         title: const Text(
           'Kelola Kegiatan',

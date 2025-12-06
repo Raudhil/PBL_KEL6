@@ -156,7 +156,7 @@ class PerangkatPage extends ConsumerWidget {
                 }
 
                 // Kelola Keuangan untuk Bendahara
-                if (label == 'Keuangan') {
+                if (label == 'Keuangan' || label == 'Laporan Keuangan') {
                   Navigator.of(context, rootNavigator: true).push(
                     MaterialPageRoute(builder: (_) => const KeuanganPage()),
                   );
@@ -276,7 +276,7 @@ class PerangkatPage extends ConsumerWidget {
           },
           {
             'icon': Icons.bar_chart,
-            'label': 'Statistik RT',
+            'label': 'Laporan Keuangan',
             'color': Color(0xFF8B5CF6),
           },
         ];
@@ -315,11 +315,17 @@ class PerangkatPage extends ConsumerWidget {
             'label': 'Keuangan',
             'color': Color(0xFF10B981),
           },
+          // Replace removed 'Channel Transfer' with requested features
           {
-            'icon': Icons.account_balance,
-            'label': 'Channel Transfer',
-            'color': Color(0xFF3B82F6),
+            'icon': Icons.people_alt,
+            'label': 'Data Warga',
+            'color': AppColors.primary600,
           },
+          // {
+          //   'icon': Icons.assessment,
+          //   'label': 'Laporan Keuangan',
+          //   'color': Color(0xFF3B82F6),
+          // },
           {
             'icon': Icons.campaign,
             'label': 'Pengumuman',

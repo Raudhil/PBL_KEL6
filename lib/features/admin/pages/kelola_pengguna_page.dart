@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../theme/app_colors.dart';
 import '../../../data/models/user_model.dart';
 import '../../../core/providers/user_management_provider.dart';
@@ -38,7 +39,13 @@ class _KelolaPenggunaPageState extends ConsumerState<KelolaPenggunaPage> {
         surfaceTintColor: AppColors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/warga/dashboard');
+            }
+          },
         ),
         title: const Text(
           'Kelola Pengguna',
