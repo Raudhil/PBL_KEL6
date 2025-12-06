@@ -73,7 +73,7 @@ class StoreManagementPage extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       appBar: const CustomTopBar(title: 'Kelola Toko', showBackButton: true),
       body: storeAsync.when(
         data: (store) {

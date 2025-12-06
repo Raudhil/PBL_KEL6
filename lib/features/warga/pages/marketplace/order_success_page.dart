@@ -12,7 +12,7 @@ class OrderSuccessPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       appBar: const CustomTopBar(
         title: 'Pesanan Berhasil',
         showBackButton: true,

@@ -31,7 +31,7 @@ class _KelolaPenggunaPageState extends ConsumerState<KelolaPenggunaPage> {
     final userState = ref.watch(userListProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.white,

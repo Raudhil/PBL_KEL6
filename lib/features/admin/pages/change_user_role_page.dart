@@ -238,7 +238,7 @@ class _ChangeUserRolePageState extends ConsumerState<ChangeUserRolePage> {
     final rolesAsync = ref.watch(rolesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.white,

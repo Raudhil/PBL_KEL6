@@ -74,7 +74,7 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
     final currentUser = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       body: pengumumanAsync.when(
         data: (pengumuman) {
           if (pengumuman == null) {
