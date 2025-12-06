@@ -25,7 +25,7 @@ class WargaProfilPage extends ConsumerWidget {
           backgroundColor: AppColors.creamWhite,
           body: CustomScrollView(
             slivers: [
-              // Header dengan gradient dan profile
+              // Header dengan gradient dan profile - CENTERED
               SliverAppBar(
                 expandedHeight: 280,
                 pinned: false,
@@ -71,100 +71,113 @@ class WargaProfilPage extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      // Profile content
+                      // Profile content - CENTERED
                       SafeArea(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 40),
-                            // Avatar dengan border gradient
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.white.withOpacity(0.8),
-                                    AppColors.white.withOpacity(0.3),
-                                  ],
-                                ),
-                              ),
-                              child: Container(
-                                width: 110,
-                                height: 110,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 10),
-                                    ),
-                                  ],
-                                ),
-                                child: profileImage.isNotEmpty
-                                    ? CircleAvatar(
-                                        radius: 55,
-                                        backgroundImage: NetworkImage(
-                                          profileImage,
-                                        ),
-                                        backgroundColor: AppColors.white,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 5),
+                              // Avatar dengan border gradient - CENTERED & BIGGER & CLICKABLE
+                              GestureDetector(
+                                onTap: profileImage.isNotEmpty
+                                    ? () => _showPhotoPreview(
+                                        context,
+                                        profileImage,
                                       )
-                                    : CircleAvatar(
-                                        radius: 55,
-                                        backgroundColor: AppColors.white,
-                                        child: Icon(
-                                          Icons.person,
-                                          size: 50,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            // Name
-                            Text(
-                              displayName,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.white,
-                                letterSpacing: 0.5,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 6),
-                            // Email dengan icon
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.email_outlined,
-                                    size: 16,
-                                    color: AppColors.white.withOpacity(0.9),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    profil.email,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: AppColors.white.withOpacity(0.95),
-                                      fontWeight: FontWeight.w500,
+                                    : null,
+                                child: Container(
+                                  padding: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.white.withOpacity(0.9),
+                                        AppColors.white.withOpacity(0.4),
+                                      ],
                                     ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.25),
+                                        blurRadius: 25,
+                                        offset: const Offset(0, 12),
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                  child: Container(
+                                    width: 160,
+                                    height: 160,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: profileImage.isNotEmpty
+                                        ? CircleAvatar(
+                                            radius: 70,
+                                            backgroundImage: NetworkImage(
+                                              profileImage,
+                                            ),
+                                            backgroundColor: AppColors.white,
+                                          )
+                                        : CircleAvatar(
+                                            radius: 70,
+                                            backgroundColor: AppColors.white,
+                                            child: Icon(
+                                              Icons.person,
+                                              size: 65,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 10),
+                              // Name - CENTERED
+                              Text(
+                                displayName,
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 6),
+                              // Email dengan icon - CENTERED
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.email_outlined,
+                                      size: 16,
+                                      color: AppColors.white.withOpacity(0.9),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      profil.email,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: AppColors.white.withOpacity(
+                                          0.95,
+                                        ),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -184,11 +197,8 @@ class WargaProfilPage extends ConsumerWidget {
                       icon: Icons.edit_outlined,
                       title: 'Edit Profil',
                       subtitle: 'Ubah password dan foto profil',
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withOpacity(0.1),
-                          AppColors.primary.withOpacity(0.05),
-                        ],
+                      gradient: const LinearGradient(
+                        colors: [Colors.white, Colors.white],
                       ),
                       iconColor: AppColors.primary,
                       onTap: () {
@@ -204,13 +214,10 @@ class WargaProfilPage extends ConsumerWidget {
                       icon: Icons.person_outline,
                       title: 'Data Diri',
                       subtitle: 'Lihat informasi pribadi Anda',
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary400.withOpacity(0.1),
-                          AppColors.primary400.withOpacity(0.05),
-                        ],
+                      gradient: const LinearGradient(
+                        colors: [Colors.white, Colors.white],
                       ),
-                      iconColor: AppColors.primary400,
+                      iconColor: AppColors.primary,
                       onTap: () {
                         Navigator.of(context, rootNavigator: true).push(
                           MaterialPageRoute(
@@ -229,11 +236,8 @@ class WargaProfilPage extends ConsumerWidget {
                       icon: Icons.logout_outlined,
                       title: 'Keluar',
                       subtitle: 'Logout dari akun Anda',
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.danger.withOpacity(0.1),
-                          AppColors.danger.withOpacity(0.05),
-                        ],
+                      gradient: const LinearGradient(
+                        colors: [Colors.white, Colors.white],
                       ),
                       iconColor: AppColors.danger,
                       onTap: () async {
@@ -244,7 +248,6 @@ class WargaProfilPage extends ConsumerWidget {
                         }
                       },
                     ),
-
                     const SizedBox(height: 40),
                   ]),
                 ),
@@ -272,7 +275,7 @@ class WargaProfilPage extends ConsumerWidget {
     );
   }
 
-  // Helper: Menu card dengan gradient
+  // Helper: Menu card - STRONG & TEGAS
   Widget _buildMenuCard({
     required IconData icon,
     required String title,
@@ -281,63 +284,81 @@ class WargaProfilPage extends ConsumerWidget {
     required Color iconColor,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 0),
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.greyLight, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Icon dengan background
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.greyLight.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  // Icon - Clean Modern
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: iconColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: iconColor, size: 24),
                   ),
-                  child: Icon(icon, color: iconColor, size: 24),
-                ),
-                const SizedBox(width: 16),
-                // Text content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
+                  const SizedBox(width: 14),
+                  // Text content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary.withOpacity(0.8),
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary.withOpacity(0.75),
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                // Chevron
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.textSecondary.withOpacity(0.5),
-                  size: 24,
-                ),
-              ],
+                  // Chevron
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.textSecondary.withOpacity(0.5),
+                    size: 22,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -418,6 +439,79 @@ class WargaProfilPage extends ConsumerWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper: Show photo preview in modal
+  static void _showPhotoPreview(BuildContext context, String photoUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+                maxWidth: MediaQuery.of(context).size.width * 0.9,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(
+                  photoUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded),
+                iconSize: 28,
+                color: AppColors.textPrimary,
+                padding: const EdgeInsets.all(12),
+              ),
             ),
           ],
         ),
