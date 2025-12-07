@@ -30,7 +30,7 @@ class _CreateWargaPageState extends State<CreateWargaPage> {
   String? _selectedStatusPerkawinan;
   String? _selectedPendidikan;
   String? _selectedPeranKeluarga;
-  
+
   // KK Options
   String _kkOption = 'existing'; // 'existing' or 'new'
   String? _selectedKkExisting;
@@ -219,7 +219,7 @@ class _CreateWargaPageState extends State<CreateWargaPage> {
               // Section: Data Keluarga
               _buildSectionTitle('Data Keluarga', Icons.home_outlined),
               const SizedBox(height: 16),
-              
+
               // KK Option Toggle
               _buildCard([
                 Container(

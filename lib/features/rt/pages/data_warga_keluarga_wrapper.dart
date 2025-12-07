@@ -171,9 +171,9 @@ class _DataWargaKeluargaWrapperState
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const CreateWargaPage()),
-            );
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const CreateWargaPage()));
           },
           backgroundColor: AppColors.primary,
           child: const Icon(Icons.add, color: Colors.white, size: 28),
