@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../../core/providers/warga_provider.dart';
 import '../../../core/widgets/custom_top_bar.dart';
 import '../../../theme/app_colors.dart';
-import 'warga_detail_page.dart';
-import 'warga_form_page.dart';
+import '../widgets/warga_card.dart';
+import '../widgets/keluarga_card.dart';
+import 'create_warga_page.dart';
+import 'create_keluarga_page.dart';
 
 class DataWargaKeluargaWrapper extends ConsumerStatefulWidget {
   const DataWargaKeluargaWrapper({super.key});
@@ -20,14 +22,30 @@ class _DataWargaKeluargaWrapperState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  // Search & Filter states
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _statusFilter; // 'Aktif', 'Tidak Aktif', atau null (semua)
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      // Reset search dan filter saat pindah tab
+      if (mounted) {
+        setState(() {
+          _searchController.clear();
+          _searchQuery = '';
+          _statusFilter = null;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    _searchController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -124,7 +142,14 @@ class _DataWargaKeluargaWrapperState
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
+
+                      // Search & Filter Bar
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _buildSearchAndFilter(),
+                      ),
+                      const SizedBox(height: 16),
 
                       // Content
                       Expanded(
@@ -145,73 +170,261 @@ class _DataWargaKeluargaWrapperState
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, s) => Center(child: Text('Error: $e')),
         ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            // Cek tab aktif untuk menentukan create warga atau keluarga
+            final isWargaTab = _tabController.index == 0;
+            if (isWargaTab) {
+              _showCreateWargaDialog(context);
+            } else {
+              _showCreateKeluargaDialog(context);
+            }
+          },
+          backgroundColor: AppColors.primary,
+          child: const Icon(Icons.add, color: Colors.white, size: 28),
+        ),
       ),
     );
   }
 
-  Widget _buildWargaList(List<dynamic> list, BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: list.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final w = list[index];
-        return Card(
-          elevation: 4,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.grey.withOpacity(0.1), width: 1),
-          ),
-          shadowColor: Colors.black.withOpacity(0.15),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => WargaDetailPage(warga: w)),
-              );
-            },
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-              leading: CircleAvatar(
-                radius: 26,
-                backgroundColor: AppColors.primary50,
-                child: Icon(Icons.person, color: AppColors.primary, size: 28),
-              ),
-              title: Text(
-                w.namaLengkap,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
+  void _showCreateWargaDialog(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const CreateWargaPage()));
+  }
+
+  void _showCreateKeluargaDialog(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const CreateKeluargaPage()));
+  }
+
+  // Widget Search & Filter
+  Widget _buildSearchAndFilter() {
+    final isWargaTab = _tabController.index == 0;
+
+    return Row(
+      children: [
+        // Search Field
+        Expanded(
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 6.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'NIK: ${w.nik}',
-                      style: TextStyle(
-                        color: AppColors.textPrimary.withOpacity(0.8),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'HP: ${w.nomorHp ?? '-'}',
-                      style: TextStyle(
-                        color: AppColors.textPrimary.withOpacity(0.8),
-                      ),
-                    ),
-                  ],
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.toLowerCase();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: isWargaTab
+                    ? 'Cari nama atau NIK...'
+                    : 'Cari nomor KK...',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          color: Colors.grey.shade400,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
               ),
             ),
           ),
-        );
+        ),
+
+        // Filter Button (hanya untuk tab warga)
+        if (isWargaTab) ...[
+          const SizedBox(width: 12),
+          Container(
+            height: 48,
+            width: 48,
+            decoration: BoxDecoration(
+              color: _statusFilter != null ? AppColors.primary : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _statusFilter != null
+                    ? AppColors.primary
+                    : Colors.grey.shade200,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: _buildWargaFilter(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // Widget untuk filter warga berdasarkan status
+  Widget _buildWargaFilter() {
+    return PopupMenuButton<String?>(
+      icon: Icon(
+        Icons.filter_list,
+        color: _statusFilter != null ? Colors.white : AppColors.primary,
+        size: 20,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      offset: const Offset(0, 8),
+      onSelected: (value) {
+        setState(() {
+          _statusFilter = value;
+        });
+      },
+      onCanceled: () {
+        setState(() {
+          _statusFilter = null;
+        });
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: null,
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text('Semua Status'),
+              if (_statusFilter == null) ...[
+                const Spacer(),
+                const Icon(Icons.check, size: 18, color: AppColors.primary),
+              ],
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          height: 1,
+          enabled: false,
+          child: Divider(height: 1),
+        ),
+        PopupMenuItem(
+          value: 'Aktif',
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.success,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text('Aktif'),
+              if (_statusFilter == 'Aktif') ...[
+                const Spacer(),
+                const Icon(Icons.check, size: 18, color: AppColors.primary),
+              ],
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'Tidak Aktif',
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.danger,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text('Tidak Aktif'),
+              if (_statusFilter == 'Tidak Aktif') ...[
+                const Spacer(),
+                const Icon(Icons.check, size: 18, color: AppColors.primary),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWargaList(List<dynamic> list, BuildContext context) {
+    // Filter berdasarkan search dan status
+    final filteredList = list.where((warga) {
+      // Filter search
+      final matchesSearch =
+          _searchQuery.isEmpty ||
+          warga.namaLengkap.toLowerCase().contains(_searchQuery) ||
+          warga.nik.toLowerCase().contains(_searchQuery);
+
+      // Filter status
+      final matchesStatus =
+          _statusFilter == null ||
+          (warga.userStatus ?? 'Tidak Aktif') == _statusFilter;
+
+      return matchesSearch && matchesStatus;
+    }).toList();
+
+    if (filteredList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
+            Text(
+              'Tidak ada data yang sesuai',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: filteredList.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final w = filteredList[index];
+        return WargaCard(warga: w);
       },
     );
   }
@@ -220,172 +433,53 @@ class _DataWargaKeluargaWrapperState
     List<MapEntry<int, List<dynamic>>> kkList,
     BuildContext context,
   ) {
+    // Filter berdasarkan search saja
+    final filteredList = kkList.where((entry) {
+      final idKk = entry.key;
+      final members = entry.value;
+      final kepalaKeluarga = members.first;
+
+      // Search bisa berdasarkan nomor KK atau nama kepala keluarga
+      final kkNumber = 'KK${idKk.toString().padLeft(9, '0')}';
+      final matchesSearch =
+          _searchQuery.isEmpty ||
+          kkNumber.toLowerCase().contains(_searchQuery) ||
+          idKk.toString().contains(_searchQuery) ||
+          kepalaKeluarga.namaLengkap.toLowerCase().contains(_searchQuery);
+
+      return matchesSearch;
+    }).toList();
+
+    if (filteredList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
+            Text(
+              'Tidak ada data yang sesuai',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: kkList.length,
+      itemCount: filteredList.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
-        final entry = kkList[index];
+        final entry = filteredList[index];
         final idKk = entry.key;
         final members = entry.value;
         final kepalaKeluarga = members.first;
 
-        return Card(
-          elevation: 4,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.grey.withOpacity(0.1), width: 1),
-          ),
-          shadowColor: Colors.black.withOpacity(0.15),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: Colors.white,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Card
-                Row(
-                  children: [
-                    // Icon Keluarga
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        Icons.home_rounded,
-                        color: AppColors.primary,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-
-                    // Info Keluarga
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Keluarga #$idKk',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.person,
-                                size: 16,
-                                color: AppColors.textSecondary,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  kepalaKeluarga.namaLengkap,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: AppColors.textSecondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Badge jumlah anggota
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.people,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            members.length.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // Divider
-                Divider(height: 1, color: Colors.grey[300]),
-
-                const SizedBox(height: 16),
-
-                // Informasi Alamat
-                Row(
-                  children: [
-                    Icon(Icons.location_on, size: 18, color: AppColors.primary),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        kepalaKeluarga.alamat ?? 'Alamat tidak tersedia',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                          height: 1.4,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-
-                // Info NIK
-                Row(
-                  children: [
-                    Icon(Icons.badge, size: 18, color: AppColors.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      'NIK: ${kepalaKeluarga.nik}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+        return KeluargaCard(
+          idKk: idKk,
+          kepalaKeluarga: kepalaKeluarga,
+          members: members,
         );
       },
     );
