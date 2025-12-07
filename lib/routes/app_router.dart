@@ -12,7 +12,7 @@ import '../features/warga/pages/dashboard/dashboard_page.dart';
 import '../features/warga/pages/marketplace/marketplace_page.dart';
 import '../features/warga/pages/iuran/iuran_page.dart';
 import '../features/warga/pages/profil/profil_page.dart';
-import '../features/rt/pages/data_warga_page.dart';
+import '../features/rt/pages/data_warga_keluarga_wrapper.dart';
 import '../features/sekretaris/kegiatan/pages/kegiatan_list_page.dart';
 import '../features/sekretaris/pengumuman/pengumuman_page.dart';
 import '../features/bendahara/pages/keuangan/kelola_iuran.dart';
@@ -168,10 +168,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/rt/data-warga',
         name: 'rt-data-warga',
-        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
-          child: const DataWargaPage(),
-          state: state,
-        ),
+        builder: (context, state) => const DataWargaKeluargaWrapper(),
       ),
 
       // ============= RW ROUTES =============

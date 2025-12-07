@@ -5,8 +5,17 @@ class SupabaseService {
   final _client = Supabase.instance.client;
 
   Future<List<WargaModel>> fetchWarga() async {
-    final data = await _client.from('warga').select();
+    final data = await _client.from('warga').select('''
+      *,
+      users!id_warga(status)
+    ''');
     final list = data as List<dynamic>;
+
+    // Debug: Print data untuk cek struktur
+    if (list.isNotEmpty) {
+      print('DEBUG - Sample warga data: ${list.first}');
+    }
+
     return list
         .map((e) => WargaModel.fromJson(Map<String, dynamic>.from(e as Map)))
         .toList();

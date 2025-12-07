@@ -230,4 +230,20 @@ class CustomPageTransition {
       },
     );
   }
+
+  /// No transition (instant navigation)
+  static CustomTransitionPage noTransition<T>({
+    required Widget child,
+    required GoRouterState state,
+  }) {
+    return CustomTransitionPage<T>(
+      key: state.pageKey,
+      child: child,
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return child;
+      },
+    );
+  }
 }
