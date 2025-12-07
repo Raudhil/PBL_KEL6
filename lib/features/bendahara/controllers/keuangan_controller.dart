@@ -3,7 +3,8 @@ import 'package:jawara/data/models/keuangan_model.dart';
 import 'package:jawara/core/services/profil_service.dart';
 import '../../../core/services/keuangan_service.dart';
 
-class KeuanganController extends StateNotifier<AsyncValue<List<KeuanganModel>>> {
+class KeuanganController
+    extends StateNotifier<AsyncValue<List<KeuanganModel>>> {
   KeuanganController(this._service) : super(const AsyncValue.loading()) {
     _init();
   }
@@ -18,7 +19,8 @@ class KeuanganController extends StateNotifier<AsyncValue<List<KeuanganModel>>> 
       final rt = full['rt'];
       if (rt is Map && rt.containsKey('id')) {
         _idRt = rt['id'] as int?;
-      } else if (full['alamat'] is Map && (full['alamat'] as Map).containsKey('id_rt')) {
+      } else if (full['alamat'] is Map &&
+          (full['alamat'] as Map).containsKey('id_rt')) {
         _idRt = (full['alamat'] as Map)['id_rt'] as int?;
       }
     } catch (_) {
@@ -28,7 +30,7 @@ class KeuanganController extends StateNotifier<AsyncValue<List<KeuanganModel>>> 
     await fetchTransactions();
   }
 
-  Future<void> fetchTransactions({int limit = 10}) async {
+  Future<void> fetchTransactions({int limit = 500}) async {
     try {
       state = const AsyncValue.loading();
       final list = await _service.fetchTransactions(limit: limit, idRt: _idRt);
@@ -63,7 +65,10 @@ class KeuanganController extends StateNotifier<AsyncValue<List<KeuanganModel>>> 
   }
 }
 
-final keuanganControllerProvider = StateNotifierProvider<KeuanganController, AsyncValue<List<KeuanganModel>>>((ref) {
-  final service = ref.read(keuanganServiceProvider);
-  return KeuanganController(service);
-});
+final keuanganControllerProvider =
+    StateNotifierProvider<KeuanganController, AsyncValue<List<KeuanganModel>>>((
+      ref,
+    ) {
+      final service = ref.read(keuanganServiceProvider);
+      return KeuanganController(service);
+    });
