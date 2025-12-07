@@ -64,21 +64,21 @@ class _IuranListItemState extends State<IuranListItem> {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: _isExpanded
-              ? AppColors.primary.withOpacity(0.5)
-              : AppColors.greyLight,
-          width: _isExpanded ? 1.5 : 1,
+          color: _isExpanded ? AppColors.primary : Colors.grey[200]!,
+          width: _isExpanded ? 2 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.greyDark.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: _isExpanded
+                ? AppColors.primary.withOpacity(0.15)
+                : Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+            spreadRadius: 0,
           ),
         ],
       ),
@@ -88,27 +88,44 @@ class _IuranListItemState extends State<IuranListItem> {
           InkWell(
             onTap: () => setState(() => _isExpanded = !_isExpanded),
             borderRadius: BorderRadius.vertical(
-              top: const Radius.circular(16),
-              bottom: Radius.circular(_isExpanded ? 0 : 16),
+              top: const Radius.circular(14),
+              bottom: Radius.circular(_isExpanded ? 0 : 14),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isPaid
-                          ? AppColors.success.withOpacity(0.1)
-                          : AppColors.greyLight,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      isPaid ? Icons.check_circle : Icons.receipt_long,
-                      color: isPaid ? AppColors.success : AppColors.greyDark,
+                  // Icon Container (52x52 - sama seperti card lainnya)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: isPaid
+                            ? AppColors.success.withOpacity(0.15)
+                            : AppColors.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isPaid
+                              ? AppColors.success.withOpacity(0.3)
+                              : AppColors.primary.withOpacity(0.3),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          isPaid ? Icons.check_circle : Icons.receipt_long,
+                          color: isPaid ? AppColors.success : AppColors.primary,
+                          size: 24,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
+
+                  // Title + Info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,34 +133,50 @@ class _IuranListItemState extends State<IuranListItem> {
                         Text(
                           iuran.jenis,
                           style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Jatuh Tempo: ${_formatDate(iuran.jatuhTempo)}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.event,
+                              size: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Jatuh Tempo: ${_formatDate(iuran.jatuhTempo)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 12),
+
+                  // Amount + Status Badge
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
                         'Rp ${_formatRupiah(iuran.nominal)}',
                         style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary600,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primary,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -156,7 +189,7 @@ class _IuranListItemState extends State<IuranListItem> {
                         child: Text(
                           status,
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: statusColor,
                           ),
@@ -175,7 +208,7 @@ class _IuranListItemState extends State<IuranListItem> {
             secondChild: Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: AppColors.greyLight)),
+                border: Border(top: BorderSide(color: Colors.grey[200]!)),
               ),
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -187,18 +220,22 @@ class _IuranListItemState extends State<IuranListItem> {
                   ),
                   const SizedBox(height: 8),
                   _buildDetailRow('Biaya Admin', 'Rp 0'),
-                  const Divider(height: 24),
+                  Divider(color: Colors.grey[200], height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         'Total Pembayaran',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       Text(
                         'Rp ${_formatRupiah(iuran.nominal)}',
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                           fontSize: 16,
                           color: AppColors.primary,
                         ),
@@ -215,13 +252,19 @@ class _IuranListItemState extends State<IuranListItem> {
                         onPressed: () => widget.onPay(iuran.id!),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.white,
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text('Bayar Sekarang'),
+                        child: const Text(
+                          'Bayar Sekarang',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
                       ),
                     )
                   else if (status == 'Menunggu Verifikasi')
@@ -229,8 +272,9 @@ class _IuranListItemState extends State<IuranListItem> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: AppColors.greyLight,
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey[300]!),
                       ),
                       child: const Center(
                         child: Text(
@@ -238,6 +282,7 @@ class _IuranListItemState extends State<IuranListItem> {
                           style: TextStyle(
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w600,
+                            fontSize: 14,
                           ),
                         ),
                       ),
@@ -248,10 +293,12 @@ class _IuranListItemState extends State<IuranListItem> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
                         color: AppColors.success.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.success),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.success.withOpacity(0.5),
+                        ),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -260,12 +307,13 @@ class _IuranListItemState extends State<IuranListItem> {
                               color: AppColors.success,
                               size: 18,
                             ),
-                            SizedBox(width: 8),
-                            Text(
+                            const SizedBox(width: 8),
+                            const Text(
                               'Pembayaran Selesai',
                               style: TextStyle(
                                 color: AppColors.success,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
                               ),
                             ),
                           ],
@@ -291,13 +339,18 @@ class _IuranListItemState extends State<IuranListItem> {
       children: [
         Text(
           label,
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         Text(
           value,
           style: const TextStyle(
             color: AppColors.textPrimary,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
           ),
         ),
       ],
