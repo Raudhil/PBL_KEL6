@@ -16,6 +16,10 @@ final authErrorProvider = StateProvider<String?>((ref) => null);
 /// it checks the `users` table for the account status. If the status is
 /// not 'aktif' it signs out the client. The provider is auto-disposed
 /// with the widget tree so the listener is cleaned up when no longer needed.
+///
+/// NOTE: This enforcer has a small delay to allow auth_service.dart to
+/// perform initial validation first. This prevents race conditions where
+/// both the service and enforcer try to sign out simultaneously.
 final authEnforcerProvider = Provider.autoDispose((ref) {
   final stream = ref.watch(authStateProvider.stream);
   final sub = stream.listen((event) async {
@@ -23,10 +27,27 @@ final authEnforcerProvider = Provider.autoDispose((ref) {
       final session = event.session;
       if (session == null) return;
 
+      // CRITICAL: Add delay to let auth_service.dart validate first
+      // This prevents the enforcer from reacting before initial login validation
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // Check if session still exists after delay (might have been signed out already)
+      final currentSession = Supabase.instance.client.auth.currentSession;
+      if (currentSession == null) {
+        debugPrint(
+          '[AuthEnforcer] Session was already cleared, skipping check',
+        );
+        return;
+      }
+
       final authId = session.user.id;
 
       final db = Supabase.instance.client;
-      final userData = await db.from('users').select('status').eq('id_auth', authId).maybeSingle();
+      final userData = await db
+          .from('users')
+          .select('status')
+          .eq('id_auth', authId)
+          .maybeSingle();
       final status = (userData?['status'] ?? '').toString().toLowerCase();
 
       // Expect stored statuses like 'aktif' or 'tidak aktif' (case-insensitive).
@@ -37,7 +58,9 @@ final authEnforcerProvider = Provider.autoDispose((ref) {
           ref.read(authErrorProvider.notifier).state = 'Akun Anda belum aktif';
         } catch (_) {}
         await db.auth.signOut();
-        debugPrint('[AuthEnforcer] Signed out user $authId because status="$status"');
+        debugPrint(
+          '[AuthEnforcer] Signed out user $authId because status="$status"',
+        );
       } else {
         // clear any previous auth error when status is active
         try {

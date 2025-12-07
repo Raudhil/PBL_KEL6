@@ -7,7 +7,6 @@ import '../../../core/providers/user_management_provider.dart';
 import '../widgets/user_statistics_cards.dart';
 import '../widgets/user_search_bar.dart';
 import 'user_detail_page.dart';
-import 'create_user_page.dart';
 
 class KelolaPenggunaPage extends ConsumerStatefulWidget {
   const KelolaPenggunaPage({super.key});
@@ -214,23 +213,6 @@ class _KelolaPenggunaPageState extends ConsumerState<KelolaPenggunaPage> {
               ],
             ),
           ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const CreateUserPage()));
-
-          if (result == true) {
-            ref.read(userListProvider.notifier).loadUsers();
-          }
-        },
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.person_add, color: AppColors.white),
-        label: const Text(
-          'Tambah Pengguna',
-          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
         ),
       ),
     );

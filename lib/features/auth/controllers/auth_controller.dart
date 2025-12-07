@@ -105,16 +105,31 @@ class AuthController extends StateNotifier<bool> {
 
       // At this point signIn already validated status/role. Refresh role provider
       ref.invalidate(roleProvider);
-      print("✅ Login berhasil - roleProvider di-refresh (email: ${result['email']})");
+      print(
+        "✅ Login berhasil - roleProvider di-refresh (email: ${result['email']})",
+      );
     } on AuthException catch (e) {
       final msg = e.message.toLowerCase();
 
+      // More specific error handling
       if (msg.contains("invalid") && msg.contains("credentials")) {
-        throw Exception("Email atau password salah");
+        throw Exception("Password salah");
+      } else if (msg.contains("email not confirmed")) {
+        throw Exception("Email belum dikonfirmasi");
+      } else if (msg.contains("user not found")) {
+        throw Exception("Akun tidak terdaftar");
       }
 
+      // Default: pass through the original message
       throw Exception(e.message);
     } catch (e) {
+      // Re-throw without modifying if it already has specific message
+      final errMsg = e.toString();
+      if (errMsg.contains("tidak aktif") ||
+          errMsg.contains("tidak terdaftar") ||
+          errMsg.contains("Password salah")) {
+        rethrow;
+      }
       throw Exception(e.toString().replaceAll("Exception: ", ""));
     } finally {
       state = false;

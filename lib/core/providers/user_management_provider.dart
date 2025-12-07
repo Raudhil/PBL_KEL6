@@ -116,7 +116,7 @@ final rolesProvider = FutureProvider.autoDispose<List<RoleModel>>((ref) async {
   return service.getAllRoles();
 });
 
-/// Provider untuk create user form state
+/// Provider untuk register form (validasi NIK untuk registrasi warga)
 final createUserFormProvider =
     StateNotifierProvider.autoDispose<
       CreateUserFormNotifier,
@@ -126,46 +126,38 @@ final createUserFormProvider =
       return CreateUserFormNotifier(service);
     });
 
-/// State untuk create user form
+/// State untuk register form
 class CreateUserFormState {
   final bool isLoading;
-  final bool isSuccess;
   final String? errorMessage;
   final WargaModel? wargaData;
-  final UserModel? createdUser;
 
   CreateUserFormState({
     this.isLoading = false,
-    this.isSuccess = false,
     this.errorMessage,
     this.wargaData,
-    this.createdUser,
   });
 
   CreateUserFormState copyWith({
     bool? isLoading,
-    bool? isSuccess,
     String? errorMessage,
     WargaModel? wargaData,
-    UserModel? createdUser,
   }) {
     return CreateUserFormState(
       isLoading: isLoading ?? this.isLoading,
-      isSuccess: isSuccess ?? this.isSuccess,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
       wargaData: wargaData ?? this.wargaData,
-      createdUser: createdUser ?? this.createdUser,
     );
   }
 }
 
-/// Notifier untuk create user form
+/// Notifier untuk register form
 class CreateUserFormNotifier extends StateNotifier<CreateUserFormState> {
   final UserManagementService _service;
 
   CreateUserFormNotifier(this._service) : super(CreateUserFormState());
 
-  /// Search warga by NIK
+  /// Search warga by NIK untuk registrasi
   Future<void> searchWargaByNik(String nik) async {
     state = state.copyWith(
       isLoading: true,
@@ -197,42 +189,6 @@ class CreateUserFormNotifier extends StateNotifier<CreateUserFormState> {
       state = state.copyWith(isLoading: false, wargaData: warga);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
-    }
-  }
-
-  /// Create user
-  Future<void> createUser({
-    required String nik,
-    required int idRole,
-    required String email,
-    required String password,
-    required WidgetRef ref,
-  }) async {
-    state = state.copyWith(
-      isLoading: true,
-      isSuccess: false,
-      errorMessage: null,
-    );
-
-    try {
-      final user = await _service.createUser(
-        nik: nik,
-        idRole: idRole,
-        email: email,
-        password: password,
-      );
-
-      state = state.copyWith(
-        isLoading: false,
-        isSuccess: true,
-        createdUser: user,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        isSuccess: false,
-        errorMessage: e.toString(),
-      );
     }
   }
 

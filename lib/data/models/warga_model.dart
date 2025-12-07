@@ -7,6 +7,7 @@ class WargaModel {
   final DateTime tanggalLahir;
   final String? nomorHp;
   final String? fotoKtp;
+  final String? alamat;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -19,6 +20,7 @@ class WargaModel {
     required this.tanggalLahir,
     this.nomorHp,
     this.fotoKtp,
+    this.alamat,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -33,6 +35,7 @@ class WargaModel {
       tanggalLahir: DateTime.parse(json['tanggal_lahir']),
       nomorHp: json['nomor_hp'],
       fotoKtp: json['foto_ktp'],
+      alamat: json['alamat'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
     );
@@ -48,6 +51,7 @@ class WargaModel {
       'tanggal_lahir': tanggalLahir.toIso8601String(),
       'nomor_hp': nomorHp,
       'foto_ktp': fotoKtp,
+      'alamat': alamat,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
