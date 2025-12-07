@@ -10,6 +10,7 @@ class WargaModel {
   final String? alamat;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? userStatus; // Status dari tabel users
 
   WargaModel({
     required this.id,
@@ -23,9 +24,22 @@ class WargaModel {
     this.alamat,
     required this.createdAt,
     required this.updatedAt,
+    this.userStatus,
   });
 
   factory WargaModel.fromJson(Map<String, dynamic> json) {
+    // Extract user status jika ada join dengan tabel users
+    String? userStatus;
+    if (json['users'] != null) {
+      final users = json['users'];
+      // Handle both array dan object
+      if (users is List && users.isNotEmpty) {
+        userStatus = users[0]['status'];
+      } else if (users is Map) {
+        userStatus = users['status'];
+      }
+    }
+
     return WargaModel(
       id: json['id'],
       idKk: json['id_kk'],
@@ -38,6 +52,7 @@ class WargaModel {
       alamat: json['alamat'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
+      userStatus: userStatus,
     );
   }
 
@@ -54,6 +69,7 @@ class WargaModel {
       'alamat': alamat,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      if (userStatus != null) 'user_status': userStatus,
     };
   }
 }

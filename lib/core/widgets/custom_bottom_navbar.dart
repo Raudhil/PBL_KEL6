@@ -14,28 +14,41 @@ class CustomBottomNavBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     final List<Map<String, dynamic>> navItems = [
       {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'label': 'Home'},
-      {'icon': Icons.store_outlined, 'activeIcon': Icons.store, 'label': 'Market'},
-      {'icon': Icons.payments_outlined, 'activeIcon': Icons.payments, 'label': 'Iuran'},
-      {'icon': Icons.person_outline, 'activeIcon': Icons.person, 'label': 'Profil'},
+      {
+        'icon': Icons.store_outlined,
+        'activeIcon': Icons.store,
+        'label': 'Market',
+      },
+      {
+        'icon': Icons.payments_outlined,
+        'activeIcon': Icons.payments,
+        'label': 'Iuran',
+      },
+      {
+        'icon': Icons.person_outline,
+        'activeIcon': Icons.person,
+        'label': 'Profil',
+      },
     ];
 
     return SafeArea(
       child: Container(
-      color: Colors.white,
+        color: Colors.transparent,
         child: Padding(
-          padding: const EdgeInsets.only(left: 10, right: 10, bottom: 10, top: 10),
+          padding: const EdgeInsets.only(
+            left: 10,
+            right: 10,
+            bottom: 10,
+            top: 10,
+          ),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
-              color: AppColors.white,
+              color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.greyLight,
-                width: 2.5,
-              ),
+              border: Border.all(color: AppColors.greyLight, width: 2.5),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
@@ -87,9 +100,9 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color activeColor = AppColors.primary; 
-    final Color inactiveColor = AppColors.primary; 
-    final Color activeContentColor = AppColors.white; 
+    final Color activeColor = AppColors.primary;
+    final Color inactiveColor = AppColors.primary;
+    final Color activeContentColor = AppColors.white;
 
     return InkWell(
       onTap: onTap,
@@ -101,12 +114,10 @@ class _NavBarItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(15),
               )
             : null,
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8), 
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minWidth: 0,
-          ),
-          child: Row( 
+          constraints: const BoxConstraints(minWidth: 0),
+          child: Row(
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -116,7 +127,7 @@ class _NavBarItem extends StatelessWidget {
                 color: isActive ? activeContentColor : inactiveColor,
                 size: 24,
               ),
-              
+
               // Teks hanya tampil jika item aktif
               if (isActive) ...[
                 const SizedBox(width: 4), // Jarak antara ikon dan teks
