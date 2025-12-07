@@ -6,6 +6,7 @@ import '../../controllers/keuangan_controller.dart';
 import '../../widgets/month_selector_card.dart';
 import '../../widgets/financial_summary_card.dart';
 import '../../widgets/transaction_list.dart';
+import '../keuangan_warga/transaction_form.dart';
 
 final _selectedMonthProvider = StateProvider<DateTime>((ref) => DateTime.now());
 
@@ -23,6 +24,18 @@ class KeuanganPage extends ConsumerWidget {
         title: 'Laporan Keuangan',
         showBackButton: true,
         actions: [],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const TransactionFormPage()),
+          );
+        },
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add),
+        label: const Text('Transaksi Baru'),
+        elevation: 4,
       ),
       body: Column(
         children: [
