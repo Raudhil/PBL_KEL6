@@ -17,7 +17,11 @@ class WargaDetailPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
-      appBar: const CustomTopBar(title: 'Detail Warga', showBackButton: true),
+      appBar: const CustomTopBar(
+        title: 'Detail Warga',
+        showBackButton: true,
+        showNotification: false,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

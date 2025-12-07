@@ -9,6 +9,7 @@ class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
   final bool showBackButton;
   final VoidCallback? onBack;
   final List<Widget>? actions;
+  final bool showNotification;
 
   const CustomTopBar({
     super.key,
@@ -16,6 +17,7 @@ class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
     this.showBackButton = false,
     this.onBack,
     this.actions,
+    this.showNotification = true,
   });
 
   @override
@@ -99,40 +101,42 @@ class CustomTopBar extends ConsumerWidget implements PreferredSizeWidget {
           ),
           actions:
               actions ??
-              [
-                Container(
-                  margin: const EdgeInsets.only(right: 16),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Fitur notifikasi masih dalam pengembangan',
+              (showNotification
+                  ? [
+                      Container(
+                        margin: const EdgeInsets.only(right: 16),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Fitur notifikasi masih dalam pengembangan',
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.25),
+                                width: 1,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.notifications_outlined,
+                              size: 24,
+                              color: AppColors.white,
+                            ),
                           ),
                         ),
-                      );
-                    },
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.25),
-                          width: 1,
-                        ),
                       ),
-                      child: const Icon(
-                        Icons.notifications_outlined,
-                        size: 24,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                    ]
+                  : null),
         ),
       ),
     );
