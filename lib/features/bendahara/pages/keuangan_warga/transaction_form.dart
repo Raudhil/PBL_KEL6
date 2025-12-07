@@ -31,8 +31,6 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _selectedDate = DateTime.now();
-
-    // Initialize locale data untuk DateFormat
     initializeDateFormatting('id_ID', null);
   }
 
@@ -49,16 +47,16 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
       _tabController.index == 0 ? 'Pemasukan' : 'Pengeluaran';
   String get _appBarTitle => _transactionType;
   Color get _primaryColor =>
-      _tabController.index == 0 ? AppColors.success : AppColors.danger;
+      _tabController.index == 0 ? AppColors.primary : const Color(0xFFDC2626);
 
   Widget _buildLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: 10.0),
       child: Text(
         label,
         style: const TextStyle(
           fontWeight: FontWeight.w700,
-          fontSize: 14,
+          fontSize: 15,
           color: AppColors.textPrimary,
         ),
       ),
@@ -84,22 +82,30 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
         prefixText: prefixText,
         prefixStyle: const TextStyle(color: AppColors.textPrimary),
         filled: true,
-        fillColor: AppColors.background,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderSide: BorderSide(color: Colors.grey[200]!),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
+          borderSide: BorderSide(color: Colors.grey[200]!, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _primaryColor, width: 2),
+          borderSide: BorderSide(color: _primaryColor, width: 2.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.danger, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.danger, width: 2.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
+          horizontal: 16,
+          vertical: 14,
         ),
       ),
       validator: validator,
@@ -173,7 +179,6 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
           .read(keuanganControllerProvider.notifier)
           .addTransaction(tx, idRt: idRt);
 
-      // Refresh data setelah transaksi ditambahkan
       await ref.read(keuanganControllerProvider.notifier).fetchTransactions();
 
       if (mounted) {
@@ -181,6 +186,11 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
           SnackBar(
             content: Text('$_transactionType berhasil ditambahkan'),
             backgroundColor: _primaryColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
         );
         Navigator.of(context).pop();
@@ -191,6 +201,11 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
           SnackBar(
             content: Text('Gagal menyimpan: $e'),
             backgroundColor: AppColors.danger,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -212,53 +227,77 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
       ),
       body: Column(
         children: [
-          // Tab Bar
+          // Tab Bar - Modern & Besar
           Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TabBar(
-              controller: _tabController,
-              onTap: (index) => setState(() {}),
-              labelColor: _tabController.index == 0
-                  ? AppColors.success
-                  : AppColors.danger,
-              unselectedLabelColor: AppColors.textSecondary,
-              indicatorColor: _tabController.index == 0
-                  ? AppColors.success
-                  : AppColors.danger,
-              indicatorSize: TabBarIndicatorSize.tab,
-              indicatorWeight: 3,
-              labelStyle: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
-              tabs: [
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_card_outlined, size: 20),
-                      const SizedBox(width: 8),
-                      const Text('Pemasukan'),
-                    ],
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      _tabController.animateTo(0);
+                      setState(() {});
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _tabController.index == 0
+                            ? AppColors.primary
+                            : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Pemasukan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: _tabController.index == 0
+                                ? Colors.white
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                Tab(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.shopping_cart_outlined, size: 20),
-                      const SizedBox(width: 8),
-                      const Text('Pengeluaran'),
-                    ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      _tabController.animateTo(1);
+                      setState(() {});
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _tabController.index == 1
+                            ? const Color(0xFFDC2626)
+                            : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Pengeluaran',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: _tabController.index == 1
+                                ? Colors.white
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -269,143 +308,177 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(20.0),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Judul
-                      _buildLabel('Judul'),
-                      _buildTextField(
-                        controller: _titleController,
-                        hintText: _tabController.index == 0
-                            ? 'Contoh: Sumbangan warga'
-                            : 'Contoh: Pembelian perlengkapan',
-                        validator: (v) =>
-                            v!.isEmpty ? 'Judul wajib diisi' : null,
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Nominal
-                      _buildLabel('Nominal'),
-                      _buildTextField(
-                        controller: _amountController,
-                        hintText: 'Contoh: 100000',
-                        prefixText: 'Rp ',
-                        keyboardType: TextInputType.number,
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return 'Nominal wajib diisi';
-                          }
-                          final parsed = double.tryParse(
-                            v.replaceAll(',', '').replaceAll('.', ''),
-                          );
-                          if (parsed == null) {
-                            return 'Format nominal tidak valid';
-                          }
-                          if (parsed <= 0) {
-                            return 'Nominal harus lebih dari 0';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Tanggal
-                      _buildLabel('Tanggal'),
-                      GestureDetector(
-                        onTap: _selectDate,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
+                      // Card wrapper untuk form
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.grey[200]!,
+                            width: 1.5,
                           ),
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.calendar_today,
-                                size: 18,
-                                color: _primaryColor,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  _selectedDate != null
-                                      ? DateFormat(
-                                          'dd MMM yyyy',
-                                          'id_ID',
-                                        ).format(_selectedDate!)
-                                      : 'Pilih tanggal',
-                                  style: TextStyle(
-                                    color: _selectedDate != null
-                                        ? AppColors.textPrimary
-                                        : AppColors.textSecondary,
-                                    fontSize: 14,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 12,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Judul
+                            _buildLabel('Judul Transaksi'),
+                            _buildTextField(
+                              controller: _titleController,
+                              hintText: _tabController.index == 0
+                                  ? 'Contoh: Sumbangan warga'
+                                  : 'Contoh: Pembelian perlengkapan',
+                              validator: (v) =>
+                                  v!.isEmpty ? 'Judul wajib diisi' : null,
+                            ),
+                            const SizedBox(height: 18),
+
+                            // Nominal
+                            _buildLabel('Nominal'),
+                            _buildTextField(
+                              controller: _amountController,
+                              hintText: 'Masukkan jumlah nominal',
+                              prefixText: 'Rp ',
+                              keyboardType: TextInputType.number,
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return 'Nominal wajib diisi';
+                                }
+                                final parsed = double.tryParse(
+                                  v.replaceAll(',', '').replaceAll('.', ''),
+                                );
+                                if (parsed == null) {
+                                  return 'Format nominal tidak valid';
+                                }
+                                if (parsed <= 0) {
+                                  return 'Nominal harus lebih dari 0';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 18),
+
+                            // Tanggal
+                            _buildLabel('Tanggal Transaksi'),
+                            GestureDetector(
+                              onTap: _selectDate,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.grey[200]!,
+                                    width: 1.5,
                                   ),
                                 ),
-                              ),
-                              Icon(Icons.arrow_drop_down, color: _primaryColor),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Keterangan
-                      _buildLabel('Keterangan (Opsional)'),
-                      _buildTextField(
-                        controller: _noteController,
-                        hintText: _tabController.index == 0
-                            ? 'Contoh: Sumbangan dari ibu Siti'
-                            : 'Contoh: Konsumsi acara minggu depan',
-                        validator: (v) => null,
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Submit Button
-                      SizedBox(
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: _isSubmitting ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _primaryColor,
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor: _primaryColor.withOpacity(
-                              0.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 2,
-                          ),
-                          child: _isSubmitting
-                              ? SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today,
+                                      size: 20,
+                                      color: _primaryColor,
                                     ),
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : Text(
-                                  'Simpan $_transactionType',
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        _selectedDate != null
+                                            ? DateFormat(
+                                                'dd MMM yyyy',
+                                                'id_ID',
+                                              ).format(_selectedDate!)
+                                            : 'Pilih tanggal transaksi',
+                                        style: TextStyle(
+                                          color: _selectedDate != null
+                                              ? AppColors.textPrimary
+                                              : AppColors.textSecondary,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 16,
+                                      color: _primaryColor,
+                                    ),
+                                  ],
                                 ),
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+
+                            // Keterangan
+                            _buildLabel('Keterangan (Opsional)'),
+                            _buildTextField(
+                              controller: _noteController,
+                              hintText: _tabController.index == 0
+                                  ? 'Contoh: Sumbangan dari ibu Siti'
+                                  : 'Contoh: Konsumsi acara minggu depan',
+                              validator: (v) => null,
+                              maxLines: 3,
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Submit Button
+                            SizedBox(
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: _isSubmitting ? null : _submit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _primaryColor,
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: _primaryColor
+                                      .withOpacity(0.5),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  elevation: 3,
+                                  shadowColor: _primaryColor.withOpacity(0.4),
+                                ),
+                                child: _isSubmitting
+                                    ? SizedBox(
+                                        height: 24,
+                                        width: 24,
+                                        child: CircularProgressIndicator(
+                                          valueColor:
+                                              const AlwaysStoppedAnimation<
+                                                Color
+                                              >(Colors.white),
+                                          strokeWidth: 3,
+                                        ),
+                                      )
+                                    : Text(
+                                        'Simpan $_transactionType',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
