@@ -1,19 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../data/models/iuran_warga_model.dart';
+import '../../../features/bendahara/controllers/iuran_controllers.dart';
 
-class IuranListItem extends StatefulWidget {
+class IuranListItem extends ConsumerStatefulWidget {
   final IuranWargaModel data;
   final Function(int id) onPay;
 
   const IuranListItem({super.key, required this.data, required this.onPay});
 
   @override
-  State<IuranListItem> createState() => _IuranListItemState();
+  ConsumerState<IuranListItem> createState() => _IuranListItemState();
 }
 
-class _IuranListItemState extends State<IuranListItem> {
-  bool _isExpanded = false;
+class _IuranListItemState extends ConsumerState<IuranListItem>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   String _formatRupiah(double amount) {
     return amount
@@ -55,8 +73,33 @@ class _IuranListItemState extends State<IuranListItem> {
     }
   }
 
+  void _toggleExpand() {
+    final expandedId = ref.read(expandedIuranWargaIdProvider);
+
+    if (expandedId == widget.data.iuran.id) {
+      // Jika card ini yang expand, tutup dia
+      ref.read(expandedIuranWargaIdProvider.notifier).state = null;
+      _controller.reverse();
+    } else {
+      // Buka card ini dan tutup yang lain
+      ref.read(expandedIuranWargaIdProvider.notifier).state =
+          widget.data.iuran.id;
+      _controller.forward();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final expandedId = ref.watch(expandedIuranWargaIdProvider);
+    final isExpanded = expandedId == widget.data.iuran.id;
+
+    // Update animation sesuai state
+    if (isExpanded && !_controller.isAnimating) {
+      _controller.forward();
+    } else if (!isExpanded && _controller.status == AnimationStatus.completed) {
+      _controller.reverse();
+    }
+
     final iuran = widget.data.iuran;
     final status = widget.data.status;
     final isPaid = widget.data.isPaid;
@@ -68,12 +111,12 @@ class _IuranListItemState extends State<IuranListItem> {
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: _isExpanded ? AppColors.primary : Colors.grey[200]!,
-          width: _isExpanded ? 2 : 1.5,
+          color: isExpanded ? AppColors.primary : Colors.grey[200]!,
+          width: isExpanded ? 2 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: _isExpanded
+            color: isExpanded
                 ? AppColors.primary.withOpacity(0.15)
                 : Colors.black.withOpacity(0.1),
             blurRadius: 10,
@@ -86,10 +129,10 @@ class _IuranListItemState extends State<IuranListItem> {
         children: [
           // Header (Selalu terlihat)
           InkWell(
-            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            onTap: _toggleExpand,
             borderRadius: BorderRadius.vertical(
               top: const Radius.circular(14),
-              bottom: Radius.circular(_isExpanded ? 0 : 14),
+              bottom: Radius.circular(isExpanded ? 0 : 14),
             ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -214,13 +257,6 @@ class _IuranListItemState extends State<IuranListItem> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailRow(
-                    'Nominal Tagihan',
-                    'Rp ${_formatRupiah(iuran.nominal)}',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Biaya Admin', 'Rp 0'),
-                  Divider(color: Colors.grey[200], height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -323,7 +359,7 @@ class _IuranListItemState extends State<IuranListItem> {
                 ],
               ),
             ),
-            crossFadeState: _isExpanded
+            crossFadeState: isExpanded
                 ? CrossFadeState.showSecond
                 : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 300),

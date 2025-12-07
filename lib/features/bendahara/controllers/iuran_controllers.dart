@@ -98,21 +98,18 @@ class IuranController extends StateNotifier<AsyncValue<List<IuranModel>>> {
         print('✅ Iuran deleted successfully');
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error deleting iuran: $e');
-      }
-
-      // Kembalikan state sebelumnya jika error
-      await fetchIuran();
       rethrow;
     }
   }
 }
 
-// Provider untuk tracking expanded card ID
-final expandedIuranIdProvider = StateProvider<int?>((ref) => null);
-
 final iuranControllerProvider =
-    StateNotifierProvider<IuranController, AsyncValue<List<IuranModel>>>(
-      (ref) => IuranController(),
-    );
+    StateNotifierProvider<IuranController, AsyncValue<List<IuranModel>>>((ref) {
+      return IuranController();
+    });
+
+// Provider untuk track card yang sedang expand (hanya satu)
+final expandedIuranWargaIdProvider = StateProvider<int?>((ref) => null);
+
+// Provider untuk track expandedIuranIdProvider (untuk bendahara page)
+final expandedIuranIdProvider = StateProvider<int?>((ref) => null);
