@@ -7,7 +7,6 @@ import '../../../theme/app_colors.dart';
 import '../widgets/warga_card.dart';
 import '../widgets/keluarga_card.dart';
 import 'create_warga_page.dart';
-import 'create_keluarga_page.dart';
 
 class DataWargaKeluargaWrapper extends ConsumerStatefulWidget {
   const DataWargaKeluargaWrapper({super.key});
@@ -172,31 +171,15 @@ class _DataWargaKeluargaWrapperState
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
-            // Cek tab aktif untuk menentukan create warga atau keluarga
-            final isWargaTab = _tabController.index == 0;
-            if (isWargaTab) {
-              _showCreateWargaDialog(context);
-            } else {
-              _showCreateKeluargaDialog(context);
-            }
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CreateWargaPage()),
+            );
           },
           backgroundColor: AppColors.primary,
           child: const Icon(Icons.add, color: Colors.white, size: 28),
         ),
       ),
     );
-  }
-
-  void _showCreateWargaDialog(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const CreateWargaPage()));
-  }
-
-  void _showCreateKeluargaDialog(BuildContext context) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const CreateKeluargaPage()));
   }
 
   // Widget Search & Filter

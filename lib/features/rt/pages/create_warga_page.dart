@@ -29,6 +29,11 @@ class _CreateWargaPageState extends State<CreateWargaPage> {
   String? _selectedPekerjaan;
   String? _selectedStatusPerkawinan;
   String? _selectedPendidikan;
+  String? _selectedPeranKeluarga;
+  
+  // KK Options
+  String _kkOption = 'existing'; // 'existing' or 'new'
+  String? _selectedKkExisting;
 
   @override
   void dispose() {
@@ -214,87 +219,289 @@ class _CreateWargaPageState extends State<CreateWargaPage> {
               // Section: Data Keluarga
               _buildSectionTitle('Data Keluarga', Icons.home_outlined),
               const SizedBox(height: 16),
+              
+              // KK Option Toggle
               _buildCard([
-                _buildTextField(
-                  controller: _noKkController,
-                  label: 'Nomor KK',
-                  hint: 'Masukkan 16 digit nomor KK',
-                  icon: Icons.family_restroom_outlined,
-                  keyboardType: TextInputType.number,
-                  maxLength: 16,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Nomor KK tidak boleh kosong';
-                    }
-                    if (value.length != 16) {
-                      return 'Nomor KK harus 16 digit';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildTextField(
-                  controller: _alamatController,
-                  label: 'Alamat',
-                  hint: 'Masukkan alamat lengkap',
-                  icon: Icons.location_on_outlined,
-                  maxLines: 3,
-                  textCapitalization: TextCapitalization.sentences,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Alamat tidak boleh kosong';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildDropdown(
-                        label: 'RT',
-                        hint: 'Pilih RT',
-                        icon: Icons.home_work_outlined,
-                        value: _selectedRt,
-                        items: List.generate(10, (i) => '${i + 1}'),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedRt = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'RT harus dipilih';
-                          }
-                          return null;
-                        },
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _kkOption = 'existing';
+                            });
+                          },
+                          borderRadius: const BorderRadius.horizontal(
+                            left: Radius.circular(12),
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _kkOption == 'existing'
+                                  ? AppColors.primary
+                                  : Colors.transparent,
+                              borderRadius: const BorderRadius.horizontal(
+                                left: Radius.circular(12),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.family_restroom,
+                                  size: 18,
+                                  color: _kkOption == 'existing'
+                                      ? Colors.white
+                                      : Colors.grey.shade600,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Masuk KK Existing',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: _kkOption == 'existing'
+                                        ? Colors.white
+                                        : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildDropdown(
-                        label: 'RW',
-                        hint: 'Pilih RW',
-                        icon: Icons.location_city_outlined,
-                        value: _selectedRw,
-                        items: List.generate(10, (i) => '${i + 1}'),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedRw = value;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'RW harus dipilih';
-                          }
-                          return null;
-                        },
+                      Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              _kkOption = 'new';
+                            });
+                          },
+                          borderRadius: const BorderRadius.horizontal(
+                            right: Radius.circular(12),
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: _kkOption == 'new'
+                                  ? AppColors.primary
+                                  : Colors.transparent,
+                              borderRadius: const BorderRadius.horizontal(
+                                right: Radius.circular(12),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.add_home,
+                                  size: 18,
+                                  color: _kkOption == 'new'
+                                      ? Colors.white
+                                      : Colors.grey.shade600,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Buat KK Baru',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: _kkOption == 'new'
+                                        ? Colors.white
+                                        : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ]),
+              const SizedBox(height: 16),
+
+              // Conditional Fields based on KK Option
+              if (_kkOption == 'existing') ...[
+                _buildCard([
+                  _buildDropdown(
+                    label: 'Pilih Kartu Keluarga',
+                    hint: 'Pilih KK yang sudah ada',
+                    icon: Icons.family_restroom_outlined,
+                    value: _selectedKkExisting,
+                    items: [
+                      'KK000000001 - Jl. Merdeka No. 1',
+                      'KK000000002 - Jl. Sudirman No. 5',
+                      'KK000000003 - Jl. Gatot Subroto No. 10',
+                    ], // TODO: Load from database
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedKkExisting = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (_kkOption == 'existing' &&
+                          (value == null || value.isEmpty)) {
+                        return 'KK harus dipilih';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDropdown(
+                    label: 'Peran di Keluarga',
+                    hint: 'Pilih peran di keluarga',
+                    icon: Icons.people_outline,
+                    value: _selectedPeranKeluarga,
+                    items: [
+                      'Kepala Keluarga',
+                      'Istri',
+                      'Anak',
+                      'Orang Tua',
+                      'Mertua',
+                      'Menantu',
+                      'Cucu',
+                      'Famili Lain',
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedPeranKeluarga = value;
+                      });
+                    },
+                    validator: (value) {
+                      if (_kkOption == 'existing' &&
+                          (value == null || value.isEmpty)) {
+                        return 'Peran di keluarga harus dipilih';
+                      }
+                      return null;
+                    },
+                  ),
+                ]),
+              ] else ...[
+                _buildCard([
+                  _buildTextField(
+                    controller: _noKkController,
+                    label: 'Nomor KK Baru',
+                    hint: 'Masukkan 16 digit nomor KK',
+                    icon: Icons.credit_card,
+                    keyboardType: TextInputType.number,
+                    maxLength: 16,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    validator: (value) {
+                      if (_kkOption == 'new') {
+                        if (value == null || value.isEmpty) {
+                          return 'Nomor KK tidak boleh kosong';
+                        }
+                        if (value.length != 16) {
+                          return 'Nomor KK harus 16 digit';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                    controller: _alamatController,
+                    label: 'Alamat Lengkap',
+                    hint: 'Masukkan alamat lengkap',
+                    icon: Icons.location_on_outlined,
+                    maxLines: 3,
+                    textCapitalization: TextCapitalization.sentences,
+                    validator: (value) {
+                      if (_kkOption == 'new') {
+                        if (value == null || value.isEmpty) {
+                          return 'Alamat tidak boleh kosong';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildDropdown(
+                          label: 'RT',
+                          hint: 'Pilih RT',
+                          icon: Icons.home_work_outlined,
+                          value: _selectedRt,
+                          items: List.generate(10, (i) => '${i + 1}'),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedRt = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (_kkOption == 'new' &&
+                                (value == null || value.isEmpty)) {
+                              return 'RT harus dipilih';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildDropdown(
+                          label: 'RW',
+                          hint: 'Pilih RW',
+                          icon: Icons.location_city_outlined,
+                          value: _selectedRw,
+                          items: List.generate(10, (i) => '${i + 1}'),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedRw = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (_kkOption == 'new' &&
+                                (value == null || value.isEmpty)) {
+                              return 'RW harus dipilih';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Warga ini akan menjadi Kepala Keluarga',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+              ],
               const SizedBox(height: 24),
 
               // Section: Data Pekerjaan & Pendidikan
