@@ -2,10 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jawara/theme/app_colors.dart';
 import '../controllers/auth_controller.dart';
-import 'package:jawara/features/auth/widgets/auth_input_field.dart';
 import 'register_page.dart';
-import 'package:jawara/core/providers/auth_state_provider.dart';
-
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -14,17 +11,125 @@ class LoginPage extends ConsumerStatefulWidget {
   ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends ConsumerState<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+    _animationController.forward();
+  }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Email tidak boleh kosong';
+    }
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(value)) {
+      return 'Format email tidak valid';
+    }
+    return null;
+  }
+
+  void _showErrorDialog(
+    String title,
+    String message,
+    IconData icon,
+    Color color,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 40, color: color),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: color,
+                    foregroundColor: AppColors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Tutup',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _handleSubmit() async {
@@ -36,11 +141,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await auth.login(_emailController.text.trim(), _passwordController.text);
     } catch (e) {
       if (!mounted) return;
-      // Debug: ensure we saw the exception
-      debugPrint('[LoginPage] login error caught: ${e.toString()}');
 
-      // Normalize exception message for user-friendly display
       String msg;
+      String title;
+      IconData icon;
+      Color color;
+
       if (e is String) {
         msg = e;
       } else if (e is Exception) {
@@ -49,35 +155,62 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         msg = e.toString();
       }
 
-      // First show a modal dialog so the user definitely sees the message.
-      if (mounted) {
-        try {
-          await showDialog<void>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Gagal masuk'),
-              content: Text(msg),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('OK'),
-                ),
-              ],
-            ),
-          );
-        } catch (_) {}
+      msg = msg.replaceFirst('Error: Exception: ', '');
+      msg = msg.replaceFirst('Login gagal: ', '');
 
-        // Also show a floating snackbar as secondary feedback.
-        final messenger = ScaffoldMessenger.of(context);
-        messenger.clearSnackBars();
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(msg),
-            backgroundColor: Colors.red.shade700,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+      final lowerMsg = msg.toLowerCase();
+
+      if (lowerMsg.contains('tidak aktif') ||
+          lowerMsg.contains('status tidak valid')) {
+        title = 'Akun Tidak Aktif';
+        icon = Icons.block_rounded;
+        color = AppColors.warning;
+        msg = 'Akun Anda tidak aktif. Hubungi administrator.';
+      } else if (lowerMsg.contains('data akun tidak ditemukan') ||
+          lowerMsg.contains('user not found')) {
+        title = 'Akun Tidak Terdaftar';
+        icon = Icons.person_off_rounded;
+        color = AppColors.danger;
+        msg = 'Email belum terdaftar. Silakan buat akun baru.';
+      } else if (lowerMsg.contains('invalid login credentials') ||
+          lowerMsg.contains('invalid credentials') ||
+          lowerMsg.contains('email or password') ||
+          lowerMsg.contains('email atau password')) {
+        title = 'Password Salah';
+        icon = Icons.lock_outline_rounded;
+        color = AppColors.danger;
+        msg = 'Password yang Anda masukkan salah.';
+      } else if (lowerMsg.contains('email not confirmed') ||
+          lowerMsg.contains('email belum dikonfirmasi')) {
+        title = 'Email Belum Dikonfirmasi';
+        icon = Icons.email_outlined;
+        color = AppColors.warning;
+        msg = 'Silakan konfirmasi email Anda terlebih dahulu.';
+      } else if (lowerMsg.contains('network') ||
+          lowerMsg.contains('connection') ||
+          lowerMsg.contains('timeout')) {
+        title = 'Koneksi Bermasalah';
+        icon = Icons.wifi_off_rounded;
+        color = AppColors.warning;
+        msg = 'Tidak dapat terhubung ke server. Periksa koneksi internet.';
+      } else if (lowerMsg.contains('server error') ||
+          lowerMsg.contains('internal error') ||
+          lowerMsg.contains('500')) {
+        title = 'Server Error';
+        icon = Icons.error_outline_rounded;
+        color = AppColors.danger;
+        msg = 'Terjadi kesalahan pada server. Coba lagi nanti.';
+      } else {
+        title = 'Login Gagal';
+        icon = Icons.error_outline_rounded;
+        color = AppColors.danger;
+        if (msg.length > 100) {
+          msg = 'Login gagal. Periksa email dan password Anda.';
+        }
+      }
+
+      if (mounted) {
+        _showErrorDialog(title, msg, icon, color);
       }
     }
   }
@@ -85,183 +218,416 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final isLoading = ref.watch(authProvider);
-    final authError = ref.watch(authErrorProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.creamWhite,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Decorative top wave
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: ClipPath(
-                clipper: _TopWaveClipper(),
-                child: Container(
-                  height: 100,
-                  color: AppColors.mint,
-                ),
-              ),
-            ),
+      backgroundColor: AppColors.white,
+      body: Stack(
+        children: [
+          // Background Decorations
+          _buildBackgroundDecorations(),
 
-            // (Top-right decorative blob removed)
+          SafeArea(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 40),
 
-            SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // App logo (falls back to FlutterLogo if asset is missing)
-                  Center(
-                    child: SizedBox(
-                      height: 70,
-                      child: Image.asset(
-                        'assets/images/logo.png',
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stack) => const FlutterLogo(size: 72),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  Text(
-                    'Login',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    textAlign: TextAlign.left,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Masuk ke akun Anda',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    textAlign: TextAlign.left,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Show a persistent inline error banner when auth enforcer reports an error
-                  if (authError != null) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade600,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline, color: Colors.white),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              authError,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      // Logo Keluarga dengan Animasi
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Container(
+                                  width: 140,
+                                  height: 140,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.white,
+                                    borderRadius: BorderRadius.circular(30),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primary.withOpacity(
+                                          0.3,
+                                        ),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(1),
+                                  child: Image.asset(
+                                    'assets/logo.png',
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Teras Warga',
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          IconButton(
-                            onPressed: () => ref.read(authErrorProvider.notifier).state = null,
-                            icon: const Icon(Icons.close, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Title Section
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: const [
+                          Text(
+                            'Platform digital pengelolaan RT/RW',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
+                      const SizedBox(height: 32),
 
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        AuthInputField(
-                          controller: _emailController,
-                          label: 'Email',
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return 'Email tidak boleh kosong';
-                            if (!v.contains('@')) return 'Email tidak valid';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        AuthInputField(
-                          controller: _passwordController,
-                          label: 'Password',
-                          obscureText: _obscurePassword,
-                          suffixIcon: IconButton(
-                            color: AppColors.textSecondary,
-                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      // Email Field
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          hintText: 'Masukkan email',
+                          prefixIcon: const Icon(Icons.email_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: AppColors.textSecondary.withOpacity(0.3),
+                            ),
                           ),
-                          validator: (v) => v == null || v.isEmpty ? 'Password tidak boleh kosong' : null,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: AppColors.textSecondary.withOpacity(0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.danger,
+                            ),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.danger,
+                              width: 2,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Fixed action button below the form
-                  SizedBox(
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: isLoading ? null : _handleSubmit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        validator: _validateEmail,
                       ),
-                      child: isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text('Log In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
+                      const SizedBox(height: 16),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Belum punya akun?', style: TextStyle(color: AppColors.textPrimary)),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterPage())),
-                        child: const Text('Register', style: TextStyle(fontWeight: FontWeight.bold)),
+                      // Password Field
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          hintText: 'Masukkan password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: AppColors.textSecondary.withOpacity(0.3),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: AppColors.textSecondary.withOpacity(0.3),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.danger,
+                            ),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.danger,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Password tidak boleh kosong';
+                          }
+                          return null;
+                        },
                       ),
+                      const SizedBox(height: 24),
+
+                      // Login Button
+                      SizedBox(
+                        height: 54,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : _handleSubmit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.white,
+                            disabledBackgroundColor: AppColors.primary
+                                .withOpacity(0.6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      AppColors.white,
+                                    ),
+                                  ),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Text(
+                                      'Masuk',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Icon(Icons.arrow_forward, size: 20),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Divider text
+                      const Center(
+                        child: Text(
+                          'atau',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Register Button
+                      SizedBox(
+                        height: 54,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const RegisterPage(),
+                              ),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: const BorderSide(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.person_add_outlined, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'Buat Akun Baru',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+
+                      // Copyright Section
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                              color: AppColors.textSecondary.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              '© 2025 Teras Warga',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary.withOpacity(0.7),
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Version 1.0.0',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.textSecondary.withOpacity(0.5),
+                                fontWeight: FontWeight.w300,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
-
-            // (Bottom decorative pill removed)
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-}
 
-// Simple top wave clipper for decorative shape
-class _TopWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height - 40);
-    final firstControlPoint = Offset(size.width / 4, size.height);
-    final firstEndPoint = Offset(size.width / 2, size.height - 30);
-    final secondControlPoint = Offset(size.width * 3 / 4, size.height - 70);
-    final secondEndPoint = Offset(size.width, size.height - 40);
-    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy, firstEndPoint.dx, firstEndPoint.dy);
-    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy, secondEndPoint.dx, secondEndPoint.dy);
-    path.lineTo(size.width, 0);
-    path.close();
-    return path;
+  Widget _buildBackgroundDecorations() {
+    return Stack(
+      children: [
+        // Top-left circle
+        Positioned(
+          top: -50,
+          left: -50,
+          child: TweenAnimationBuilder(
+            tween: Tween<double>(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 2000),
+            builder: (context, double value, child) {
+              return Transform.scale(
+                scale: value,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.1),
+                        AppColors.primary.withOpacity(0.05),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Bottom-right circle
+        Positioned(
+          bottom: -80,
+          right: -80,
+          child: TweenAnimationBuilder(
+            tween: Tween<double>(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 2000),
+            builder: (context, double value, child) {
+              return Transform.scale(
+                scale: value,
+                child: Container(
+                  width: 250,
+                  height: 250,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        AppColors.primary.withOpacity(0.15),
+                        AppColors.primary.withOpacity(0.08),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Middle floating circle
+        Positioned(
+          top: 150,
+          right: 30,
+          child: TweenAnimationBuilder(
+            tween: Tween<double>(begin: 0, end: 1),
+            duration: const Duration(milliseconds: 2500),
+            builder: (context, double value, child) {
+              return Opacity(
+                opacity: value,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primary.withOpacity(0.08),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }

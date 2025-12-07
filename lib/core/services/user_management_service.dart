@@ -69,16 +69,33 @@ class UserManagementService {
     }
   }
 
-  /// Search warga by NIK
+  /// Search warga by NIK (untuk registrasi)
   Future<WargaModel?> searchWargaByNik(String nik) async {
     try {
       final response = await _supabase
           .from('warga')
-          .select()
+          .select('''
+            *,
+            kk!inner(
+              id_alamat,
+              alamat!inner(
+                alamat
+              )
+            )
+          ''')
           .eq('nik', nik)
           .maybeSingle();
       if (response == null) return null;
-      return WargaModel.fromJson(response);
+
+      // Extract alamat from nested structure
+      final Map<String, dynamic> wargaData = Map<String, dynamic>.from(
+        response,
+      );
+      if (response['kk'] != null && response['kk']['alamat'] != null) {
+        wargaData['alamat'] = response['kk']['alamat']['alamat'];
+      }
+
+      return WargaModel.fromJson(wargaData);
     } catch (e) {
       throw Exception('Gagal mencari data warga: $e');
     }
@@ -95,86 +112,6 @@ class UserManagementService {
       return response != null;
     } catch (e) {
       throw Exception('Gagal mengecek user warga: $e');
-    }
-  }
-
-  /// Create new user (buat di auth.users DAN public.users)
-  Future<UserModel> createUser({
-    required String nik,
-    required int idRole,
-    required String email,
-    required String password,
-  }) async {
-    try {
-      // 1. Cari warga berdasarkan NIK
-      final warga = await searchWargaByNik(nik);
-      if (warga == null) {
-        throw Exception('NIK tidak terdaftar dalam sistem');
-      }
-
-      // 2. Cek apakah warga sudah punya user
-      final hasUser = await checkWargaHasUser(warga.id);
-      if (hasUser) {
-        throw Exception('NIK sudah terdaftar sebagai user');
-      }
-
-      // 3. Simpan admin session sebelum signUp
-      final currentSession = _supabase.auth.currentSession;
-      if (currentSession == null) {
-        throw Exception('Admin session tidak ditemukan');
-      }
-      final adminRefreshToken = currentSession.refreshToken!;
-
-      String? authUserId;
-
-      // 4. Create auth user dengan signUp (buat di auth.users)
-      try {
-        final authResponse = await _supabase.auth.signUp(
-          email: email,
-          password: password,
-        );
-
-        if (authResponse.user == null) {
-          throw Exception('Gagal membuat akun autentikasi');
-        }
-
-        authUserId = authResponse.user!.id;
-        print('✅ Auth user created: $authUserId');
-
-        // 5. RESTORE admin session SEGERA setelah signUp
-        await _supabase.auth.setSession(adminRefreshToken);
-        print('✅ Admin session restored');
-      } catch (e) {
-        // Restore admin session jika error
-        try {
-          await _supabase.auth.setSession(adminRefreshToken);
-        } catch (_) {}
-        throw Exception('Gagal membuat akun autentikasi: $e');
-      }
-
-      // 6. Create user di tabel public.users (sinkronisasi dengan auth.users)
-      final userData = {
-        'id_auth': authUserId,
-        'id_role': idRole,
-        'id_warga': warga.id,
-        'full_name': warga.namaLengkap,
-        'status': 'Aktif',
-      };
-
-      print('📝 Inserting to public.users: $userData');
-
-      final response = await _supabase.from('users').insert(userData).select('''
-        *,
-        role:id_role(id, nama),
-        warga:id_warga(id, id_kk, nik, nama_lengkap, jenis_kelamin, tanggal_lahir, nomor_hp, foto_ktp)
-      ''').single();
-
-      print('✅ User created in public.users');
-
-      return UserModel.fromJson(response);
-    } catch (e) {
-      print('❌ Error creating user: $e');
-      throw Exception('Gagal membuat user: $e');
     }
   }
 

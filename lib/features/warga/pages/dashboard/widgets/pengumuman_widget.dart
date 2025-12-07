@@ -27,32 +27,28 @@ class PengumumanWidget extends ConsumerWidget {
           children: [
             // Header Section
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.campaign,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Pengumuman Terbaru',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.campaign,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
                 ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Pengumuman Terbaru',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 TextButton(
                   onPressed: () {
                     // Push tanpa CustomTopBar dan navbar
@@ -62,7 +58,15 @@ class PengumumanWidget extends ConsumerWidget {
                       ),
                     );
                   },
-                  child: const Text('Lihat Semua'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Lihat Semua',
+                    style: TextStyle(fontSize: 13),
+                  ),
                 ),
               ],
             ),
@@ -161,41 +165,44 @@ class PengumumanWidget extends ConsumerWidget {
                                       color: Colors.grey[600],
                                     ),
                                     const SizedBox(width: 4),
-                                    Text(
-                                      DateFormatter.formatDateTime(
-                                        pengumuman.updatedAt ??
-                                            pengumuman.createdAt,
-                                      ),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey[700],
-                                        fontWeight: FontWeight.w500,
+                                    Flexible(
+                                      child: Text(
+                                        DateFormatter.formatDateTime(
+                                          pengumuman.updatedAt ??
+                                              pengumuman.createdAt,
+                                        ),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.grey[700],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 3,
+                                        horizontal: 6,
+                                        vertical: 2,
                                       ),
                                       decoration: BoxDecoration(
                                         color: AppColors.primary,
-                                        borderRadius: BorderRadius.circular(6),
+                                        borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
                                         pengumuman.rolePembuat,
                                         style: const TextStyle(
-                                          fontSize: 10,
+                                          fontSize: 9,
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
                                     if (pengumuman.hasDokumen) ...[
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 4),
                                       Icon(
                                         Icons.attach_file,
-                                        size: 16,
+                                        size: 14,
                                         color: Colors.grey[600],
                                       ),
                                     ],

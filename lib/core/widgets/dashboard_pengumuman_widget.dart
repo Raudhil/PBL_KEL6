@@ -52,14 +52,24 @@ class DashboardPengumumanWidget extends ConsumerWidget {
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     TextButton(
                       onPressed: () {
                         // Navigate to full pengumuman page
                         // TODO: Implement navigation
                       },
-                      child: const Text('Lihat Semua'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'Lihat Semua',
+                        style: TextStyle(fontSize: 13),
+                      ),
                     ),
                   ],
                 ),
@@ -157,11 +167,14 @@ class DashboardPengumumanWidget extends ConsumerWidget {
                               color: Colors.grey[500],
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              pengumuman.namaPembuat,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey[600],
+                            Flexible(
+                              child: Text(
+                                pengumuman.namaPembuat,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 8),
