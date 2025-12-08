@@ -153,7 +153,7 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
 
       if (_storeId == null) {
         // Create new store
-        await ref
+        final newStore = await ref
             .read(marketplaceRepositoryProvider)
             .createToko(
               TokoModel(
@@ -166,6 +166,8 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
             );
 
         if (mounted) {
+          // Update store ID after creation
+          _storeId = newStore.id;
           _showSuccessDialog(
             'Toko Berhasil Dibuat!',
             'Anda sekarang bisa mulai berjualan.',
