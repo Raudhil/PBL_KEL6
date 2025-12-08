@@ -547,11 +547,9 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
             .updateProduk(widget.product!.id, updates);
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Produk berhasil diupdate'),
-            backgroundColor: AppColors.success,
-          ),
+        _showSuccessDialog(
+          'Produk Berhasil Diperbarui',
+          'Perubahan produk Anda telah disimpan',
         );
       } else {
         // Create new product
@@ -570,18 +568,10 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
         await ref.read(marketplaceRepositoryProvider).createProduk(newProduct);
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Produk berhasil ditambahkan'),
-            backgroundColor: AppColors.success,
-          ),
+        _showSuccessDialog(
+          'Produk Berhasil Ditambahkan',
+          'Produk baru Anda telah berhasil ditambahkan',
         );
-      }
-
-      // Invalidate providers to refresh product list
-      if (mounted) {
-        ref.invalidate(produkByTokoProvider(widget.storeId));
-        Navigator.pop(context, true); // Return true to indicate success
       }
     } catch (e) {
       if (!mounted) return;
@@ -596,6 +586,106 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
         setState(() => _isSaving = false);
       }
     }
+  }
+
+  void _showSuccessDialog(String title, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Success Icon with animation effect
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Title
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                // Message
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary.withOpacity(0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                // OK Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      // Invalidate and refresh
+                      ref.invalidate(produkByTokoProvider(widget.storeId));
+                      Navigator.pop(context, true); // Close form page
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showDeleteDialog() {
@@ -622,16 +712,9 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                 if (!mounted) return;
                 Navigator.pop(ctx); // Close dialog
 
-                // Invalidate and refresh
-                ref.invalidate(produkByTokoProvider(widget.storeId));
-
-                Navigator.pop(context, true); // Close form page with success
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Produk "$productName" berhasil dihapus'),
-                    backgroundColor: AppColors.success,
-                  ),
+                _showSuccessDialog(
+                  'Produk Berhasil Dihapus',
+                  'Produk "$productName" telah dihapus dari toko Anda',
                 );
               } catch (e) {
                 if (!mounted) return;

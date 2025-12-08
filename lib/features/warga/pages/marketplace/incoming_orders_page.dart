@@ -236,17 +236,11 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
       await ref.read(confirmOrderProvider(orderId).future);
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pesanan berhasil dikonfirmasi & stok dikurangi'),
-          backgroundColor: AppColors.success,
-        ),
+      _showSuccessDialog(
+        'Pesanan Diterima',
+        'Pesanan berhasil dikonfirmasi dan stok telah dikurangi',
+        widget.idPenjual,
       );
-
-      // Refresh orders
-      ref.invalidate(incomingOrdersProvider(widget.idPenjual));
-      ref.invalidate(todayOrdersCountProvider(widget.idPenjual));
-      ref.invalidate(pendingOrdersProvider(widget.idPenjual));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -284,15 +278,11 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
       await ref.read(marketplaceRepositoryProvider).completeOrder(orderId);
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pesanan diselesaikan'),
-          backgroundColor: AppColors.success,
-        ),
+      _showSuccessDialog(
+        'Pesanan Diselesaikan',
+        'Pesanan telah berhasil diselesaikan',
+        widget.idPenjual,
       );
-
-      // Refresh orders
-      ref.invalidate(incomingOrdersProvider(widget.tokoId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -330,15 +320,11 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
       await ref.read(marketplaceRepositoryProvider).cancelOrder(orderId);
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pesanan dibatalkan'),
-          backgroundColor: AppColors.warning,
-        ),
+      _showSuccessDialog(
+        'Pesanan Dibatalkan',
+        'Pesanan telah dibatalkan',
+        widget.idPenjual,
       );
-
-      // Refresh orders
-      ref.invalidate(incomingOrdersProvider(widget.tokoId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -348,6 +334,107 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
         ),
       );
     }
+  }
+
+  void _showSuccessDialog(String title, String message, int userId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Success Icon
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Title
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                // Message
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary.withOpacity(0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                // OK Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      // Refresh orders
+                      ref.invalidate(incomingOrdersProvider(userId));
+                      ref.invalidate(todayOrdersCountProvider(userId));
+                      ref.invalidate(pendingOrdersProvider(userId));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
