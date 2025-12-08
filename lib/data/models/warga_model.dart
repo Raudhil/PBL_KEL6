@@ -58,7 +58,7 @@ class WargaModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      if (id != 0) 'id': id, // Only include id if not 0 (for updates)
       'id_kk': idKk,
       'nik': nik,
       'nama_lengkap': namaLengkap,
@@ -66,7 +66,6 @@ class WargaModel {
       'tanggal_lahir': tanggalLahir.toIso8601String(),
       'nomor_hp': nomorHp,
       'foto_ktp': fotoKtp,
-      'alamat': alamat,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       if (userStatus != null) 'user_status': userStatus,

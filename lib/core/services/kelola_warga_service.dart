@@ -43,4 +43,21 @@ class SupabaseService {
   Future<void> deleteWarga(int id) async {
     await _client.from('warga').delete().eq('id', id);
   }
+
+  Future<bool> checkNikExists(String nik, {int? excludeId}) async {
+    try {
+      var query = _client.from('warga').select('id').eq('nik', nik);
+
+      // Exclude current warga when editing
+      if (excludeId != null) {
+        query = query.neq('id', excludeId);
+      }
+
+      final result = await query;
+      return (result as List).isNotEmpty;
+    } catch (e) {
+      print('Error checking NIK: $e');
+      return false;
+    }
+  }
 }
