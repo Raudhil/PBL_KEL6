@@ -262,7 +262,7 @@ final pendingOrdersProvider = FutureProvider.autoDispose
       final repository = ref.read(marketplaceRepositoryProvider);
       return await repository.getTransaksiByPenjual(
         idPenjual,
-        status: 'pending',
+        status: 'Pending',
       );
     });
 
