@@ -605,7 +605,7 @@ class _CreateWargaPageState extends ConsumerState<CreateWargaPage> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Masuk KK Existing',
+                                  'KK Yang Ada',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: _kkOption == 'existing'
