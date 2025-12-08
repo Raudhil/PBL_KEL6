@@ -166,14 +166,9 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
             );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Toko berhasil dibuat! Anda sekarang bisa mulai berjualan.',
-              ),
-              backgroundColor: AppColors.success,
-              duration: Duration(seconds: 3),
-            ),
+          _showSuccessDialog(
+            'Toko Berhasil Dibuat!',
+            'Anda sekarang bisa mulai berjualan.',
           );
         }
       } else {
@@ -184,20 +179,11 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Pengaturan toko berhasil disimpan'),
-              backgroundColor: AppColors.success,
-            ),
+          _showSuccessDialog(
+            'Pengaturan Berhasil Disimpan',
+            'Perubahan pengaturan toko Anda telah disimpan',
           );
         }
-      }
-
-      // Refresh store data
-      ref.invalidate(myStoreProvider(_currentUserId!));
-
-      if (mounted) {
-        Navigator.pop(context);
       }
     } catch (e) {
       print('❌ Error saving store: $e');
@@ -210,6 +196,108 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
         );
       }
     }
+  }
+
+  void _showSuccessDialog(String title, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Success Icon
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Title
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                // Message
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary.withOpacity(0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                // OK Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      // Refresh store data
+                      if (_currentUserId != null) {
+                        ref.invalidate(myStoreProvider(_currentUserId!));
+                      }
+                      Navigator.pop(context); // Close settings page
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _showTimePickerDialog() async {
