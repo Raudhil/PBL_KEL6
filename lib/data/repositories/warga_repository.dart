@@ -10,4 +10,6 @@ class WargaRepository {
   Future<WargaModel> updateWarga(WargaModel warga) =>
       _service.updateWarga(warga);
   Future<void> deleteWarga(int id) => _service.deleteWarga(id);
+  Future<bool> checkNikExists(String nik, {int? excludeId}) =>
+      _service.checkNikExists(nik, excludeId: excludeId);
 }

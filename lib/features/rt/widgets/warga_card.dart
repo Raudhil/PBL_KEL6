@@ -4,16 +4,23 @@ import '../pages/warga_detail_page.dart';
 
 class WargaCard extends StatefulWidget {
   final dynamic warga;
+  final bool isExpanded;
+  final VoidCallback? onToggle;
+  final GlobalKey? cardKey;
 
-  const WargaCard({super.key, required this.warga});
+  const WargaCard({
+    super.key,
+    required this.warga,
+    this.isExpanded = false,
+    this.onToggle,
+    this.cardKey,
+  });
 
   @override
   State<WargaCard> createState() => _WargaCardState();
 }
 
 class _WargaCardState extends State<WargaCard> {
-  bool _isExpanded = false;
-
   @override
   Widget build(BuildContext context) {
     // Tentukan status dari database users
@@ -47,9 +54,18 @@ class _WargaCardState extends State<WargaCard> {
         ),
         child: InkWell(
           onTap: () {
-            setState(() {
-              _isExpanded = !_isExpanded;
-            });
+            widget.onToggle?.call();
+            // Auto-scroll after expansion
+            if (!widget.isExpanded && widget.cardKey != null) {
+              Future.delayed(const Duration(milliseconds: 300), () {
+                Scrollable.ensureVisible(
+                  widget.cardKey!.currentContext!,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  alignment: 0.1, // Position at 10% from top of viewport
+                );
+              });
+            }
           },
           borderRadius: BorderRadius.circular(16),
           child: Column(
@@ -153,7 +169,7 @@ class _WargaCardState extends State<WargaCard> {
                             ),
                           ),
                           child: Icon(
-                            _isExpanded
+                            widget.isExpanded
                                 ? Icons.keyboard_arrow_up
                                 : Icons.keyboard_arrow_down,
                             color: AppColors.primary,
@@ -167,7 +183,7 @@ class _WargaCardState extends State<WargaCard> {
               ),
 
               // Expanded Content
-              if (_isExpanded) ...[
+              if (widget.isExpanded) ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   child: Column(

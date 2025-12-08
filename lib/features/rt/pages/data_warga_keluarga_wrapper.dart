@@ -26,6 +26,10 @@ class _DataWargaKeluargaWrapperState
   String _searchQuery = '';
   String? _statusFilter; // 'Aktif', 'Tidak Aktif', atau null (semua)
 
+  // Expansion state management
+  int? _expandedWargaId; // Track expanded warga card
+  final Map<int, GlobalKey> _cardKeys = {}; // Keys for each card
+
   @override
   void initState() {
     super.initState();
@@ -407,7 +411,23 @@ class _DataWargaKeluargaWrapperState
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final w = filteredList[index];
-        return WargaCard(warga: w);
+        final wargaId = w.id;
+
+        // Ensure each card has a unique key
+        _cardKeys.putIfAbsent(wargaId, () => GlobalKey());
+
+        return WargaCard(
+          key: _cardKeys[wargaId],
+          cardKey: _cardKeys[wargaId],
+          warga: w,
+          isExpanded: _expandedWargaId == wargaId,
+          onToggle: () {
+            setState(() {
+              // Toggle: close if already open, open if closed
+              _expandedWargaId = _expandedWargaId == wargaId ? null : wargaId;
+            });
+          },
+        );
       },
     );
   }
