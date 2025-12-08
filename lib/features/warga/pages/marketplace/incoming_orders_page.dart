@@ -24,10 +24,10 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Get incoming orders for seller (using tokoId)
+    // Get incoming orders for seller (using idPenjual)
     final ordersAsync = _selectedFilter == 'Semua'
-        ? ref.watch(incomingOrdersProvider(widget.tokoId))
-        : ref.watch(incomingOrdersProvider(widget.tokoId));
+        ? ref.watch(incomingOrdersProvider(widget.idPenjual))
+        : ref.watch(incomingOrdersProvider(widget.idPenjual));
 
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
@@ -244,8 +244,9 @@ class _IncomingOrdersPageState extends ConsumerState<IncomingOrdersPage> {
       );
 
       // Refresh orders
-      ref.invalidate(incomingOrdersProvider(widget.tokoId));
-      ref.invalidate(todayOrdersCountProvider(widget.tokoId));
+      ref.invalidate(incomingOrdersProvider(widget.idPenjual));
+      ref.invalidate(todayOrdersCountProvider(widget.idPenjual));
+      ref.invalidate(pendingOrdersProvider(widget.idPenjual));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

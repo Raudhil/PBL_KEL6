@@ -181,6 +181,7 @@ class _SellerOrderListPageState extends ConsumerState<SellerOrderListPage> {
       // Refresh orders
       ref.invalidate(incomingOrdersProvider(userId));
       ref.invalidate(todayOrdersCountProvider(userId));
+      ref.invalidate(pendingOrdersProvider(userId));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

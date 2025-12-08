@@ -57,20 +57,8 @@ class StoreManagementPage extends ConsumerWidget {
 
   Widget _buildStorePage(BuildContext context, WidgetRef ref, int userId) {
     final storeAsync = ref.watch(myStoreProvider(userId));
-    final todayOrdersAsync = storeAsync.when(
-      data: (store) => store != null
-          ? ref.watch(todayOrdersCountProvider(store.id))
-          : const AsyncValue.data(0),
-      loading: () => const AsyncValue.loading(),
-      error: (e, st) => AsyncValue.error(e, st),
-    );
-    final pendingOrdersAsync = storeAsync.when(
-      data: (store) => store != null
-          ? ref.watch(pendingOrdersProvider(store.id))
-          : const AsyncValue.data(<dynamic>[]),
-      loading: () => const AsyncValue.loading(),
-      error: (e, st) => AsyncValue.error(e, st),
-    );
+    final todayOrdersAsync = ref.watch(todayOrdersCountProvider(userId));
+    final pendingOrdersAsync = ref.watch(pendingOrdersProvider(userId));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -124,8 +112,8 @@ class StoreManagementPage extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(myStoreProvider(userId));
-              ref.invalidate(todayOrdersCountProvider(store.id));
-              ref.invalidate(pendingOrdersProvider(store.id));
+              ref.invalidate(todayOrdersCountProvider(userId));
+              ref.invalidate(pendingOrdersProvider(userId));
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -192,7 +180,7 @@ class StoreManagementPage extends ConsumerWidget {
                         Expanded(
                           child: _buildStatCard(
                             context,
-                            title: 'Pesanan Hari Ini',
+                            title: 'Pesanan Diterima',
                             value: todayOrdersAsync.when(
                               data: (count) => count.toString(),
                               loading: () => '-',
@@ -206,7 +194,7 @@ class StoreManagementPage extends ConsumerWidget {
                         Expanded(
                           child: _buildStatCard(
                             context,
-                            title: 'Pending',
+                            title: 'Menunggu Konfirmasi',
                             value: pendingOrdersAsync.when(
                               data: (orders) => orders.length.toString(),
                               loading: () => '-',
@@ -256,8 +244,8 @@ class StoreManagementPage extends ConsumerWidget {
                         loading: () => null,
                         error: (_, __) => null,
                       ),
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => IncomingOrdersPage(
@@ -266,6 +254,9 @@ class StoreManagementPage extends ConsumerWidget {
                             ),
                           ),
                         );
+                        // Refresh data setelah kembali dari halaman pesanan
+                        ref.invalidate(todayOrdersCountProvider(userId));
+                        ref.invalidate(pendingOrdersProvider(userId));
                       },
                     ),
                     const SizedBox(height: 12),

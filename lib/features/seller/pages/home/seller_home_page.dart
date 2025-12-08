@@ -107,16 +107,10 @@ class SellerHomePage extends ConsumerWidget {
   Widget _buildHomePage(BuildContext context, WidgetRef ref, int userId) {
     // Get store data
     final storeAsync = ref.watch(myStoreProvider(userId));
-    final todayOrdersListAsync = ref.watch(todayOrdersCountProvider(userId));
+    final todayOrdersAsync = ref.watch(todayOrdersCountProvider(userId));
     final pendingOrdersListAsync = ref.watch(pendingOrdersProvider(userId));
 
-    // Convert List to count
-    final todayOrdersAsync = todayOrdersListAsync.when(
-      data: (list) => AsyncData<int>(list),
-      loading: () => const AsyncLoading<int>(),
-      error: (error, stack) => AsyncError<int>(error, stack),
-    );
-
+    // Convert List to count for pending orders
     final pendingOrdersAsync = pendingOrdersListAsync.when(
       data: (list) => AsyncData<int>(list.length),
       loading: () => const AsyncLoading<int>(),
@@ -233,19 +227,19 @@ class SellerHomePage extends ConsumerWidget {
           child: todayOrdersAsync.when(
             data: (count) => _SummaryCard(
               icon: Icons.shopping_bag,
-              label: 'Pesanan Hari Ini',
+              label: 'Pesanan Diterima',
               value: count.toString(),
               color: AppColors.success,
             ),
             loading: () => const _SummaryCard(
               icon: Icons.shopping_bag,
-              label: 'Pesanan Hari Ini',
+              label: 'Pesanan Diterima',
               value: '...',
               color: AppColors.success,
             ),
             error: (_, __) => const _SummaryCard(
               icon: Icons.shopping_bag,
-              label: 'Pesanan Hari Ini',
+              label: 'Pesanan Diterima',
               value: '-',
               color: AppColors.success,
             ),
@@ -256,19 +250,19 @@ class SellerHomePage extends ConsumerWidget {
           child: pendingOrdersAsync.when(
             data: (count) => _SummaryCard(
               icon: Icons.pending_actions,
-              label: 'Pending',
+              label: 'Menunggu Konfirmasi',
               value: count.toString(),
               color: AppColors.warning,
             ),
             loading: () => const _SummaryCard(
               icon: Icons.pending_actions,
-              label: 'Pending',
+              label: 'Menunggu Konfirmasi',
               value: '...',
               color: AppColors.warning,
             ),
             error: (_, __) => const _SummaryCard(
               icon: Icons.pending_actions,
-              label: 'Pending',
+              label: 'Menunggu Konfirmasi',
               value: '-',
               color: AppColors.warning,
             ),
@@ -341,9 +335,15 @@ class SellerHomePage extends ConsumerWidget {
             }
 
             if (context.mounted) {
-              Navigator.of(
+              await Navigator.of(
                 context,
               ).push(MaterialPageRoute(builder: (_) => menu['page'] as Widget));
+
+              // Refresh data setelah kembali dari halaman lain
+              if (requiresStore) {
+                ref.invalidate(todayOrdersCountProvider(userId));
+                ref.invalidate(pendingOrdersProvider(userId));
+              }
             }
           },
         );

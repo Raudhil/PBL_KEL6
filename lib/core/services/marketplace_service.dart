@@ -571,47 +571,59 @@ class MarketplaceService {
   /// Hitung pesanan hari ini untuk toko
   Future<int> countTodayOrders(int idPenjual) async {
     try {
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
+      // Step 1: Get toko ID from owner ID
+      final tokoResponse = await _client
+          .from('toko')
+          .select('id')
+          .eq('id_pemilik', idPenjual)
+          .maybeSingle();
 
-      // Get store products
+      if (tokoResponse == null) {
+        return 0;
+      }
+
+      final idToko = tokoResponse['id'] as int;
+
+      // Step 2: Get store products
       final storeProducts = await _client
           .from('produk')
           .select('id')
-          .eq('id_toko', idPenjual);
+          .eq('id_toko', idToko);
+
+      if ((storeProducts as List).isEmpty) {
+        return 0;
+      }
 
       final productIds = (storeProducts as List)
           .map((p) => p['id'] as int)
           .toList();
 
-      if (productIds.isEmpty) {
-        return 0;
-      }
-
-      // Get transaction IDs from today
+      // Step 3: Get transaction IDs that contain these products
       final detailResponse = await _client
           .from('detail_t_marketplace')
           .select('id_transaksi')
           .inFilter('id_produk', productIds);
+
+      if ((detailResponse as List).isEmpty) {
+        return 0;
+      }
 
       final transactionIds = (detailResponse as List)
           .map((d) => d['id_transaksi'] as int)
           .toSet()
           .toList();
 
-      if (transactionIds.isEmpty) {
-        return 0;
-      }
-
+      // Step 4: Count transactions yang BUKAN pending (sudah dikonfirmasi/selesai)
+      // Ini menghitung pesanan yang sudah di-ACC/diterima
       final response = await _client
           .from('transaksi_marketplace')
           .select('id')
           .inFilter('id', transactionIds)
-          .gte('created_at', startOfDay.toIso8601String())
-          .count();
+          .neq('status', 'Pending');
 
-      return response.count;
+      return (response as List).length;
     } catch (e) {
+      print('❌ Error counting today orders: $e');
       return 0;
     }
   }
