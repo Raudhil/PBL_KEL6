@@ -1,4 +1,4 @@
-import '../../core/services/supabase_service.dart';
+import '../../core/services/kelola_warga_service.dart';
 import '../models/warga_model.dart';
 
 class WargaRepository {
@@ -10,4 +10,6 @@ class WargaRepository {
   Future<WargaModel> updateWarga(WargaModel warga) =>
       _service.updateWarga(warga);
   Future<void> deleteWarga(int id) => _service.deleteWarga(id);
+  Future<bool> checkNikExists(String nik, {int? excludeId}) =>
+      _service.checkNikExists(nik, excludeId: excludeId);
 }

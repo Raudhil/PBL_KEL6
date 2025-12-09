@@ -151,38 +151,30 @@ class KegiatanService {
   /// Update kegiatan
   Future<KegiatanModel> updateKegiatan({
     required String id,
-    String? judul,
+    required String judul,
     String? deskripsi,
-    DateTime? tanggalMulai,
+    required DateTime tanggalMulai,
     DateTime? tanggalSelesai,
     String? lokasi,
-    String? penyelenggara,
-    KategoriKegiatan? kategori,
-    StatusKegiatan? status,
+    required String penyelenggara,
+    required KategoriKegiatan kategori,
+    required StatusKegiatan status,
     int? kuotaPeserta,
     String? fotoUrl,
   }) async {
     try {
-      final data = <String, dynamic>{};
-
-      if (judul != null) data['judul'] = judul;
-      if (deskripsi != null) data['deskripsi'] = deskripsi;
-      if (tanggalMulai != null) {
-        data['tanggal_mulai'] = tanggalMulai.toIso8601String();
-      }
-      if (tanggalSelesai != null) {
-        data['tanggal_selesai'] = tanggalSelesai.toIso8601String();
-      }
-      if (lokasi != null) data['lokasi'] = lokasi;
-      if (penyelenggara != null) data['penyelenggara'] = penyelenggara;
-      if (kategori != null) data['kategori'] = _kategoriToString(kategori);
-      if (status != null) data['status'] = _statusToString(status);
-      if (kuotaPeserta != null) data['kuota_peserta'] = kuotaPeserta;
-      if (fotoUrl != null) data['foto_url'] = fotoUrl;
-
-      if (data.isEmpty) {
-        throw Exception('Tidak ada data yang akan diupdate');
-      }
+      final data = <String, dynamic>{
+        'judul': judul,
+        'deskripsi': deskripsi,
+        'tanggal_mulai': tanggalMulai.toIso8601String(),
+        'tanggal_selesai': tanggalSelesai?.toIso8601String(),
+        'lokasi': lokasi,
+        'penyelenggara': penyelenggara,
+        'kategori': _kategoriToString(kategori),
+        'status': _statusToString(status),
+        'kuota_peserta': kuotaPeserta,
+        'foto_url': fotoUrl,
+      };
 
       final response = await _supabase
           .from('kegiatan')
@@ -211,6 +203,23 @@ class KegiatanService {
     return _supabase
         .from('kegiatan')
         .stream(primaryKey: ['id'])
+        .order('tanggal_mulai', ascending: false)
+        .map((data) {
+          return data.map((json) => KegiatanModel.fromJson(json)).toList();
+        });
+  }
+
+  /// Stream untuk realtime updates (hanya kegiatan user yang login)
+  Stream<List<KegiatanModel>> watchKegiatanByUser() {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      return Stream.value([]);
+    }
+
+    return _supabase
+        .from('kegiatan')
+        .stream(primaryKey: ['id'])
+        .eq('created_by', userId)
         .order('tanggal_mulai', ascending: false)
         .map((data) {
           return data.map((json) => KegiatanModel.fromJson(json)).toList();
@@ -265,6 +274,17 @@ class KegiatanService {
     String id,
     StatusKegiatan status,
   ) async {
-    return updateKegiatan(id: id, status: status);
+    try {
+      final response = await _supabase
+          .from('kegiatan')
+          .update({'status': _statusToString(status)})
+          .eq('id', id)
+          .select()
+          .single();
+
+      return KegiatanModel.fromJson(response);
+    } catch (e) {
+      throw Exception('Gagal mengupdate status kegiatan: $e');
+    }
   }
 }

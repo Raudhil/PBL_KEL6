@@ -20,7 +20,7 @@ class KegiatanDetailPage extends ConsumerWidget {
     final kegiatanAsync = ref.watch(kegiatanDetailProvider(kegiatanId));
 
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       body: kegiatanAsync.when(
         data: (kegiatan) {
           if (kegiatan == null) {
@@ -210,13 +210,13 @@ class KegiatanDetailPage extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
+                              color: AppColors.primary600.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
                               Icons.person_outline,
                               size: 20,
-                              color: AppColors.primary,
+                              color: AppColors.primary600,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -256,13 +256,13 @@ class KegiatanDetailPage extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.1),
+                                color: AppColors.primary600.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Icon(
                                 Icons.person,
                                 size: 20,
-                                color: AppColors.success,
+                                color: AppColors.primary600,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -323,7 +323,7 @@ class KegiatanDetailPage extends ConsumerWidget {
                   icon: Icons.calendar_today,
                   title: 'Tanggal',
                   value: kegiatan.durasi,
-                  iconColor: AppColors.primary,
+                  iconColor: AppColors.primary600,
                 ),
 
                 const SizedBox(height: 12),
@@ -332,7 +332,7 @@ class KegiatanDetailPage extends ConsumerWidget {
                   icon: Icons.location_on,
                   title: 'Lokasi',
                   value: kegiatan.lokasi ?? 'Belum ditentukan',
-                  iconColor: AppColors.primary400,
+                  iconColor: AppColors.primary600,
                 ),
 
                 if (kegiatan.kuotaPeserta != null) ...[
@@ -341,7 +341,7 @@ class KegiatanDetailPage extends ConsumerWidget {
                     icon: Icons.people,
                     title: 'Kuota Peserta',
                     value: '${kegiatan.kuotaPeserta} orang',
-                    iconColor: AppColors.success,
+                    iconColor: AppColors.primary600,
                   ),
                 ],
 
@@ -401,6 +401,7 @@ class KegiatanDetailPage extends ConsumerWidget {
                           // Edit Button
                           SizedBox(
                             width: double.infinity,
+                            height: 50,
                             child: ElevatedButton.icon(
                               onPressed: () {
                                 Navigator.of(context).push(
@@ -414,16 +415,13 @@ class KegiatanDetailPage extends ConsumerWidget {
                               label: const Text(
                                 'Edit Kegiatan',
                                 style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: AppColors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -435,6 +433,7 @@ class KegiatanDetailPage extends ConsumerWidget {
                           // Delete Button
                           SizedBox(
                             width: double.infinity,
+                            height: 50,
                             child: OutlinedButton.icon(
                               onPressed: () =>
                                   _showDeleteDialog(context, ref, kegiatan.id),
@@ -442,7 +441,7 @@ class KegiatanDetailPage extends ConsumerWidget {
                               label: const Text(
                                 'Hapus Kegiatan',
                                 style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -451,9 +450,6 @@ class KegiatanDetailPage extends ConsumerWidget {
                                 side: const BorderSide(
                                   color: AppColors.danger,
                                   width: 1.5,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -619,13 +615,16 @@ class KegiatanDetailPage extends ConsumerWidget {
       try {
         await ref.read(kegiatanListProvider.notifier).deleteKegiatan(id);
         if (context.mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Kegiatan berhasil dihapus'),
-              backgroundColor: AppColors.success,
-            ),
+          // Show success modal instead of snackbar
+          await _showSuccessDialog(
+            context,
+            'Hapus Berhasil',
+            'Kegiatan berhasil dihapus',
           );
+          // Navigate back after user closes success dialog
+          if (context.mounted) {
+            Navigator.pop(context);
+          }
         }
       } catch (e) {
         if (context.mounted) {
@@ -640,22 +639,91 @@ class KegiatanDetailPage extends ConsumerWidget {
     }
   }
 
+  Future<void> _showSuccessDialog(
+    BuildContext context,
+    String title,
+    String message,
+  ) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.all(24),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_outline,
+                color: AppColors.success,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: AppColors.white,
+                  backgroundColor: AppColors.success,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('OK'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Color _getKategoriColor(KategoriKegiatan kategori) {
     switch (kategori) {
       case KategoriKegiatan.sosial:
-        return AppColors.primary;
+        return AppColors.primary600;
       case KategoriKegiatan.kebersihan:
         return AppColors.success;
       case KategoriKegiatan.kesehatan:
-        return const Color(0xFFEF4444);
+        return AppColors.danger;
       case KategoriKegiatan.pendidikan:
-        return const Color(0xFF8B5CF6);
+        return AppColors.info;
       case KategoriKegiatan.keagamaan:
-        return const Color(0xFF10B981);
+        return AppColors.success;
       case KategoriKegiatan.olahraga:
-        return const Color(0xFFF59E0B);
+        return AppColors.warning;
       case KategoriKegiatan.budaya:
-        return const Color(0xFFEC4899);
+        return AppColors.primary400;
       case KategoriKegiatan.lainnya:
         return AppColors.textSecondary;
     }
@@ -664,7 +732,7 @@ class KegiatanDetailPage extends ConsumerWidget {
   Color _getStatusColor(StatusKegiatan status) {
     switch (status) {
       case StatusKegiatan.akanDatang:
-        return AppColors.primary;
+        return AppColors.primary600;
       case StatusKegiatan.sedangBerlangsung:
         return AppColors.warning;
       case StatusKegiatan.selesai:

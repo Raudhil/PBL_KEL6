@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/warga_model.dart';
 import '../../data/repositories/warga_repository.dart';
-import '../services/supabase_service.dart';
+import '../services/kelola_warga_service.dart';
 
 final wargaRepositoryProvider = Provider<WargaRepository>((ref) {
   final service = SupabaseService();
@@ -15,8 +16,33 @@ final wargaNotifierProvider =
 
 class WargaNotifier extends StateNotifier<AsyncValue<List<WargaModel>>> {
   final WargaRepository _repo;
+  RealtimeChannel? _realtimeChannel;
+
   WargaNotifier(this._repo) : super(const AsyncValue.loading()) {
+    _setupRealtimeSubscription();
     fetchAll();
+  }
+
+  /// Setup realtime subscription untuk auto-refresh
+  void _setupRealtimeSubscription() {
+    _realtimeChannel = Supabase.instance.client
+        .channel('warga_realtime_channel')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'warga',
+          callback: (payload) {
+            // Refresh data ketika ada perubahan
+            fetchAll();
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _realtimeChannel?.unsubscribe();
+    super.dispose();
   }
 
   Future<void> fetchAll() async {
@@ -32,7 +58,7 @@ class WargaNotifier extends StateNotifier<AsyncValue<List<WargaModel>>> {
   Future<void> addWarga(WargaModel warga) async {
     try {
       await _repo.addWarga(warga);
-      await fetchAll();
+      // Data akan otomatis refresh via realtime subscription
     } catch (e) {
       rethrow;
     }
@@ -41,7 +67,7 @@ class WargaNotifier extends StateNotifier<AsyncValue<List<WargaModel>>> {
   Future<void> updateWarga(WargaModel warga) async {
     try {
       await _repo.updateWarga(warga);
-      await fetchAll();
+      // Data akan otomatis refresh via realtime subscription
     } catch (e) {
       rethrow;
     }
@@ -50,7 +76,7 @@ class WargaNotifier extends StateNotifier<AsyncValue<List<WargaModel>>> {
   Future<void> deleteWarga(int id) async {
     try {
       await _repo.deleteWarga(id);
-      await fetchAll();
+      // Data akan otomatis refresh via realtime subscription
     } catch (e) {
       rethrow;
     }

@@ -9,6 +9,10 @@ class AuthInputField extends StatelessWidget {
   final String? errorText;
   final FormFieldValidator<String>? validator;
   final Widget? suffixIcon;
+  final Widget? prefixIcon;
+  final String? hintText;
+  final int? maxLength;
+  final ValueChanged<String>? onChanged;
 
   const AuthInputField({
     super.key,
@@ -19,25 +23,39 @@ class AuthInputField extends StatelessWidget {
     this.errorText,
     this.validator,
     this.suffixIcon,
+    this.prefixIcon,
+    this.hintText,
+    this.maxLength,
+    this.onChanged,
   });
 
   InputDecoration _decoration(BuildContext context) {
     return InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
-      hintText: label,
+      labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+      hintText: hintText ?? label,
       hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-      filled: false,
-      // transparent background, subtle border to be visible on primary background
+      filled: true,
+      fillColor: AppColors.white,
+      prefixIcon: prefixIcon,
+      suffixIcon: suffixIcon,
+      counterText: maxLength != null ? '' : null,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.18), width: 1),
+        borderSide: const BorderSide(color: AppColors.greyLight, width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.textPrimary, width: 1.6),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
-      suffixIcon: suffixIcon,
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.danger, width: 2),
+      ),
       errorText: errorText,
       errorStyle: const TextStyle(color: AppColors.danger, fontSize: 12),
     );
@@ -50,7 +68,13 @@ class AuthInputField extends StatelessWidget {
       obscureText: obscureText,
       keyboardType: keyboardType,
       validator: validator,
-      style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w500),
+      maxLength: maxLength,
+      onChanged: onChanged,
+      style: const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+      ),
       decoration: _decoration(context),
     );
   }

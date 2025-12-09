@@ -1,7 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Provider untuk memonitor auth state changes
+final authStateProvider = StreamProvider<AuthState>((ref) {
+  final supabase = Supabase.instance.client;
+  return supabase.auth.onAuthStateChange;
+});
+
 final roleProvider = FutureProvider<String>((ref) async {
+  // Watch auth state changes - ini akan trigger rebuild ketika auth berubah
+  final authState = ref.watch(authStateProvider);
+
   final supabase = Supabase.instance.client;
   final user = supabase.auth.currentUser;
 

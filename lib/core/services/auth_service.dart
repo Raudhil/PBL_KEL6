@@ -12,17 +12,30 @@ class AuthService {
     required String password,
   }) async {
     try {
+      // Clear any existing session first
+      final existingSession = _supabase.auth.currentSession;
+      if (existingSession != null) {
+        print('⚠️ Found existing session, clearing...');
+        await _supabase.auth.signOut();
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+
+      // STRATEGI: Sign in dulu untuk validasi kredensial dan dapat auth_id,
+      // TAPI langsung cek status dan batalkan session jika tidak aktif
+      // SEBELUM authEnforcerProvider punya kesempatan bereaksi
+
       final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
       if (response.user == null) {
-        throw Exception('Login gagal');
+        throw Exception('Login gagal - user null');
       }
 
-      // Ambil data user dari tabel users berdasarkan id_auth
       final authId = response.user!.id;
+
+      // LANGSUNG query status - INI HARUS CEPAT sebelum UI bereaksi
       final userData = await _supabase
           .from('users')
           .select('role, status, id_auth')
@@ -30,20 +43,31 @@ class AuthService {
           .maybeSingle();
 
       if (userData == null) {
-        // pastikan tidak ada session tersisa
+        // Tidak ada di tabel users - LANGSUNG batalkan session
         await _supabase.auth.signOut();
-        throw Exception('Data akun tidak ditemukan');
+        await Future.delayed(
+          const Duration(milliseconds: 100),
+        ); // Pastikan signOut selesai
+        throw Exception('Akun tidak terdaftar di sistem');
       }
 
+      // CEK STATUS - INI CRITICAL POINT
       final status = (userData['status'] ?? '').toString().toLowerCase();
-      if (status == 'tidak aktif' || status != 'aktif') {
+      if (status != 'aktif') {
+        // BATALKAN SESSION SEGERA - Ini yang paling penting!
+        print('❌ Status tidak aktif: $status - MEMBATALKAN LOGIN');
         await _supabase.auth.signOut();
-        throw Exception('Akun Anda tidak aktif atau status tidak valid');
+        // Delay kecil untuk memastikan signOut benar-benar selesai
+        // sebelum throw exception ke UI
+        await Future.delayed(const Duration(milliseconds: 150));
+        throw Exception('Akun Anda tidak aktif. Hubungi administrator.');
       }
 
+      // Jika sampai sini = status aktif, session valid
       final userRole = userData['role'] as String? ?? 'warga';
-      // Log berhasil
-      print('✅ Login berhasil - Email: $email, Role: $userRole');
+      print(
+        '✅ Login berhasil - Email: $email, Role: $userRole, Status: $status',
+      );
 
       return {
         'user': response.user,
@@ -51,8 +75,25 @@ class AuthService {
         'email': response.user!.email,
       };
     } on AuthException catch (e) {
+      print('❌ AuthException: ${e.message}');
+
+      // Handle specific auth errors
+      final errorMsg = e.message.toLowerCase();
+      if (errorMsg.contains('invalid') && errorMsg.contains('credentials')) {
+        throw Exception('Password salah');
+      } else if (errorMsg.contains('email not confirmed')) {
+        throw Exception('Email belum dikonfirmasi');
+      } else if (errorMsg.contains('user not found')) {
+        throw Exception('Email tidak terdaftar');
+      }
+
       throw Exception('Login gagal: ${e.message}');
     } catch (e) {
+      print('❌ Error during login: $e');
+      // Don't wrap if it's already an Exception with our custom message
+      if (e is Exception) {
+        rethrow;
+      }
       throw Exception('Error: $e');
     }
   }
@@ -60,7 +101,10 @@ class AuthService {
   /// Register an auth user and return the newly created auth id.
   /// This does not create the application `users` record — callers
   /// should insert into their `users` table as required.
-  Future<String> register({required String email, required String password}) async {
+  Future<String> register({
+    required String email,
+    required String password,
+  }) async {
     try {
       final res = await _supabase.auth.signUp(email: email, password: password);
       final authId = res.user?.id;
@@ -76,7 +120,14 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await _supabase.auth.signOut();
+    try {
+      print('🔄 Signing out from Supabase...');
+      await _supabase.auth.signOut();
+      print('✅ Supabase sign out successful');
+    } catch (e) {
+      print('❌ Error during sign out: $e');
+      // Don't rethrow - logout should always succeed from UI perspective
+    }
   }
 
   Future<String?> getUserRole() async {
@@ -94,5 +145,28 @@ class AuthService {
     } catch (e) {
       return null;
     }
+  }
+
+  /// Get integer ID dari tabel users berdasarkan UUID auth
+  Future<int?> getUserIntId(String authId) async {
+    try {
+      final userData = await _supabase
+          .from('users')
+          .select('id')
+          .eq('id_auth', authId)
+          .maybeSingle();
+
+      return userData?['id'] as int?;
+    } catch (e) {
+      print('❌ Error getting user int ID: $e');
+      return null;
+    }
+  }
+
+  /// Get integer ID for current user
+  Future<int?> getCurrentUserIntId() async {
+    final user = currentUser;
+    if (user == null) return null;
+    return await getUserIntId(user.id);
   }
 }

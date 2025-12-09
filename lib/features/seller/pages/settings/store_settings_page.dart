@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
+import '../../../../core/providers/marketplace_provider.dart';
+import '../../../../data/models/toko_model.dart';
 
 class StoreSettingsPage extends ConsumerStatefulWidget {
   const StoreSettingsPage({super.key});
@@ -11,13 +14,368 @@ class StoreSettingsPage extends ConsumerStatefulWidget {
 }
 
 class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
-  final _nameController = TextEditingController(text: 'Toko Mas Azril');
-  final _addressController = TextEditingController(text: 'Jl. Mawar No. 123');
-  final _phoneController = TextEditingController(text: '0812-3456-7890');
-  final _hoursController = TextEditingController(text: '08:00 - 17:00');
+  final _nameController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _hoursController = TextEditingController();
+  bool _isLoading = true;
+  int? _storeId;
+  int? _currentUserId;
+
+  TimeOfDay _openTime = const TimeOfDay(hour: 8, minute: 0);
+  TimeOfDay _closeTime = const TimeOfDay(hour: 20, minute: 0);
+
+  Future<int?> _getUserIntId(String authId) async {
+    try {
+      final userData = await Supabase.instance.client
+          .from('users')
+          .select('id')
+          .eq('id_auth', authId)
+          .maybeSingle();
+      return userData?['id'] as int?;
+    } catch (e) {
+      print('❌ Error getting user ID: $e');
+      return null;
+    }
+  }
+
+  Future<void> _loadStoreData() async {
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return;
+
+      final userId = await _getUserIntId(currentUser.id);
+      if (userId == null || !mounted) return;
+
+      _currentUserId = userId;
+      final store = await ref.read(myStoreProvider(userId).future);
+
+      if (!mounted) return;
+
+      if (store != null) {
+        _storeId = store.id;
+        _nameController.text = store.nama;
+        _addressController.text = ''; // Alamat belum ada di model
+        _phoneController.text = '';
+
+        // Parse jam operasional jika ada format "08:00 - 20:00"
+        if (_hoursController.text.isNotEmpty) {
+          final parts = _hoursController.text.split(' - ');
+          if (parts.length == 2) {
+            final openParts = parts[0].split(':');
+            final closeParts = parts[1].split(':');
+            if (openParts.length == 2 && closeParts.length == 2) {
+              _openTime = TimeOfDay(
+                hour: int.parse(openParts[0]),
+                minute: int.parse(openParts[1]),
+              );
+              _closeTime = TimeOfDay(
+                hour: int.parse(closeParts[0]),
+                minute: int.parse(closeParts[1]),
+              );
+            }
+          }
+        }
+
+        // Set default time display
+        _updateHoursDisplay();
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('❌ Error loading store data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _updateHoursDisplay() {
+    final openStr =
+        '${_openTime.hour.toString().padLeft(2, '0')}:${_openTime.minute.toString().padLeft(2, '0')}';
+    final closeStr =
+        '${_closeTime.hour.toString().padLeft(2, '0')}:${_closeTime.minute.toString().padLeft(2, '0')}';
+    _hoursController.text = '$openStr - $closeStr';
+  }
+
+  Future<void> _pickTime(bool isOpenTime) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: isOpenTime ? _openTime : _closeTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primary600,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isOpenTime) {
+          _openTime = picked;
+        } else {
+          _closeTime = picked;
+        }
+        _updateHoursDisplay();
+      });
+    }
+  }
+
+  Future<void> _saveStore() async {
+    // Validasi input
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nama toko harus diisi'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null || _currentUserId == null) {
+        throw Exception('User tidak ditemukan');
+      }
+
+      if (_storeId == null) {
+        // Create new store
+        final newStore = await ref
+            .read(marketplaceRepositoryProvider)
+            .createToko(
+              TokoModel(
+                id: 0, // Will be generated by database
+                nama: _nameController.text.trim(),
+                idPemilik: _currentUserId!,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
+            );
+
+        if (mounted) {
+          // Update store ID after creation
+          _storeId = newStore.id;
+          _showSuccessDialog(
+            'Toko Berhasil Dibuat!',
+            'Anda sekarang bisa mulai berjualan.',
+          );
+        }
+      } else {
+        // Update existing store
+        await ref.read(marketplaceRepositoryProvider).updateToko(_storeId!, {
+          'nama': _nameController.text.trim(),
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+
+        if (mounted) {
+          _showSuccessDialog(
+            'Pengaturan Berhasil Disimpan',
+            'Perubahan pengaturan toko Anda telah disimpan',
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Error saving store: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal menyimpan: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showSuccessDialog(String title, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 0,
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Success Icon
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.success,
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Title
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                // Message
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary.withOpacity(0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                // OK Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      // Refresh store data
+                      if (_currentUserId != null) {
+                        ref.invalidate(myStoreProvider(_currentUserId!));
+                      }
+                      Navigator.pop(context); // Close settings page
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showTimePickerDialog() async {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Atur Jam Operasional'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.wb_sunny, color: AppColors.warning),
+              title: const Text('Jam Buka'),
+              subtitle: Text(
+                '${_openTime.hour.toString().padLeft(2, '0')}:${_openTime.minute.toString().padLeft(2, '0')}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary600,
+                ),
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                await _pickTime(true);
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(
+                Icons.nightlight,
+                color: AppColors.primary600,
+              ),
+              title: const Text('Jam Tutup'),
+              subtitle: Text(
+                '${_closeTime.hour.toString().padLeft(2, '0')}:${_closeTime.minute.toString().padLeft(2, '0')}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary600,
+                ),
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                await _pickTime(false);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStoreData();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.creamWhite,
+        appBar: const CustomTopBar(
+          title: 'Pengaturan Toko',
+          showBackButton: true,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.creamWhite,
       appBar: const CustomTopBar(
@@ -52,21 +410,15 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
               controller: _hoursController,
               label: 'Jam Operasional',
               icon: Icons.access_time,
+              readOnly: true,
+              onTap: () => _showTimePickerDialog(),
             ),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Pengaturan toko berhasil disimpan'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                  Navigator.pop(context);
-                },
+                onPressed: _saveStore,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary600,
                   foregroundColor: Colors.white,
@@ -92,6 +444,8 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
     required IconData icon,
     TextInputType? keyboardType,
     int? maxLines,
+    bool readOnly = false,
+    VoidCallback? onTap,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -122,6 +476,8 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
             controller: controller,
             keyboardType: keyboardType,
             maxLines: maxLines ?? 1,
+            readOnly: readOnly,
+            onTap: onTap,
             decoration: InputDecoration(
               filled: true,
               fillColor: AppColors.greyLight,
@@ -130,6 +486,9 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
                 borderSide: BorderSide.none,
               ),
               contentPadding: const EdgeInsets.all(12),
+              suffixIcon: readOnly && onTap != null
+                  ? const Icon(Icons.arrow_drop_down)
+                  : null,
             ),
           ),
         ],

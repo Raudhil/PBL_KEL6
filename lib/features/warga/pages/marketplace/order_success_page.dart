@@ -3,17 +3,39 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
 import '../../../../data/models/product_model.dart';
-import '../orders/order_detail_page.dart';
 
 class OrderSuccessPage extends ConsumerWidget {
-  final Order order;
+  final Order? order;
+  final String? productName;
+  final int? quantity;
+  final num? total;
+  final String? paymentMethod;
 
-  const OrderSuccessPage({super.key, required this.order});
+  const OrderSuccessPage({
+    super.key,
+    this.order,
+    this.productName,
+    this.quantity,
+    this.total,
+    this.paymentMethod,
+  }) : assert(
+         order != null ||
+             (productName != null &&
+                 quantity != null &&
+                 total != null &&
+                 paymentMethod != null),
+         'Either order or (productName, quantity, total, paymentMethod) must be provided',
+       );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Use simple parameters if order is not provided
+    final displayPaymentMethod = order?.paymentMethod ?? paymentMethod ?? 'COD';
+    final displayTotal = order?.totalAmount ?? total?.toInt() ?? 0;
+    final displayOrderDate = order?.orderDate ?? DateTime.now();
+
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       appBar: const CustomTopBar(
         title: 'Pesanan Berhasil',
         showBackButton: true,
@@ -85,28 +107,36 @@ class OrderSuccessPage extends ConsumerWidget {
                       ),
                       child: Column(
                         children: [
-                          _buildInfoRow(
-                            'ID Pesanan',
-                            order.id,
-                            Icons.receipt_long,
-                          ),
-                          const Divider(height: 24),
+                          if (order != null)
+                            _buildInfoRow(
+                              'ID Pesanan',
+                              order!.id,
+                              Icons.receipt_long,
+                            ),
+                          if (order != null) const Divider(height: 24),
+                          if (productName != null && quantity != null)
+                            _buildInfoRow(
+                              'Produk',
+                              '$productName (${quantity}x)',
+                              Icons.shopping_bag_outlined,
+                            ),
+                          if (productName != null) const Divider(height: 24),
                           _buildInfoRow(
                             'Metode Pembayaran',
-                            order.paymentMethod,
+                            displayPaymentMethod,
                             Icons.payment,
                           ),
                           const Divider(height: 24),
                           _buildInfoRow(
                             'Total Pembayaran',
-                            'Rp ${_formatPrice(order.totalAmount)}',
+                            'Rp ${_formatPrice(displayTotal)}',
                             Icons.attach_money,
                             valueColor: AppColors.primary600,
                           ),
                           const Divider(height: 24),
                           _buildInfoRow(
                             'Status',
-                            order.status.displayName,
+                            order?.status.displayName ?? 'Menunggu Konfirmasi',
                             Icons.info_outline,
                             valueColor: AppColors.warning,
                           ),
@@ -116,7 +146,7 @@ class OrderSuccessPage extends ConsumerWidget {
                     const SizedBox(height: 24),
 
                     // Payment Info for QRIS
-                    if (order.paymentMethod == 'QRIS')
+                    if (displayPaymentMethod == 'QRIS')
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -147,7 +177,7 @@ class OrderSuccessPage extends ConsumerWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Lakukan pembayaran sebelum ${_formatDateTime(order.orderDate.add(const Duration(hours: 24)))}',
+                              'Lakukan pembayaran sebelum ${_formatDateTime(displayOrderDate.add(const Duration(hours: 24)))}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textSecondary,
@@ -158,7 +188,7 @@ class OrderSuccessPage extends ConsumerWidget {
                         ),
                       ),
 
-                    if (order.paymentMethod == 'COD')
+                    if (displayPaymentMethod == 'COD')
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -211,12 +241,18 @@ class OrderSuccessPage extends ConsumerWidget {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => OrderDetailPage(order: order),
+                        // TODO: Update to use TransaksiMarketplaceModel once checkout flow is updated
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Detail pesanan akan segera tersedia',
+                            ),
+                            backgroundColor: AppColors.primary600,
                           ),
                         );
+                        Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary600,

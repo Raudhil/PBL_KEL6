@@ -79,7 +79,7 @@ class _CalendarWidgetState extends State<CalendarWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Kalender Kegiatan',
+          'Kegiatan Terbaru',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -572,9 +572,9 @@ class _AgendaEventCard extends StatelessWidget {
       case 'sosial':
         return AppColors.success;
       case 'lingkungan':
-        return const Color(0xFF10B981);
+        return AppColors.success;
       case 'kesehatan':
-        return const Color(0xFFEF4444);
+        return AppColors.danger;
       default:
         return AppColors.primary400;
     }

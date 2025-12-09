@@ -50,7 +50,7 @@ class MyApp extends ConsumerWidget {
     final _authEnforcer = ref.watch(authEnforcerProvider);
 
     return MaterialApp.router(
-      title: 'JAWARA',
+      title: 'TerasWarga',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../theme/app_colors.dart';
 import '../../../data/models/user_model.dart';
 import '../../../core/providers/user_management_provider.dart';
 import '../widgets/user_statistics_cards.dart';
 import '../widgets/user_search_bar.dart';
 import 'user_detail_page.dart';
-import 'create_user_page.dart';
 
 class KelolaPenggunaPage extends ConsumerStatefulWidget {
   const KelolaPenggunaPage({super.key});
@@ -31,14 +31,20 @@ class _KelolaPenggunaPageState extends ConsumerState<KelolaPenggunaPage> {
     final userState = ref.watch(userListProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.greyLight,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.white,
         surfaceTintColor: AppColors.white,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/warga/dashboard');
+            }
+          },
         ),
         title: const Text(
           'Kelola Pengguna',
@@ -207,23 +213,6 @@ class _KelolaPenggunaPageState extends ConsumerState<KelolaPenggunaPage> {
               ],
             ),
           ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const CreateUserPage()));
-
-          if (result == true) {
-            ref.read(userListProvider.notifier).loadUsers();
-          }
-        },
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.person_add, color: AppColors.white),
-        label: const Text(
-          'Tambah Pengguna',
-          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
         ),
       ),
     );

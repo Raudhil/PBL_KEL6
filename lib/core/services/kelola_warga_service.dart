@@ -1,0 +1,63 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../data/models/warga_model.dart';
+
+class SupabaseService {
+  final _client = Supabase.instance.client;
+
+  Future<List<WargaModel>> fetchWarga() async {
+    final data = await _client.from('warga').select('''
+      *,
+      users!id_warga(status)
+    ''');
+    final list = data as List<dynamic>;
+
+    // Debug: Print data untuk cek struktur
+    if (list.isNotEmpty) {
+      print('DEBUG - Sample warga data: ${list.first}');
+    }
+
+    return list
+        .map((e) => WargaModel.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  Future<WargaModel> insertWarga(WargaModel warga) async {
+    final inserted = await _client
+        .from('warga')
+        .insert(warga.toJson())
+        .select()
+        .single();
+    return WargaModel.fromJson(Map<String, dynamic>.from(inserted as Map));
+  }
+
+  Future<WargaModel> updateWarga(WargaModel warga) async {
+    final updated = await _client
+        .from('warga')
+        .update(warga.toJson())
+        .eq('id', warga.id)
+        .select()
+        .single();
+    return WargaModel.fromJson(Map<String, dynamic>.from(updated as Map));
+  }
+
+  Future<void> deleteWarga(int id) async {
+    await _client.from('warga').delete().eq('id', id);
+  }
+
+  Future<bool> checkNikExists(String nik, {int? excludeId}) async {
+    try {
+      var query = _client.from('warga').select('id').eq('nik', nik);
+
+      // Exclude current warga when editing
+      if (excludeId != null) {
+        query = query.neq('id', excludeId);
+      }
+
+      final result = await query;
+      return (result as List).isNotEmpty;
+    } catch (e) {
+      print('Error checking NIK: $e');
+      return false;
+    }
+  }
+}
