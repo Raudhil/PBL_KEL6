@@ -554,8 +554,9 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
+                                  onPressed: () async {
+                                    // Navigate ke edit page dan tunggu result
+                                    final result = await Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
@@ -564,6 +565,13 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                                             ),
                                       ),
                                     );
+
+                                    // Jika result = true (dari edit success), invalidate detail provider
+                                    if (result == true && mounted) {
+                                      ref.invalidate(
+                                        pengumumanDetailProvider(pengumuman.id),
+                                      );
+                                    }
                                   },
                                   icon: const Icon(
                                     Icons.edit_rounded,
