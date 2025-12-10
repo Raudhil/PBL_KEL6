@@ -416,7 +416,7 @@ class _EditPengumumanPageState extends ConsumerState<EditPengumumanPage> {
 
                 // Title
                 Text(
-                  'Berhasil Diperbarui!',
+                  'Berhasil Diupdate!',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -437,13 +437,14 @@ class _EditPengumumanPageState extends ConsumerState<EditPengumumanPage> {
                 ),
                 const SizedBox(height: 28),
 
-                // OK Button
+                // OK Button - Return true untuk trigger refresh di detail page
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).pop(); // Close modal
-                      Navigator.of(context).pop(); // Back to previous page
+                      Navigator.of(
+                        context,
+                      ).pop(true); // Close modal & return true
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
@@ -468,7 +469,12 @@ class _EditPengumumanPageState extends ConsumerState<EditPengumumanPage> {
           ),
         );
       },
-    );
+    ).then((result) {
+      // Jika user click OK (result = true), close edit page & return true
+      if (result == true && mounted) {
+        Navigator.of(context).pop(true);
+      }
+    });
   }
 
   // Tambahkan widget helper methods ini sebelum closing brace class:
