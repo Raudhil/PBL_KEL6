@@ -120,10 +120,8 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context); // Close dialog
-                  // Invalidate stream untuk update real-time
-                  ref.invalidate(kegiatanStreamProvider);
-                  ref.invalidate(kegiatanStreamByUserProvider);
-                  Navigator.pop(context); // Close form page
+                  // Return true untuk trigger refresh di detail page
+                  Navigator.pop(context, true);
                 },
                 style: ElevatedButton.styleFrom(
                   foregroundColor: AppColors.white,
