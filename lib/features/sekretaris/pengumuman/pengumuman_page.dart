@@ -110,19 +110,26 @@ class _PengumumanPageState extends ConsumerState<PengumumanPage> {
 
                 return RefreshIndicator(
                   onRefresh: () async {
-                    await ref.read(pengumumanListProvider.notifier).refresh();
+                    ref.invalidate(pengumumanListProvider);
                   },
                   child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                     itemCount: pengumumanList.length,
                     itemBuilder: (context, index) {
                       final pengumuman = pengumumanList[index];
-                      return Card(
+                      return Container(
                         margin: const EdgeInsets.only(bottom: 12),
-                        elevation: 3,
-                        shadowColor: Colors.black.withOpacity(0.1),
-                        shape: RoundedRectangleBorder(
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
                           borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                              spreadRadius: 0,
+                            ),
+                          ],
                         ),
                         child: InkWell(
                           onTap: () {
@@ -311,7 +318,7 @@ class _PengumumanPageState extends ConsumerState<PengumumanPage> {
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: () {
-                        ref.read(pengumumanListProvider.notifier).refresh();
+                        ref.invalidate(pengumumanListProvider);
                       },
                       icon: const Icon(Icons.refresh),
                       label: const Text('Coba Lagi'),
