@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:typed_data';
 import '../../data/models/kegiatan_model.dart';
 
 class KegiatanService {
@@ -285,6 +286,29 @@ class KegiatanService {
       return KegiatanModel.fromJson(response);
     } catch (e) {
       throw Exception('Gagal mengupdate status kegiatan: $e');
+    }
+  }
+
+  /// Upload foto kegiatan ke Supabase Storage
+  Future<String> uploadFotoKegiatan(
+    Uint8List imageBytes,
+    String kegiatanId,
+  ) async {
+    try {
+      final fileName =
+          'kegiatan_${kegiatanId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      await _supabase.storage
+          .from('kegiatan-images')
+          .uploadBinary(fileName, imageBytes);
+
+      final publicUrl = _supabase.storage
+          .from('kegiatan-images')
+          .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (e) {
+      throw Exception('Gagal upload foto kegiatan: $e');
     }
   }
 }
