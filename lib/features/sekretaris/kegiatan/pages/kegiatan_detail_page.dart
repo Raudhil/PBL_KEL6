@@ -407,13 +407,21 @@ class KegiatanDetailPage extends ConsumerWidget {
                             width: double.infinity,
                             height: 50,
                             child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.of(context).push(
+                              onPressed: () async {
+                                // Navigate ke edit page dan tunggu result
+                                final result = await Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (_) =>
                                         KegiatanFormPage(kegiatan: kegiatan),
                                   ),
                                 );
+
+                                // Jika result = true (dari edit success), invalidate detail provider
+                                if (result == true && context.mounted) {
+                                  ref.invalidate(
+                                    kegiatanDetailProvider(kegiatan.id),
+                                  );
+                                }
                               },
                               icon: const Icon(Icons.edit_rounded, size: 20),
                               label: const Text(
