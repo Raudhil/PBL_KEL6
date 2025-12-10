@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/pengumuman_model.dart';
 
@@ -6,7 +7,7 @@ class PengumumanService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   /// Storage bucket untuk file pengumuman
-  static const String _storageBucket = 'pengumuman';
+  static const String _storageBucket = 'pengumuman-images';
 
   /// Get all pengumuman dengan filter opsional
   Future<List<PengumumanModel>> getAllPengumuman({
@@ -238,7 +239,30 @@ class PengumumanService {
     }
   }
 
-  /// Upload foto ke Supabase Storage
+  /// Upload foto pengumuman ke Supabase Storage (sama seperti kegiatan)
+  Future<String> uploadFotoPengumuman(
+    Uint8List imageBytes,
+    String pengumumanId,
+  ) async {
+    try {
+      final fileName =
+          'pengumuman_${pengumumanId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      await _supabase.storage
+          .from(_storageBucket)
+          .uploadBinary(fileName, imageBytes);
+
+      final publicUrl = _supabase.storage
+          .from(_storageBucket)
+          .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (e) {
+      throw Exception('Gagal upload foto pengumuman: $e');
+    }
+  }
+
+  /// Upload foto ke Supabase Storage (dari File)
   Future<String> uploadFoto(File file, String fileName) async {
     try {
       final bytes = await file.readAsBytes();
@@ -358,5 +382,43 @@ class PengumumanService {
     } catch (e) {
       return false;
     }
+  }
+
+  /// Stream untuk realtime updates pengumuman
+  Stream<List<PengumumanModel>> watchPengumuman() {
+    return _supabase
+        .from('pengumuman')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((data) {
+          return data
+              .map(
+                (json) =>
+                    PengumumanModel.fromJson(json as Map<String, dynamic>),
+              )
+              .toList();
+        });
+  }
+
+  /// Stream untuk realtime updates pengumuman (hanya milik user yang login)
+  Stream<List<PengumumanModel>> watchPengumumanByUser() {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) {
+      return Stream.value([]);
+    }
+
+    return _supabase
+        .from('pengumuman')
+        .stream(primaryKey: ['id'])
+        .eq('id_pembuat', userId)
+        .order('created_at', ascending: false)
+        .map((data) {
+          return data
+              .map(
+                (json) =>
+                    PengumumanModel.fromJson(json as Map<String, dynamic>),
+              )
+              .toList();
+        });
   }
 }

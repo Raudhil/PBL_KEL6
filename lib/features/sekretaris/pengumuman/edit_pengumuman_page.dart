@@ -1,5 +1,9 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/providers/pengumuman_provider.dart';
 import '../../../data/models/pengumuman_model.dart';
 import '../../../theme/app_colors.dart';
@@ -17,100 +21,358 @@ class _EditPengumumanPageState extends ConsumerState<EditPengumumanPage> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _judulController;
   late TextEditingController _isiController;
-  late TextEditingController _fotoUrlController;
   late TextEditingController _dokumenUrlController;
+
+  // Image picker variables
+  final _imagePicker = ImagePicker();
+  XFile? _selectedImageFile;
+  Uint8List? _selectedImageBytes;
+  String? _uploadedImageUrl;
 
   @override
   void initState() {
     super.initState();
     _judulController = TextEditingController(text: widget.pengumuman.judul);
     _isiController = TextEditingController(text: widget.pengumuman.isi);
-    _fotoUrlController = TextEditingController(
-      text: widget.pengumuman.fotoUrl ?? '',
-    );
     _dokumenUrlController = TextEditingController(
       text: widget.pengumuman.dokumenUrl ?? '',
     );
+    // Set foto URL jika ada
+    if (widget.pengumuman.fotoUrl != null) {
+      _uploadedImageUrl = widget.pengumuman.fotoUrl;
+    }
   }
 
   @override
   void dispose() {
     _judulController.dispose();
     _isiController.dispose();
-    _fotoUrlController.dispose();
     _dokumenUrlController.dispose();
     super.dispose();
   }
 
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+  void _showImageSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Pilih Sumber Foto'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              title: const Text('Kamera'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library,
+                color: AppColors.primary,
+              ),
+              title: const Text('Galeri'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
+  Future<void> _pickImage(ImageSource source) async {
     try {
-      // Ambil URL dari input dengan trimming
-      final fotoUrl = _fotoUrlController.text.trim();
-      final dokumenUrl = _dokumenUrlController.text.trim();
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
 
-      // Update pengumuman
-      await ref
-          .read(pengumumanFormProvider.notifier)
-          .updatePengumuman(
-            id: widget.pengumuman.id,
-            judul: _judulController.text.trim(),
-            isi: _isiController.text.trim(),
-            fotoUrl: fotoUrl.isEmpty ? null : fotoUrl,
-            dokumenUrl: dokumenUrl.isEmpty ? null : dokumenUrl,
-          );
+      if (pickedFile == null) return;
 
-      // Check state
-      final formState = ref.read(pengumumanFormProvider);
-      if (formState.isSuccess && mounted) {
-        // Invalidate detail provider untuk force refresh
-        ref.invalidate(pengumumanDetailProvider(widget.pengumuman.id));
-
-        // Show success modal
-        await _showSuccessModal();
-      } else if (formState.errorMessage != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text(formState.errorMessage!)),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      }
+      final bytes = await pickedFile.readAsBytes();
+      _showImagePreview(pickedFile, bytes);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Gagal memperbarui: ${e.toString()}')),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengambil foto: $e'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
     }
   }
 
-  Future<void> _showSuccessModal() async {
-    return showDialog(
+  void _showImagePreview(XFile imageFile, Uint8List imageBytes) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: const Text(
+                'Preview Foto',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 400),
+              child: Image.memory(imageBytes, fit: BoxFit.contain),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showImageSourceDialog();
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Ambil Ulang'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _selectedImageFile = imageFile;
+                        _selectedImageBytes = imageBytes;
+                        _uploadedImageUrl = null;
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.check),
+                    label: const Text('Terima'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImagePickerSection() {
+    final hasImage =
+        _selectedImageFile != null ||
+        _selectedImageBytes != null ||
+        _uploadedImageUrl != null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withOpacity(0.15),
+                      AppColors.primary.withOpacity(0.08),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.image_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Foto Pengumuman (Opsional)',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Image Picker Box
+          GestureDetector(
+            onTap: _showImageSourceDialog,
+            child: Container(
+              width: double.infinity,
+              height: 180,
+              decoration: BoxDecoration(
+                color: AppColors.greyLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: hasImage ? AppColors.primary : AppColors.greyLight,
+                  width: hasImage ? 2 : 1,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: _selectedImageBytes != null
+                    ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
+                    : _selectedImageFile != null && !kIsWeb
+                    ? Image.file(
+                        File(_selectedImageFile!.path),
+                        fit: BoxFit.cover,
+                      )
+                    : _uploadedImageUrl != null
+                    ? Image.network(
+                        _uploadedImageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.broken_image_rounded,
+                                  size: 48,
+                                  color: AppColors.textSecondary.withOpacity(
+                                    0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Gagal memuat foto',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.cloud_upload_outlined,
+                              size: 48,
+                              color: AppColors.primary.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Tap untuk upload foto',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'dari kamera atau galeri',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Action button
+          Center(
+            child: TextButton.icon(
+              onPressed: _showImageSourceDialog,
+              icon: Icon(hasImage ? Icons.edit : Icons.add_a_photo, size: 18),
+              label: Text(hasImage ? 'Ganti Foto' : 'Tambah Foto'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    String? fotoUrl;
+    if (_selectedImageBytes != null) {
+      // Upload image to storage
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Mengupload foto...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+
+        final pengumumanId = widget.pengumuman.id.toString();
+
+        fotoUrl = await ref
+            .read(pengumumanServiceProvider)
+            .uploadFotoPengumuman(_selectedImageBytes!, pengumumanId);
+      } catch (uploadError) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal upload foto: $uploadError'),
+            backgroundColor: AppColors.danger,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+    } else if (_uploadedImageUrl != null) {
+      fotoUrl = _uploadedImageUrl;
+    }
+
+    final dokumenUrl = _dokumenUrlController.text.trim();
+
+    // Call notifier - JANGAN AWAIT
+    ref
+        .read(pengumumanFormProvider.notifier)
+        .updatePengumuman(
+          id: widget.pengumuman.id,
+          judul: _judulController.text.trim(),
+          isi: _isiController.text.trim(),
+          fotoUrl: fotoUrl,
+          dokumenUrl: dokumenUrl.isEmpty ? null : dokumenUrl,
+        );
+  }
+
+  void _showSuccessModal() {
+    showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
@@ -165,7 +427,7 @@ class _EditPengumumanPageState extends ConsumerState<EditPengumumanPage> {
 
                 // Message
                 Text(
-                  'Pengumuman berhasil diperbarui dan sudah tersimpan di sistem.',
+                  'Pengumuman berhasil diperbarui.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -209,194 +471,359 @@ class _EditPengumumanPageState extends ConsumerState<EditPengumumanPage> {
     );
   }
 
+  // Tambahkan widget helper methods ini sebelum closing brace class:
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    String? Function(String?)? validator,
+    int maxLines = 1,
+    int? maxLength,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      maxLength: maxLength,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        prefixIcon: Icon(icon),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      validator: validator,
+      textCapitalization: TextCapitalization.words,
+      onChanged: (value) => setState(() {}),
+    );
+  }
+
+  Widget _buildTextAreaField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    String? Function(String?)? validator,
+    int maxLength = 5000,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: 8,
+      maxLength: maxLength,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        alignLabelWithHint: true,
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(top: 16.0),
+          child: Icon(icon),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      validator: validator,
+      textCapitalization: TextCapitalization.sentences,
+      onChanged: (value) => setState(() {}),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // LISTEN to form state changes
+    ref.listen<PengumumanFormState>(pengumumanFormProvider, (previous, next) {
+      // Jika success
+      if (next.isSuccess) {
+        // Invalidate list providers
+        ref.invalidate(pengumumanListProvider);
+        ref.invalidate(allPengumumanProvider);
+        ref.invalidate(pengumumanAktifProvider);
+
+        // Reset form state
+        ref.read(pengumumanFormProvider.notifier).resetFormState();
+
+        // Show success modal
+        _showSuccessModal();
+      }
+
+      // Jika error
+      if (next.errorMessage != null && !next.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+      }
+    });
+
     final formState = ref.watch(pengumumanFormProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.creamWhite,
       appBar: AppBar(
-        title: const Text('Edit Pengumuman'),
+        elevation: 0,
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text(
+          'Edit Pengumuman',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Judul
-            TextFormField(
-              controller: _judulController,
-              decoration: InputDecoration(
-                labelText: 'Judul Pengumuman',
-                hintText: 'Masukkan judul pengumuman',
-                helperText: 'Minimal 5 karakter, maksimal 100 karakter',
-                helperMaxLines: 2,
-                counterText: '${_judulController.text.length}/100',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            // Informasi Dasar section
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.2),
+                  width: 1.5,
                 ),
-                prefixIcon: const Icon(Icons.title),
-                filled: true,
-                fillColor: Colors.grey.shade50,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              maxLength: 100,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return '❌ Judul tidak boleh kosong';
-                }
-                if (value.trim().length < 5) {
-                  return '❌ Judul minimal 5 karakter';
-                }
-                if (value.trim().length > 100) {
-                  return '❌ Judul maksimal 100 karakter';
-                }
-                if (!RegExp(r'[a-zA-Z0-9]').hasMatch(value)) {
-                  return '❌ Judul harus mengandung huruf atau angka';
-                }
-                return null;
-              },
-              textCapitalization: TextCapitalization.words,
-              onChanged: (value) => setState(() {}),
-            ),
-            const SizedBox(height: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withOpacity(0.15),
+                              AppColors.primary.withOpacity(0.08),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.info_outline_rounded,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Informasi Dasar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
-            // Isi
-            TextFormField(
-              controller: _isiController,
-              decoration: InputDecoration(
-                labelText: 'Isi Pengumuman',
-                hintText: 'Tulis isi pengumuman dengan lengkap dan jelas...',
-                helperText: 'Minimal 10 karakter, maksimal 5000 karakter',
-                helperMaxLines: 2,
-                counterText: '${_isiController.text.length}/5000',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                alignLabelWithHint: true,
-                filled: true,
-                fillColor: Colors.grey.shade50,
+                  // Judul
+                  TextFormField(
+                    controller: _judulController,
+                    decoration: InputDecoration(
+                      labelText: 'Judul Pengumuman',
+                      hintText: 'Masukkan judul pengumuman',
+                      helperText: 'Minimal 5 karakter, maksimal 100 karakter',
+                      helperMaxLines: 2,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.title),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                    maxLength: 100,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '❌ Judul tidak boleh kosong';
+                      }
+                      if (value.trim().length < 5) {
+                        return '❌ Judul minimal 5 karakter';
+                      }
+                      if (value.trim().length > 100) {
+                        return '❌ Judul maksimal 100 karakter';
+                      }
+                      if (!RegExp(r'[a-zA-Z0-9]').hasMatch(value)) {
+                        return '❌ Judul harus mengandung huruf atau angka';
+                      }
+                      return null;
+                    },
+                    textCapitalization: TextCapitalization.words,
+                    onChanged: (value) => setState(() {}),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Isi
+                  TextFormField(
+                    controller: _isiController,
+                    decoration: InputDecoration(
+                      labelText: 'Isi Pengumuman',
+                      hintText:
+                          'Tulis isi pengumuman dengan lengkap dan jelas...',
+                      helperText: 'Minimal 10 karakter, maksimal 5000 karakter',
+                      helperMaxLines: 2,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      alignLabelWithHint: true,
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(top: 16.0),
+                        child: Icon(Icons.description),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                    maxLines: 8,
+                    maxLength: 5000,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return '❌ Isi pengumuman tidak boleh kosong';
+                      }
+                      if (value.trim().length < 10) {
+                        return '❌ Isi pengumuman minimal 10 karakter';
+                      }
+                      if (value.trim().length > 5000) {
+                        return '❌ Isi pengumuman maksimal 5000 karakter';
+                      }
+                      if (value.trim().isEmpty) {
+                        return '❌ Isi pengumuman tidak boleh hanya spasi';
+                      }
+                      return null;
+                    },
+                    textCapitalization: TextCapitalization.sentences,
+                    onChanged: (value) => setState(() {}),
+                  ),
+                ],
               ),
-              maxLines: 8,
-              maxLength: 5000,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return '❌ Isi pengumuman tidak boleh kosong';
-                }
-                if (value.trim().length < 10) {
-                  return '❌ Isi pengumuman minimal 10 karakter';
-                }
-                if (value.trim().length > 5000) {
-                  return '❌ Isi pengumuman maksimal 5000 karakter';
-                }
-                if (value.trim().isEmpty) {
-                  return '❌ Isi pengumuman tidak boleh hanya spasi';
-                }
-                return null;
-              },
-              textCapitalization: TextCapitalization.sentences,
-              onChanged: (value) => setState(() {}),
             ),
+
             const SizedBox(height: 24),
 
-            // Foto URL Section
-            Text(
-              'Foto (Opsional)',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _fotoUrlController,
-              decoration: InputDecoration(
-                labelText: 'Link Foto',
-                hintText: 'https://example.com/foto.jpg atau link gdrive',
-                helperText: 'Masukkan link gambar (jpg, png, gif, webp, dll)',
-                helperMaxLines: 2,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.link),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-              ),
-              keyboardType: TextInputType.url,
-              validator: (value) {
-                if (value != null && value.trim().isNotEmpty) {
-                  final trimmedValue = value.trim();
+            // Foto section
+            _buildImagePickerSection(),
 
-                  if (!trimmedValue.startsWith('http://') &&
-                      !trimmedValue.startsWith('https://')) {
-                    return '❌ URL harus dimulai dengan http:// atau https://';
-                  }
-
-                  final uri = Uri.tryParse(trimmedValue);
-                  if (uri == null) {
-                    return '❌ Format URL tidak valid';
-                  }
-
-                  if (uri.host.isEmpty) {
-                    return '❌ URL harus memiliki domain yang valid';
-                  }
-                }
-                return null;
-              },
-            ),
             const SizedBox(height: 24),
 
-            // Dokumen URL Section
-            Text(
-              'Dokumen (Opsional)',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _dokumenUrlController,
-              decoration: InputDecoration(
-                labelText: 'Link Dokumen',
-                hintText: 'https://example.com/dokumen.pdf atau link gdrive',
-                helperText:
-                    'Masukkan link dokumen (pdf, docx, xlsx, gdrive, dll)',
-                helperMaxLines: 2,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            // Dokumen section
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.2),
+                  width: 1.5,
                 ),
-                prefixIcon: const Icon(Icons.insert_drive_file),
-                filled: true,
-                fillColor: Colors.grey.shade50,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              keyboardType: TextInputType.url,
-              validator: (value) {
-                if (value != null && value.trim().isNotEmpty) {
-                  final trimmedValue = value.trim();
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withOpacity(0.15),
+                              AppColors.primary.withOpacity(0.08),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.attach_file,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Dokumen (Opsional)',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
-                  // Check URL format
-                  if (!trimmedValue.startsWith('http://') &&
-                      !trimmedValue.startsWith('https://')) {
-                    return '❌ URL harus dimulai dengan http:// atau https://';
-                  }
+                  TextFormField(
+                    controller: _dokumenUrlController,
+                    decoration: InputDecoration(
+                      labelText: 'Link Dokumen',
+                      hintText:
+                          'https://example.com/dokumen.pdf atau link gdrive',
+                      helperText:
+                          'Masukkan link dokumen (pdf, docx, xlsx, gdrive, dll)',
+                      helperMaxLines: 2,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.insert_drive_file),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                    keyboardType: TextInputType.url,
+                    validator: (value) {
+                      if (value != null && value.trim().isNotEmpty) {
+                        final trimmedValue = value.trim();
 
-                  // Parse URL
-                  final uri = Uri.tryParse(trimmedValue);
-                  if (uri == null) {
-                    return '❌ Format URL tidak valid';
-                  }
+                        if (!trimmedValue.startsWith('http://') &&
+                            !trimmedValue.startsWith('https://')) {
+                          return '❌ URL harus dimulai dengan http:// atau https://';
+                        }
 
-                  // Check domain
-                  if (uri.host.isEmpty) {
-                    return '❌ URL harus memiliki domain yang valid';
-                  }
-                }
-                return null;
-              },
+                        final uri = Uri.tryParse(trimmedValue);
+                        if (uri == null) {
+                          return '❌ Format URL tidak valid';
+                        }
+
+                        if (uri.host.isEmpty) {
+                          return '❌ URL harus memiliki domain yang valid';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
+
             const SizedBox(height: 32),
 
             // Submit Button
@@ -437,13 +864,15 @@ class _EditPengumumanPageState extends ConsumerState<EditPengumumanPage> {
                       ],
                     )
                   : const Text(
-                      'Perbarui Pengumuman',
+                      'Edit Pengumuman',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
             ),
+
+            const SizedBox(height: 32),
           ],
         ),
       ),

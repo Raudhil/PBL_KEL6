@@ -1,7 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/pengumuman_service.dart';
-import '../constants/app_constants.dart';
 import '../../data/models/pengumuman_model.dart';
 
 /// Service provider
@@ -9,54 +7,33 @@ final pengumumanServiceProvider = Provider<PengumumanService>((ref) {
   return PengumumanService();
 });
 
-/// Provider untuk list pengumuman dengan filter
+/// Provider untuk list pengumuman user yang login
 final pengumumanListProvider =
     StateNotifierProvider<
       PengumumanListNotifier,
       AsyncValue<List<PengumumanModel>>
     >((ref) {
-      return PengumumanListNotifier(ref.read(pengumumanServiceProvider), ref);
+      return PengumumanListNotifier(ref.read(pengumumanServiceProvider));
     });
 
 class PengumumanListNotifier
     extends StateNotifier<AsyncValue<List<PengumumanModel>>> {
-  PengumumanListNotifier(this._service, this._ref)
-    : super(const AsyncValue.loading()) {
-    _setupRealtimeSubscription();
+  PengumumanListNotifier(this._service) : super(const AsyncValue.loading()) {
     loadPengumuman();
   }
 
   final PengumumanService _service;
-  final Ref _ref;
   String? _searchQuery;
-  RealtimeChannel? _realtimeChannel;
 
-  /// Setup realtime subscription untuk auto-refresh
-  void _setupRealtimeSubscription() {
-    _realtimeChannel = Supabase.instance.client
-        .channel(AppConstants.realtimeChannelPengumumanUser)
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'pengumuman',
-          callback: (payload) {
-            // Refresh data ketika ada perubahan
-            refresh();
-          },
-        )
-        .subscribe();
-  }
-
-  /// Load pengumuman dengan filter (selalu hanya milik user)
+  /// Load pengumuman milik user yang login
   Future<void> loadPengumuman({String? searchQuery}) async {
     _searchQuery = searchQuery;
-
     state = const AsyncValue.loading();
+
     try {
       final pengumumanList = await _service.getAllPengumuman(
         searchQuery: searchQuery,
-        createdByCurrentUser:
-            true, // Selalu true untuk hanya tampilkan milik user
+        createdByCurrentUser: true,
       );
       state = AsyncValue.data(pengumumanList);
     } catch (e, stack) {
@@ -64,20 +41,9 @@ class PengumumanListNotifier
     }
   }
 
-  /// Refresh data
-  Future<void> refresh() async {
-    await loadPengumuman(searchQuery: _searchQuery);
-  }
-
   /// Search pengumuman
   void search(String query) {
     loadPengumuman(searchQuery: query.isEmpty ? null : query);
-  }
-
-  @override
-  void dispose() {
-    _realtimeChannel?.unsubscribe();
-    super.dispose();
   }
 }
 
@@ -90,8 +56,7 @@ final pengumumanDetailProvider = FutureProvider.family<PengumumanModel?, int>((
   return await service.getPengumumanById(id);
 });
 
-/// Provider untuk pengumuman aktif (dashboard) - menampilkan 5 pengumuman terbaru
-/// dengan realtime subscription
+/// Provider untuk pengumuman aktif (dashboard) - 5 pengumuman terbaru
 final pengumumanAktifProvider =
     StateNotifierProvider.autoDispose<
       PengumumanAktifNotifier,
@@ -103,129 +68,66 @@ final pengumumanAktifProvider =
 class PengumumanAktifNotifier
     extends StateNotifier<AsyncValue<List<PengumumanModel>>> {
   PengumumanAktifNotifier(this._service) : super(const AsyncValue.loading()) {
-    _setupRealtimeSubscription();
     _loadData();
   }
 
   final PengumumanService _service;
-  RealtimeChannel? _realtimeChannel;
 
-  /// Setup realtime subscription untuk auto-refresh
-  void _setupRealtimeSubscription() {
-    _realtimeChannel = Supabase.instance.client
-        .channel(AppConstants.realtimeChannelPengumumanAktif)
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'pengumuman',
-          callback: (payload) {
-            // Refresh data ketika ada perubahan (insert, update, delete)
-            _loadData();
-          },
-        )
-        .subscribe();
-  }
-
-  /// Load data dengan relasi lengkap
+  /// Load data pengumuman aktif
   Future<void> _loadData() async {
     try {
-      final pengumumanList = await _service.getPengumumanAktif(
-        limit: AppConstants.dashboardPengumumanLimit,
-      );
+      final pengumumanList = await _service.getPengumumanAktif(limit: 5);
       state = AsyncValue.data(pengumumanList);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
   }
-
-  /// Manual refresh
-  Future<void> refresh() async {
-    await _loadData();
-  }
-
-  @override
-  void dispose() {
-    _realtimeChannel?.unsubscribe();
-    super.dispose();
-  }
 }
 
-/// Provider untuk semua pengumuman (untuk warga) - tanpa filter user
-/// dengan realtime subscription
+/// Provider untuk semua pengumuman (untuk warga)
 final allPengumumanProvider =
     StateNotifierProvider<
       AllPengumumanNotifier,
       AsyncValue<List<PengumumanModel>>
     >((ref) {
-      return AllPengumumanNotifier(ref.read(pengumumanServiceProvider), ref);
+      return AllPengumumanNotifier(ref.read(pengumumanServiceProvider));
     });
 
 class AllPengumumanNotifier
     extends StateNotifier<AsyncValue<List<PengumumanModel>>> {
-  AllPengumumanNotifier(this._service, this._ref)
-    : super(const AsyncValue.loading()) {
-    _setupRealtimeSubscription();
+  AllPengumumanNotifier(this._service) : super(const AsyncValue.loading()) {
     loadAllPengumuman();
   }
 
   final PengumumanService _service;
-  final Ref _ref;
   String? _searchQuery;
-  RealtimeChannel? _realtimeChannel;
 
-  /// Setup realtime subscription untuk auto-refresh
-  void _setupRealtimeSubscription() {
-    _realtimeChannel = Supabase.instance.client
-        .channel(AppConstants.realtimeChannelPengumumanAll)
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'pengumuman',
-          callback: (payload) {
-            // Refresh data ketika ada perubahan
-            refresh();
-          },
-        )
-        .subscribe();
-  }
-
-  /// Load semua pengumuman (untuk warga - tidak ada filter user)
+  /// Load semua pengumuman
   Future<void> loadAllPengumuman({String? searchQuery}) async {
     _searchQuery = searchQuery;
-
     state = const AsyncValue.loading();
+
     try {
       final pengumumanList = await _service.getAllPengumuman(
         searchQuery: searchQuery,
-        createdByCurrentUser: false, // Tampilkan semua pengumuman
+        createdByCurrentUser: false,
       );
       state = AsyncValue.data(pengumumanList);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
-  }
-
-  /// Refresh data
-  Future<void> refresh() async {
-    await loadAllPengumuman(searchQuery: _searchQuery);
   }
 
   /// Search pengumuman
   void search(String query) {
     loadAllPengumuman(searchQuery: query.isEmpty ? null : query);
   }
-
-  @override
-  void dispose() {
-    _realtimeChannel?.unsubscribe();
-    super.dispose();
-  }
 }
 
 /// Provider untuk form state (create/edit)
 final pengumumanFormProvider =
     StateNotifierProvider<PengumumanFormNotifier, PengumumanFormState>((ref) {
-      return PengumumanFormNotifier(ref.read(pengumumanServiceProvider), ref);
+      return PengumumanFormNotifier(ref.read(pengumumanServiceProvider));
     });
 
 class PengumumanFormState {
@@ -257,14 +159,12 @@ class PengumumanFormState {
 }
 
 class PengumumanFormNotifier extends StateNotifier<PengumumanFormState> {
-  PengumumanFormNotifier(this._service, this._ref)
-    : super(PengumumanFormState());
+  PengumumanFormNotifier(this._service) : super(PengumumanFormState());
 
   final PengumumanService _service;
-  final Ref _ref;
 
   /// Create pengumuman
-  Future<void> createPengumuman({
+  void createPengumuman({
     required String judul,
     required String isi,
     String? fotoUrl,
@@ -273,7 +173,7 @@ class PengumumanFormNotifier extends StateNotifier<PengumumanFormState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      final pengumuman = await _service.createPengumuman(
+      await _service.createPengumuman(
         judul: judul,
         isi: isi,
         fotoUrl: fotoUrl,
@@ -283,13 +183,8 @@ class PengumumanFormNotifier extends StateNotifier<PengumumanFormState> {
       state = state.copyWith(
         isLoading: false,
         isSuccess: true,
-        pengumumanData: pengumuman,
+        errorMessage: null,
       );
-
-      // Refresh all providers untuk realtime update
-      _ref.read(pengumumanListProvider.notifier).refresh();
-      _ref.read(allPengumumanProvider.notifier).refresh();
-      _ref.read(pengumumanAktifProvider.notifier).refresh();
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -300,7 +195,7 @@ class PengumumanFormNotifier extends StateNotifier<PengumumanFormState> {
   }
 
   /// Update pengumuman
-  Future<void> updatePengumuman({
+  void updatePengumuman({
     required int id,
     String? judul,
     String? isi,
@@ -310,7 +205,7 @@ class PengumumanFormNotifier extends StateNotifier<PengumumanFormState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      final pengumuman = await _service.updatePengumuman(
+      await _service.updatePengumuman(
         id: id,
         judul: judul,
         isi: isi,
@@ -321,13 +216,8 @@ class PengumumanFormNotifier extends StateNotifier<PengumumanFormState> {
       state = state.copyWith(
         isLoading: false,
         isSuccess: true,
-        pengumumanData: pengumuman,
+        errorMessage: null,
       );
-
-      // Refresh all providers untuk realtime update
-      _ref.read(pengumumanListProvider.notifier).refresh();
-      _ref.read(allPengumumanProvider.notifier).refresh();
-      _ref.read(pengumumanAktifProvider.notifier).refresh();
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -338,18 +228,16 @@ class PengumumanFormNotifier extends StateNotifier<PengumumanFormState> {
   }
 
   /// Delete pengumuman
-  Future<void> deletePengumuman(int id) async {
+  deletePengumuman(int id) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
       await _service.deletePengumuman(id);
-
-      state = state.copyWith(isLoading: false, isSuccess: true);
-
-      // Refresh all providers untuk realtime update
-      _ref.read(pengumumanListProvider.notifier).refresh();
-      _ref.read(allPengumumanProvider.notifier).refresh();
-      _ref.read(pengumumanAktifProvider.notifier).refresh();
+      state = state.copyWith(
+        isLoading: false,
+        isSuccess: true,
+        errorMessage: null,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -359,8 +247,8 @@ class PengumumanFormNotifier extends StateNotifier<PengumumanFormState> {
     }
   }
 
-  /// Reset state
-  void reset() {
+  /// Reset form state
+  void resetFormState() {
     state = PengumumanFormState();
   }
 }

@@ -100,7 +100,7 @@ class _AllPengumumanPageState extends ConsumerState<AllPengumumanPage> {
 
                 return RefreshIndicator(
                   onRefresh: () async {
-                    await ref.read(allPengumumanProvider.notifier).refresh();
+                    ref.invalidate(allPengumumanProvider);
                   },
                   child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
