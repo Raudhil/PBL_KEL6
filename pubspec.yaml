@@ -46,7 +46,7 @@ dependencies:
   go_router: ^14.1.0
 
   # HTTP (PCVK FastAPI)
-  dio: ^5.4.3
+  dio: ^5.9.0
 
   # KAMERA & FILE PICKER
   image_picker: ^1.2.1
@@ -63,6 +63,7 @@ dependencies:
   shared_preferences: ^2.2.2
   firebase_core: ^4.2.1
   intl: ^0.20.2
+  http_parser: ^4.1.2
 
 dev_dependencies:
   flutter_test:
