@@ -8,6 +8,7 @@ import '../../../../theme/app_colors.dart';
 import '../../../../core/widgets/custom_top_bar.dart';
 import '../../../../data/models/produk_marketplace_model.dart';
 import '../../../../core/providers/marketplace_provider.dart';
+import '../../../../core/services/ml_vegetable_service.dart';
 
 class ProductFormPage extends ConsumerStatefulWidget {
   final ProdukMarketplaceModel? product;
@@ -30,6 +31,12 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   XFile? _selectedImageFile;
   Uint8List? _selectedImageBytes; // For web compatibility
   String? _uploadedImageUrl;
+
+  // ML Detection
+  final _mlService = MLVegetableService();
+  bool _isAnalyzing = false;
+  String? _detectedQuality;
+  double? _detectionConfidence;
 
   String _selectedCategory = 'Kentang';
   late String _selectedImagePath;
@@ -379,6 +386,8 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                         _uploadedImageUrl = null; // Clear old URL
                       });
                       Navigator.pop(ctx);
+                      // Otomatis deteksi kualitas setelah foto diterima
+                      _analyzeVegetable();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary600,
@@ -734,6 +743,274 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
             child: const Text('Hapus'),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _analyzeVegetable() async {
+    // Validate image is selected
+    if (_selectedImageFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih foto terlebih dahulu untuk deteksi kualitas'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    // Check if web platform (not supported for file access)
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Deteksi AI tidak tersedia di platform web'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isAnalyzing = true;
+      _detectedQuality = null;
+    });
+
+    try {
+      // Check backend health first
+      final isHealthy = await _mlService.checkHealth();
+      if (!isHealthy) {
+        throw Exception(
+          'Backend ML tidak dapat dijangkau. Pastikan server sedang running di localhost:8000',
+        );
+      }
+
+      // Convert XFile to File
+      final imageFile = File(_selectedImageFile!.path);
+
+      // Call ML prediction
+      final result = await _mlService.predictQuality(imageFile);
+
+      // Validate result format
+      if (result == null ||
+          !result.containsKey('prediction') ||
+          !result.containsKey('confidence')) {
+        throw Exception('Format response dari backend tidak valid');
+      }
+
+      final prediction = result['prediction'] as String?;
+      final confidence = result['confidence'] as double?;
+
+      if (prediction == null || confidence == null) {
+        throw Exception('Data prediction atau confidence null');
+      }
+
+      setState(() {
+        _detectedQuality = prediction;
+        _detectionConfidence = confidence;
+      });
+
+      if (!mounted) return;
+
+      // Show result dialog
+      _showDetectionResultDialog(_detectedQuality!, _detectionConfidence!);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mendeteksi kualitas: $e'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isAnalyzing = false);
+      }
+    }
+  }
+
+  void _showDetectionResultDialog(String quality, double confidence) {
+    final isGoodQuality = quality == 'Utuh';
+    final icon = isGoodQuality ? Icons.check_circle : Icons.warning;
+    final color = isGoodQuality ? AppColors.success : AppColors.warning;
+    final title = isGoodQuality ? 'Kualitas Baik' : 'Kualitas Rusak';
+    final message = isGoodQuality
+        ? 'Sayuran dalam kondisi utuh dan layak dijual'
+        : 'Sayuran menunjukkan tanda-tanda kerusakan';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 50),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textPrimary.withOpacity(0.7),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.greyLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Hasil Deteksi:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          quality,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Confidence:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '${confidence.toStringAsFixed(1)}%',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Tombol berbeda untuk Utuh vs Rusak
+              if (isGoodQuality)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'OK, Lanjutkan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          // Reset foto dan buka picker lagi
+                          setState(() {
+                            _selectedImageFile = null;
+                            _selectedImageBytes = null;
+                            _detectedQuality = null;
+                          });
+                          _showImageSourceDialog();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary600,
+                          side: const BorderSide(
+                            color: AppColors.primary600,
+                            width: 2,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text(
+                          'Ganti Foto',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.textSecondary,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text(
+                          'Tetap Lanjutkan',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
