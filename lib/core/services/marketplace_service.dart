@@ -809,4 +809,16 @@ class MarketplaceService {
       return 0.0;
     }
   }
+
+  // ============================================
+  // KATEGORI
+  // ============================================
+
+  /// Fetch kategori - hardcoded sesuai ENUM kategori_produk_enum di database
+  /// ENUM values: 'Wortel', 'Kentang', 'Tomat', 'Lainnya'
+  Future<List<String>> fetchDistinctKategori() async {
+    // Return langsung sesuai ENUM definition di database
+    // Tidak perlu query karena ENUM values itu static
+    return ['Wortel', 'Kentang', 'Tomat', 'Lainnya'];
+  }
 }
