@@ -349,9 +349,7 @@ class _WargaCardState extends ConsumerState<WargaCard> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.all(24),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -371,7 +369,7 @@ class _WargaCardState extends ConsumerState<WargaCard> {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Title
             const Text(
               'Hapus Warga',
@@ -383,18 +381,15 @@ class _WargaCardState extends ConsumerState<WargaCard> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
-            
+
             // Message
             Text(
               'Apakah Anda yakin ingin menghapus data warga berikut?',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
-            
+
             // Warga Info Box
             Container(
               width: double.infinity,
@@ -402,10 +397,7 @@ class _WargaCardState extends ConsumerState<WargaCard> {
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.grey.shade300,
-                  width: 1,
-                ),
+                border: Border.all(color: Colors.grey.shade300, width: 1),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,7 +423,7 @@ class _WargaCardState extends ConsumerState<WargaCard> {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Warning Text
             Container(
               padding: const EdgeInsets.all(12),
@@ -461,7 +453,7 @@ class _WargaCardState extends ConsumerState<WargaCard> {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Buttons
             Row(
               children: [
