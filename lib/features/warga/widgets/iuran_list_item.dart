@@ -192,12 +192,16 @@ class _IuranListItemState extends ConsumerState<IuranListItem>
                               color: AppColors.textSecondary,
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              'Jatuh Tempo: ${_formatDate(iuran.jatuhTempo)}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w500,
+                            Flexible(
+                              child: Text(
+                                'Jatuh Tempo: ${_formatDate(iuran.jatuhTempo)}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
