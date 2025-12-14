@@ -9,7 +9,9 @@ import 'package:jawara/core/widgets/custom_top_bar.dart';
 import 'package:jawara/theme/app_colors.dart';
 
 class TransactionFormPage extends ConsumerStatefulWidget {
-  const TransactionFormPage({super.key});
+  final KeuanganModel? transaction;
+
+  const TransactionFormPage({super.key, this.transaction});
 
   @override
   ConsumerState<TransactionFormPage> createState() =>
@@ -29,8 +31,28 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _selectedDate = DateTime.now();
+
+    // Initialize based on edit or create mode
+    if (widget.transaction != null) {
+      // Edit mode - load existing data
+      _titleController.text = widget.transaction!.title;
+      _amountController.text = widget.transaction!.amount.toStringAsFixed(0);
+      _noteController.text = widget.transaction!.note ?? '';
+      _selectedDate = widget.transaction!.createdAt ?? DateTime.now();
+
+      // Set tab index based on type
+      final type = widget.transaction!.type?.trim().toLowerCase();
+      _tabController = TabController(
+        length: 2,
+        vsync: this,
+        initialIndex: type == 'pemasukan' ? 0 : 1,
+      );
+    } else {
+      // Create mode
+      _tabController = TabController(length: 2, vsync: this);
+      _selectedDate = DateTime.now();
+    }
+
     initializeDateFormatting('id_ID', null);
   }
 
@@ -45,7 +67,8 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
 
   String get _transactionType =>
       _tabController.index == 0 ? 'Pemasukan' : 'Pengeluaran';
-  String get _appBarTitle => _transactionType;
+  String get _appBarTitle =>
+      widget.transaction != null ? 'Edit Transaksi' : 'Tambah Transaksi Baru';
   Color get _primaryColor =>
       _tabController.index == 0 ? AppColors.primary : const Color(0xFFDC2626);
 
@@ -148,71 +171,71 @@ class _TransactionFormPageState extends ConsumerState<TransactionFormPage>
     setState(() => _isSubmitting = true);
 
     final title = _titleController.text.trim();
-    final amount =
-        double.tryParse(
-          _amountController.text.replaceAll(',', '').replaceAll('.', ''),
-        ) ??
-        0.0;
-    final note = _noteController.text.trim();
-    final createdAt = _selectedDate ?? DateTime.now();
-
-    final tx = KeuanganModel(
-      title: title.isEmpty ? _transactionType : title,
-      amount: amount.abs(),
-      type: _transactionType,
-      note: note.isEmpty ? null : note,
-      createdAt: createdAt,
-    );
-
-    int? idRt;
-    try {
-      final profilService = ProfilService();
-      final full = await profilService.getFullUserData();
-      final rt = full['rt'];
-      if (rt is Map && rt.containsKey('id')) {
-        idRt = rt['id'] as int?;
-      }
-    } catch (_) {}
+    final amount = double.tryParse(_amountController.text) ?? 0;
+    // Pastikan note adalah null jika kosong, bukan string kosong
+    final note = _noteController.text.trim().isEmpty
+        ? null
+        : _noteController.text.trim();
 
     try {
-      await ref
-          .read(keuanganControllerProvider.notifier)
-          .addTransaction(tx, idRt: idRt);
-
-      await ref.read(keuanganControllerProvider.notifier).fetchTransactions();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$_transactionType berhasil ditambahkan'),
-            backgroundColor: _primaryColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(16),
-          ),
+      if (widget.transaction != null) {
+        // Edit mode - update transaction
+        final updatedTx = widget.transaction!.copyWith(
+          title: title,
+          amount: amount,
+          note: note, // Ini bisa null
+          type: _transactionType,
+          createdAt: _selectedDate,
         );
-        Navigator.of(context).pop();
+
+        await ref
+            .read(keuanganControllerProvider.notifier)
+            .updateTransaction(widget.transaction!.id!, updatedTx);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✓ Transaksi berhasil diperbarui'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        // Create mode - add new transaction
+        final newTx = KeuanganModel(
+          title: title,
+          amount: amount,
+          note: note,
+          type: _transactionType,
+          createdAt: _selectedDate,
+        );
+
+        await ref
+            .read(keuanganControllerProvider.notifier)
+            .addTransaction(newTx);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✓ Transaksi berhasil ditambahkan'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal menyimpan: $e'),
+            content: Text('✗ Gagal: ${e.toString()}'),
             backgroundColor: AppColors.danger,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(16),
           ),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 

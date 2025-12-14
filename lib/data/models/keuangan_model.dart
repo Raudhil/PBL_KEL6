@@ -15,6 +15,25 @@ class KeuanganModel {
     this.createdAt,
   });
 
+  // TAMBAH METHOD copyWith INI
+  KeuanganModel copyWith({
+    int? id,
+    String? title,
+    double? amount,
+    String? type,
+    String? note,
+    DateTime? createdAt,
+  }) {
+    return KeuanganModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      amount: amount ?? this.amount,
+      type: type ?? this.type,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   factory KeuanganModel.fromJson(Map<String, dynamic> json) {
     // Helper to parse numbers coming as int, double or string
     double parseAmount(dynamic v) {
@@ -38,7 +57,8 @@ class KeuanganModel {
       if (v == null) return null;
       final s = v.trim().toLowerCase();
       if (s == 'pemasukan' || s == 'income' || s == 'masuk') return 'Pemasukan';
-      if (s == 'pengeluaran' || s == 'expense' || s == 'keluar') return 'Pengeluaran';
+      if (s == 'pengeluaran' || s == 'expense' || s == 'keluar')
+        return 'Pengeluaran';
       // Some APIs use single-letter flags
       if (s == 'p' || s == 'in') return 'Pemasukan';
       if (s == 'k' || s == 'out') return 'Pengeluaran';
@@ -54,10 +74,10 @@ class KeuanganModel {
       amount: parseAmount(amountVal),
       type: normalizedType,
       note: json['deskripsi'],
-        createdAt: createdAtVal != null
+      createdAt: createdAtVal != null
           ? (createdAtVal is DateTime
-            ? createdAtVal
-            : DateTime.tryParse(createdAtVal.toString()))
+                ? createdAtVal
+                : DateTime.tryParse(createdAtVal.toString()))
           : null,
     );
   }
@@ -67,7 +87,8 @@ class KeuanganModel {
       'sumber_transaksi': title,
       'jumlah': amount,
       'jenis_transaksi': type,
-      'deskripsi': note,
+      'deskripsi': note, // Ini akan menjadi null jika kosong, yang benar
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 }
@@ -77,7 +98,11 @@ class KeuanganTotals {
   final double pemasukan;
   final double pengeluaran;
 
-  KeuanganTotals({required this.total, required this.pemasukan, required this.pengeluaran});
+  KeuanganTotals({
+    required this.total,
+    required this.pemasukan,
+    required this.pengeluaran,
+  });
 }
 
 class Keuangan {
@@ -115,8 +140,10 @@ class Keuangan {
       // Prefer the `created_at` timestamp for createdAt; fall back to
       // `tanggal` if `created_at` is not present.
       createdAt: map['created_at'] != null
-        ? DateTime.parse(map['created_at'])
-        : (map['tanggal'] != null ? DateTime.parse(map['tanggal']) : DateTime.now()),
+          ? DateTime.parse(map['created_at'])
+          : (map['tanggal'] != null
+                ? DateTime.parse(map['tanggal'])
+                : DateTime.now()),
       updatedAt: map['updated_at'] != null
           ? DateTime.parse(map['updated_at'])
           : null,

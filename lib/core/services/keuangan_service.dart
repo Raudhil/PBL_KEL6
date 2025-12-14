@@ -5,12 +5,17 @@ import 'package:jawara/data/models/keuangan_model.dart';
 class KeuanganService {
   final _supabase = Supabase.instance.client;
 
-  Future<List<KeuanganModel>> fetchTransactions({int limit = 50, int? idRt}) async {
+  Future<List<KeuanganModel>> fetchTransactions({
+    int limit = 50,
+    int? idRt,
+  }) async {
     final query = _supabase.from('keuangan').select();
     if (idRt != null) {
       query.eq('id_rt', idRt);
     }
-    final dynamic resp = await query.order('created_at', ascending: false).limit(limit);
+    final dynamic resp = await query
+        .order('created_at', ascending: false)
+        .limit(limit);
 
     // Supabase client may return either a List or a Map containing 'data'.
     List rows;
@@ -36,6 +41,14 @@ class KeuanganService {
       data['id_rt'] = idRt;
     }
     await _supabase.from('keuangan').insert(data);
+  }
+
+  Future<void> updateTransaction(int id, KeuanganModel tx) async {
+    final data = tx.toJson();
+    // Add updated_at timestamp
+    data['updated_at'] = DateTime.now().toIso8601String();
+
+    await _supabase.from('keuangan').update(data).eq('id', id);
   }
 
   Future<void> deleteTransaction(int id) async {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../theme/app_colors.dart';
-import 'transaction_card.dart';
+import 'expandable_transaction_card.dart';
 
 final _currencyFormatter = NumberFormat.currency(
   locale: 'id_ID',
@@ -98,27 +98,34 @@ class TransactionListSection extends StatelessWidget {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: groupedTransactions.length,
+      itemCount: groupedTransactions.keys.length,
       itemBuilder: (context, index) {
         final dateKey = groupedTransactions.keys.elementAt(index);
         final transactions = groupedTransactions[dateKey]!;
-        final dateParts = dateKey.split('-');
+
+        // Parse date
+        final parts = dateKey.split('-');
         final date = DateTime(
-          int.parse(dateParts[0]),
-          int.parse(dateParts[1]),
-          int.parse(dateParts[2]),
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+          int.parse(parts[2]),
         );
 
-        // Calculate daily totals
-        double dailyIncome = 0;
-        double dailyExpense = 0;
-        for (var tx in transactions) {
-          final type = tx.type?.trim().toLowerCase();
-          if (type == 'pemasukan') {
-            dailyIncome += tx.amount;
-          } else if (type == 'pengeluaran') {
-            dailyExpense += tx.amount;
-          }
+        // Format date header
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final yesterday = DateTime(now.year, now.month, now.day - 1);
+        final isToday = date == today;
+        final isYesterday = date == yesterday;
+
+        String dateHeader;
+        if (isToday) {
+          dateHeader = 'Hari Ini';
+        } else if (isYesterday) {
+          dateHeader = 'Kemarin';
+        } else {
+          final formatter = DateFormat('EEEE, dd MMMM yyyy', 'id_ID');
+          dateHeader = formatter.format(date);
         }
 
         return Column(
@@ -126,106 +133,34 @@ class TransactionListSection extends StatelessWidget {
           children: [
             // Date Header
             Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 8, top: 8),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _formatDateHeader(date),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  if (dailyIncome > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: Text(
-                        '+${_currencyFormatter.format(dailyIncome)}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.success,
-                        ),
-                      ),
-                    ),
-                  if (dailyExpense > 0)
-                    Text(
-                      '-${_currencyFormatter.format(dailyExpense)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.danger,
-                      ),
-                    ),
-                ],
+              padding: const EdgeInsets.only(left: 16, top: 24, bottom: 12),
+              child: Text(
+                dateHeader,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
 
             // Transactions for this date
-            ...transactions.map(
-              (tx) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: TransactionCard(
-                  title: tx.title,
-                  date: tx.createdAt,
-                  amount: tx.amount,
-                  type: tx.type,
-                  note: tx.note,
-                ),
-              ),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: transactions.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, txIndex) {
+                final tx = transactions[txIndex];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: ExpandableTransactionCard(transaction: tx),
+                );
+              },
             ),
           ],
         );
       },
     );
-  }
-
-  String _formatDateHeader(DateTime date) {
-    final days = [
-      'Senin',
-      'Selasa',
-      'Rabu',
-      'Kamis',
-      'Jumat',
-      'Sabtu',
-      'Minggu',
-    ];
-    final months = [
-      'Januari',
-      'Februari',
-      'Maret',
-      'April',
-      'Mei',
-      'Juni',
-      'Juli',
-      'Agustus',
-      'September',
-      'Oktober',
-      'November',
-      'Desember',
-    ];
-    return '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
   }
 }
