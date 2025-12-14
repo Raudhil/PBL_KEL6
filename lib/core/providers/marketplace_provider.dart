@@ -299,3 +299,15 @@ final storeReviewsProvider = FutureProvider.autoDispose
       final repository = ref.read(marketplaceRepositoryProvider);
       return await repository.getReviewByToko(idToko);
     });
+
+// ============================================
+// KATEGORI PROVIDERS
+// ============================================
+
+/// Provider untuk list kategori produk dari database
+final kategoriListProvider = FutureProvider.autoDispose<List<String>>((
+  ref,
+) async {
+  final repository = ref.read(marketplaceRepositoryProvider);
+  return await repository.getDistinctKategori();
+});
