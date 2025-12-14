@@ -32,71 +32,57 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
       children: [
         Expanded(
           child: Container(
-            height: 52,
+            height: 48,
             decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(14),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.greyDark.withOpacity(0.06),
-                  blurRadius: 12,
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                const SizedBox(width: 14),
-                Icon(
-                  Icons.search_rounded,
-                  color: AppColors.textSecondary,
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                ref.read(searchQueryProvider.notifier).state = value;
+                setState(() {});
+              },
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Cari produk...',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: AppColors.primary,
                   size: 20,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Theme(
-                    data: Theme.of(context).copyWith(
-                      splashColor: Colors.transparent,
-                      highlightColor: Colors.transparent,
-                      hoverColor: Colors.transparent,
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (value) {
-                        ref.read(searchQueryProvider.notifier).state = value;
-                        setState(() {});
-                      },
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      cursorColor: AppColors.primary600,
-                      decoration: InputDecoration.collapsed(
-                        hintText: 'Cari produk...',
-                        hintStyle: TextStyle(
-                          color: AppColors.textSecondary.withOpacity(0.5),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(
+                          Icons.clear,
+                          color: Colors.grey.shade400,
+                          size: 20,
                         ),
-                      ),
-                    ),
-                  ),
+                        onPressed: () {
+                          _searchController.clear();
+                          ref.read(searchQueryProvider.notifier).state = '';
+                          setState(() {});
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
-                if (_searchController.text.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    color: AppColors.textSecondary,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () {
-                      _searchController.clear();
-                      ref.read(searchQueryProvider.notifier).state = '';
-                      setState(() {});
-                    },
-                  ),
-                const SizedBox(width: 14),
-              ],
+              ),
             ),
           ),
         ),
@@ -119,15 +105,15 @@ class _OrderBadge extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Container(
-          width: 52,
-          height: 52,
+          width: 48,
+          height: 48,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [AppColors.primary600, AppColors.primary400],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
                 color: AppColors.primary.withOpacity(0.25),
@@ -140,7 +126,7 @@ class _OrderBadge extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               child: const Center(
                 child: Icon(
                   Icons.shopping_bag_outlined,

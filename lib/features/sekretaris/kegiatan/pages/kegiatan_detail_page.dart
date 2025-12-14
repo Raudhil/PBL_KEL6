@@ -75,37 +75,41 @@ class KegiatanDetailPage extends ConsumerWidget {
           ),
           flexibleSpace: FlexibleSpaceBar(
             background: kegiatan.fotoUrl != null
-                ? Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(
-                        kegiatan.fotoUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: AppColors.primary,
-                            child: const Icon(
-                              Icons.event,
-                              size: 80,
-                              color: AppColors.white,
+                ? GestureDetector(
+                    onTap: () =>
+                        _showFullPhotoDialog(context, kegiatan.fotoUrl!),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          kegiatan.fotoUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: AppColors.primary,
+                              child: const Icon(
+                                Icons.event,
+                                size: 80,
+                                color: AppColors.white,
+                              ),
+                            );
+                          },
+                        ),
+                        // Gradient overlay
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.7),
+                              ],
                             ),
-                          );
-                        },
-                      ),
-                      // Gradient overlay
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.7),
-                            ],
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   )
                 : Container(
                     decoration: BoxDecoration(
@@ -403,13 +407,21 @@ class KegiatanDetailPage extends ConsumerWidget {
                             width: double.infinity,
                             height: 50,
                             child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.of(context).push(
+                              onPressed: () async {
+                                // Navigate ke edit page dan tunggu result
+                                final result = await Navigator.of(context).push(
                                   MaterialPageRoute(
                                     builder: (_) =>
                                         KegiatanFormPage(kegiatan: kegiatan),
                                   ),
                                 );
+
+                                // Jika result = true (dari edit success), invalidate detail provider
+                                if (result == true && context.mounted) {
+                                  ref.invalidate(
+                                    kegiatanDetailProvider(kegiatan.id),
+                                  );
+                                }
                               },
                               icon: const Icon(Icons.edit_rounded, size: 20),
                               label: const Text(
@@ -740,5 +752,88 @@ class KegiatanDetailPage extends ConsumerWidget {
       case StatusKegiatan.dibatalkan:
         return AppColors.danger;
     }
+  }
+
+  void _showFullPhotoDialog(BuildContext context, String photoUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(0),
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Semi-transparent background
+              Container(color: Colors.black.withOpacity(0.9)),
+              // Close button
+              Positioned(
+                top: 20,
+                right: 20,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: AppColors.textPrimary,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+              // Image
+              InteractiveViewer(
+                panEnabled: true,
+                scaleEnabled: true,
+                minScale: 0.5,
+                maxScale: 4,
+                child: Image.network(
+                  photoUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image_rounded,
+                          size: 80,
+                          color: AppColors.textSecondary.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Gagal memuat foto',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.white.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                            : null,
+                        color: AppColors.primary,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

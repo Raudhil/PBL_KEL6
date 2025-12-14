@@ -104,67 +104,72 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                 ),
                 flexibleSpace: FlexibleSpaceBar(
                   background: pengumuman.hasFoto
-                      ? Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Image.network(
-                              pengumuman.fotoUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stack) {
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppColors.primary.withOpacity(0.3),
-                                        AppColors.primary.withOpacity(0.1),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
+                      ? GestureDetector(
+                          onTap: () => _showFullPhotoDialog(
+                            context,
+                            pengumuman.fotoUrl!,
+                          ),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.network(
+                                pengumuman.fotoUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stack) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppColors.primary.withOpacity(0.3),
+                                          AppColors.primary.withOpacity(0.1),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
                                     ),
-                                  ),
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.broken_image_rounded,
-                                          size: 80,
-                                          color: AppColors.white.withOpacity(
-                                            0.8,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          'Gagal memuat foto',
-                                          style: TextStyle(
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.broken_image_rounded,
+                                            size: 80,
                                             color: AppColors.white.withOpacity(
-                                              0.9,
+                                              0.8,
                                             ),
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500,
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            'Gagal memuat foto',
+                                            style: TextStyle(
+                                              color: AppColors.white
+                                                  .withOpacity(0.9),
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
+                                  );
+                                },
+                              ),
+                              // Gradient overlay
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.black.withOpacity(0.7),
+                                    ],
                                   ),
-                                );
-                              },
-                            ),
-                            // Gradient overlay
-                            Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.black.withOpacity(0.7),
-                                  ],
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         )
                       : PengumumanPlaceholder.hero(),
                 ),
@@ -185,9 +190,10 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withOpacity(0.1),
                               blurRadius: 10,
-                              offset: const Offset(0, 2),
+                              offset: const Offset(0, 3),
+                              spreadRadius: 0,
                             ),
                           ],
                         ),
@@ -324,9 +330,10 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withOpacity(0.1),
                               blurRadius: 10,
-                              offset: const Offset(0, 2),
+                              offset: const Offset(0, 3),
+                              spreadRadius: 0,
                             ),
                           ],
                         ),
@@ -382,9 +389,10 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withOpacity(0.1),
                                 blurRadius: 10,
-                                offset: const Offset(0, 2),
+                                offset: const Offset(0, 3),
+                                spreadRadius: 0,
                               ),
                             ],
                           ),
@@ -506,9 +514,10 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withOpacity(0.1),
                                 blurRadius: 10,
-                                offset: const Offset(0, 2),
+                                offset: const Offset(0, 3),
+                                spreadRadius: 0,
                               ),
                             ],
                           ),
@@ -545,8 +554,9 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.push(
+                                  onPressed: () async {
+                                    // Navigate ke edit page dan tunggu result
+                                    final result = await Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
@@ -555,6 +565,13 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                                             ),
                                       ),
                                     );
+
+                                    // Jika result = true (dari edit success), invalidate detail provider
+                                    if (result == true && mounted) {
+                                      ref.invalidate(
+                                        pengumumanDetailProvider(pengumuman.id),
+                                      );
+                                    }
                                   },
                                   icon: const Icon(
                                     Icons.edit_rounded,
@@ -740,9 +757,10 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(ctx);
+              Navigator.pop(ctx); // Close dialog
 
               // Show loading
+              if (!context.mounted) return;
               showDialog(
                 context: context,
                 barrierDismissible: false,
@@ -750,126 +768,140 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                     const Center(child: CircularProgressIndicator()),
               );
 
-              await ref
-                  .read(pengumumanFormProvider.notifier)
-                  .deletePengumuman(id);
+              // CALL DELETE - No await needed since we check state after
+              ref.read(pengumumanFormProvider.notifier).deletePengumuman(id);
 
-              // Close loading
-              if (context.mounted) {
-                Navigator.pop(context);
-              }
+              // Wait a bit untuk ensure state updated
+              await Future.delayed(const Duration(milliseconds: 500));
 
+              if (!context.mounted) return;
+
+              // Close loading dialog
+              Navigator.pop(context);
+
+              // Read final state
               final formState = ref.read(pengumumanFormProvider);
-              if (context.mounted) {
-                if (formState.isSuccess) {
-                  // Show success modal
-                  await showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (BuildContext ctx) {
-                      return Dialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        elevation: 0,
-                        backgroundColor: Colors.transparent,
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: Colors.green.shade50,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.check_circle,
-                                  color: Colors.green.shade600,
-                                  size: 50,
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              Text(
-                                'Berhasil Dihapus!',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[800],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Pengumuman telah berhasil dihapus dari sistem.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                  height: 1.5,
-                                ),
-                              ),
-                              const SizedBox(height: 28),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    Navigator.of(ctx).pop();
-                                    Navigator.of(context).pop();
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                  child: const Text(
-                                    'OK',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                } else if (formState.errorMessage != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          const Icon(Icons.error, color: Colors.white),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(formState.errorMessage!)),
-                        ],
+
+              if (!context.mounted) return;
+
+              if (formState.isSuccess) {
+                // Invalidate providers SETELAH delete sukses
+                ref.invalidate(pengumumanListProvider);
+                ref.invalidate(allPengumumanProvider);
+                ref.invalidate(pengumumanAktifProvider);
+
+                // Reset form state
+                ref.read(pengumumanFormProvider.notifier).resetFormState();
+
+                // Show success modal
+                await showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext ctx) {
+                    return Dialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      backgroundColor: Colors.red,
-                      behavior: SnackBarBehavior.floating,
+                      elevation: 0,
+                      backgroundColor: Colors.transparent,
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.check_circle,
+                                color: Colors.green.shade600,
+                                size: 50,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(
+                              'Berhasil Dihapus!',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Pengumuman telah berhasil dihapus dari sistem.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(
+                                    ctx,
+                                  ).pop(); // Close success modal
+                                  Navigator.of(context).pop(); // Back to list
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 2,
+                                ),
+                                child: const Text(
+                                  'OK',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              } else if (formState.errorMessage != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.error, color: Colors.white),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(formState.errorMessage!)),
+                      ],
                     ),
-                  );
-                }
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(
@@ -886,6 +918,89 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showFullPhotoDialog(BuildContext context, String photoUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(0),
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Semi-transparent background
+              Container(color: Colors.black.withOpacity(0.9)),
+              // Close button
+              Positioned(
+                top: 20,
+                right: 20,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: AppColors.textPrimary,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+              // Image
+              InteractiveViewer(
+                panEnabled: true,
+                scaleEnabled: true,
+                minScale: 0.5,
+                maxScale: 4,
+                child: Image.network(
+                  photoUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image_rounded,
+                          size: 80,
+                          color: AppColors.textSecondary.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Gagal memuat foto',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.white.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                            : null,
+                        color: AppColors.primary,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -22,11 +22,43 @@ class SupabaseService {
   }
 
   Future<WargaModel> insertWarga(WargaModel warga) async {
+    // Insert warga
     final inserted = await _client
         .from('warga')
         .insert(warga.toJson())
         .select()
         .single();
+
+    final wargaId = inserted['id'] as int;
+
+    // Create user account with 'Aktif' status automatically
+    // Check if user already exists for this warga
+    final existingUser = await _client
+        .from('users')
+        .select('id')
+        .eq('id_warga', wargaId)
+        .maybeSingle();
+
+    if (existingUser == null) {
+      // Create new user with status 'Aktif'
+      await _client.from('users').insert({
+        'id_warga': wargaId,
+        'id_role': 1, // Default role (Warga)
+        'full_name': warga.namaLengkap,
+        'status': 'Aktif', // Set status to Aktif by default when created by RT
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } else {
+      // If user already exists, update status to Aktif
+      await _client
+          .from('users')
+          .update({
+            'status': 'Aktif',
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id_warga', wargaId);
+    }
+
     return WargaModel.fromJson(Map<String, dynamic>.from(inserted as Map));
   }
 

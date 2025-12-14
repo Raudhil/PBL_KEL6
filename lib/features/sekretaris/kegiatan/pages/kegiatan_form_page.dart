@@ -1,11 +1,15 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../data/models/kegiatan_model.dart';
 import '../../../../core/providers/kegiatan_provider.dart';
 
 class KegiatanFormPage extends ConsumerStatefulWidget {
-  final KegiatanModel? kegiatan; // null = create, not null = edit
+  final KegiatanModel? kegiatan;
 
   const KegiatanFormPage({super.key, this.kegiatan});
 
@@ -20,12 +24,17 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
   final _lokasiController = TextEditingController();
   final _penyelenggaraController = TextEditingController();
   final _kuotaController = TextEditingController();
-  final _fotoUrlController = TextEditingController();
 
   DateTime? _tanggalMulai;
   DateTime? _tanggalSelesai;
   KategoriKegiatan _selectedKategori = KategoriKegiatan.sosial;
   StatusKegiatan _selectedStatus = StatusKegiatan.akanDatang;
+
+  // Image picker variables
+  final _imagePicker = ImagePicker();
+  XFile? _selectedImageFile;
+  Uint8List? _selectedImageBytes;
+  String? _uploadedImageUrl;
 
   bool get isEditMode => widget.kegiatan != null;
 
@@ -44,11 +53,13 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
     _lokasiController.text = kegiatan.lokasi ?? '';
     _penyelenggaraController.text = kegiatan.penyelenggara;
     _kuotaController.text = kegiatan.kuotaPeserta?.toString() ?? '';
-    _fotoUrlController.text = kegiatan.fotoUrl ?? '';
     _tanggalMulai = kegiatan.tanggalMulai;
     _tanggalSelesai = kegiatan.tanggalSelesai;
     _selectedKategori = kegiatan.kategori;
     _selectedStatus = kegiatan.status;
+    if (kegiatan.fotoUrl != null) {
+      _uploadedImageUrl = kegiatan.fotoUrl;
+    }
   }
 
   @override
@@ -58,7 +69,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
     _lokasiController.dispose();
     _penyelenggaraController.dispose();
     _kuotaController.dispose();
-    _fotoUrlController.dispose();
     super.dispose();
   }
 
@@ -110,8 +120,8 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context); // Close dialog
-                  Navigator.pop(context); // Close form page
-                  // Data akan otomatis ter-update via realtime stream
+                  // Return true untuk trigger refresh di detail page
+                  Navigator.pop(context, true);
                 },
                 style: ElevatedButton.styleFrom(
                   foregroundColor: AppColors.white,
@@ -131,10 +141,286 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
     );
   }
 
+  void _showImageSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Pilih Sumber Foto'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              title: const Text('Kamera'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.photo_library,
+                color: AppColors.primary,
+              ),
+              title: const Text('Galeri'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) return;
+
+      final bytes = await pickedFile.readAsBytes();
+      _showImagePreview(pickedFile, bytes);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengambil foto: $e'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
+  }
+
+  void _showImagePreview(XFile imageFile, Uint8List imageBytes) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: const Text(
+                'Preview Foto',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Container(
+              constraints: const BoxConstraints(maxHeight: 400),
+              child: Image.memory(imageBytes, fit: BoxFit.contain),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showImageSourceDialog();
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Ambil Ulang'),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _selectedImageFile = imageFile;
+                        _selectedImageBytes = imageBytes;
+                        _uploadedImageUrl = null;
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: const Icon(Icons.check),
+                    label: const Text('Terima'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImagePickerSection() {
+    final hasImage =
+        _selectedImageFile != null ||
+        _selectedImageBytes != null ||
+        _uploadedImageUrl != null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withOpacity(0.15),
+                      AppColors.primary.withOpacity(0.08),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.image_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Foto Kegiatan (Opsional)',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Image Picker Box
+          GestureDetector(
+            onTap: _showImageSourceDialog,
+            child: Container(
+              width: double.infinity,
+              height: 180,
+              decoration: BoxDecoration(
+                color: AppColors.greyLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: hasImage ? AppColors.primary : AppColors.greyLight,
+                  width: hasImage ? 2 : 1,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: _selectedImageBytes != null
+                    ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
+                    : _selectedImageFile != null && !kIsWeb
+                    ? Image.file(
+                        File(_selectedImageFile!.path),
+                        fit: BoxFit.cover,
+                      )
+                    : _uploadedImageUrl != null
+                    ? Image.network(
+                        _uploadedImageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.broken_image_rounded,
+                                  size: 48,
+                                  color: AppColors.textSecondary.withOpacity(
+                                    0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Gagal memuat foto',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      )
+                    : Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.cloud_upload_outlined,
+                              size: 48,
+                              color: AppColors.primary.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Tap untuk upload foto',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'dari kamera atau galeri',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Action button
+          Center(
+            child: TextButton.icon(
+              onPressed: _showImageSourceDialog,
+              icon: Icon(hasImage ? Icons.edit : Icons.add_a_photo, size: 18),
+              label: Text(hasImage ? 'Ganti Foto' : 'Tambah Foto'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen<KegiatanFormState>(kegiatanFormProvider, (previous, next) {
       if (next.isSuccess) {
+        // Invalidate providers untuk real-time update
+        ref.invalidate(kegiatanStreamProvider);
+        ref.invalidate(kegiatanStreamByUserProvider);
+
         _showSuccessDialog(
           context,
           isEditMode ? 'Edit Berhasil' : 'Tambah Berhasil',
@@ -201,7 +487,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   Row(
                     children: [
                       Container(
@@ -234,7 +519,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Judul
                   _buildTextField(
                     controller: _judulController,
                     label: 'Judul Kegiatan',
@@ -252,7 +536,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Deskripsi
                   _buildTextAreaField(
                     controller: _deskripsiController,
                     label: 'Deskripsi',
@@ -269,7 +552,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Kategori
                   _buildDropdown<KategoriKegiatan>(
                     label: 'Kategori',
                     value: _selectedKategori,
@@ -284,7 +566,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Status
                   _buildDropdown<StatusKegiatan>(
                     label: 'Status',
                     value: _selectedStatus,
@@ -324,7 +605,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   Row(
                     children: [
                       Container(
@@ -357,7 +637,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Tanggal Mulai
                   _buildDateField(
                     label: 'Tanggal Mulai',
                     value: _tanggalMulai,
@@ -366,7 +645,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Tanggal Selesai
                   _buildDateField(
                     label: 'Tanggal Selesai (Opsional)',
                     value: _tanggalSelesai,
@@ -375,7 +653,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Lokasi
                   _buildTextField(
                     controller: _lokasiController,
                     label: 'Lokasi',
@@ -417,7 +694,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   Row(
                     children: [
                       Container(
@@ -450,7 +726,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Penyelenggara
                   _buildTextField(
                     controller: _penyelenggaraController,
                     label: 'Penyelenggara',
@@ -468,7 +743,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Kuota Peserta
                   _buildTextField(
                     controller: _kuotaController,
                     label: 'Kuota Peserta (Opsional)',
@@ -494,305 +768,13 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
 
             const SizedBox(height: 24),
 
-            // Foto section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.primary.withOpacity(0.2),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary.withOpacity(0.15),
-                              AppColors.primary.withOpacity(0.08),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.image_rounded,
-                          color: AppColors.primary,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Foto Kegiatan',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // URL Field
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextFormField(
-                      controller: _fotoUrlController,
-                      decoration: InputDecoration(
-                        labelText: 'URL Foto (Opsional)',
-                        hintText: 'https://example.com/image.jpg',
-                        hintStyle: TextStyle(
-                          color: AppColors.textSecondary.withOpacity(0.5),
-                          fontSize: 14,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.link_rounded,
-                          color: AppColors.primary,
-                        ),
-                        suffixIcon:
-                            _fotoUrlController.text.isNotEmpty &&
-                                _isValidUrl(_fotoUrlController.text)
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.preview_rounded,
-                                  color: AppColors.primary,
-                                ),
-                                tooltip: 'Preview Foto',
-                                onPressed: () {
-                                  _showPhotoPreview(
-                                    context,
-                                    _fotoUrlController.text,
-                                  );
-                                },
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: AppColors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: AppColors.greyLight.withOpacity(0.5),
-                            width: 1,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppColors.primary,
-                            width: 2,
-                          ),
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppColors.danger,
-                            width: 1.5,
-                          ),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppColors.danger,
-                            width: 2,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                      ),
-                      keyboardType: TextInputType.url,
-                      textInputAction: TextInputAction.done,
-                      maxLines: 2,
-                      validator: (value) {
-                        if (value != null &&
-                            value.isNotEmpty &&
-                            !_isValidUrl(value)) {
-                          return 'URL tidak valid';
-                        }
-                        return null;
-                      },
-                      onChanged: (value) {
-                        setState(() {});
-                      },
-                    ),
-                  ),
-
-                  // Helper text
-                  if (_fotoUrlController.text.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8, left: 4),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Cara upload gambar:',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '1. Buka postimages.org di browser',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary.withOpacity(0.8),
-                            ),
-                          ),
-                          Text(
-                            '2. Pilih gambar dari HP/komputer Anda',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary.withOpacity(0.8),
-                            ),
-                          ),
-                          Text(
-                            '3. Klik Upload, tunggu selesai',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary.withOpacity(0.8),
-                            ),
-                          ),
-                          Text(
-                            '4. Copy "Direct link" lalu paste di sini',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary.withOpacity(0.8),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  // Preview mini
-                  if (_fotoUrlController.text.isNotEmpty &&
-                      _isValidUrl(_fotoUrlController.text))
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Container(
-                        height: 120,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: AppColors.greyLight,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.3),
-                          ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Image.network(
-                              _convertToDirectImageUrl(_fotoUrlController.text),
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.broken_image_rounded,
-                                        size: 40,
-                                        color: AppColors.textSecondary
-                                            .withOpacity(0.5),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Gagal memuat gambar',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        value:
-                                            loadingProgress
-                                                    .expectedTotalBytes !=
-                                                null
-                                            ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  loadingProgress
-                                                      .expectedTotalBytes!
-                                            : null,
-                                        color: AppColors.primary,
-                                      ),
-                                    );
-                                  },
-                            ),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.6),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'Preview',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            // Photo section - DIGANTI dengan image picker
+            _buildImagePickerSection(),
 
             const SizedBox(height: 40),
 
             // Submit button
             if (isEditMode) ...[
-              // Edit button
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -830,7 +812,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
               ),
               const SizedBox(height: 12),
 
-              // Delete button
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -838,7 +819,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   onPressed: formState.isLoading
                       ? null
                       : () {
-                          // TODO: Implement delete functionality
                           showDialog(
                             context: context,
                             builder: (context) => AlertDialog(
@@ -854,7 +834,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                                 TextButton(
                                   onPressed: () {
                                     Navigator.pop(context);
-                                    // TODO: Call delete API
                                     Navigator.pop(context);
                                   },
                                   style: TextButton.styleFrom(
@@ -881,7 +860,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                 ),
               ),
             ] else
-              // Create button
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -918,17 +896,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
             const SizedBox(height: 20),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
       ),
     );
   }
@@ -1082,7 +1049,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label dengan icon
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
@@ -1100,7 +1066,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
               ],
             ),
           ),
-          // Text field
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: TextFormField(
@@ -1278,166 +1243,8 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
     }
   }
 
-  // Helper method untuk validasi URL yang lebih fleksibel
-  bool _isValidUrl(String url) {
-    if (url.isEmpty) return false;
-
-    try {
-      final uri = Uri.parse(url);
-
-      // Check if has valid scheme (http or https)
-      if (!uri.hasScheme || (uri.scheme != 'http' && uri.scheme != 'https')) {
-        return false;
-      }
-
-      // Check if has host
-      if (!uri.hasAuthority || uri.host.isEmpty) {
-        return false;
-      }
-
-      // Validasi fleksibel: terima semua URL yang valid
-      // dengan http/https dan memiliki host yang valid
-      // Ini akan menerima link dari Google Drive, Dropbox, OneDrive, dll
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // Konversi URL ke direct image URL
-  // Konversi URL ke format yang bisa ditampilkan
-  String _convertToDirectImageUrl(String url) {
-    try {
-      // Google Drive - konversi sharing link ke direct image
-      if (url.contains('drive.google.com')) {
-        // Extract file ID from various Google Drive URL formats
-        RegExp regExp = RegExp(
-          r'(?:drive\.google\.com/(?:file/d/|open\?id=|uc\?id=))([a-zA-Z0-9_-]+)',
-        );
-        final match = regExp.firstMatch(url);
-        if (match != null && match.groupCount >= 1) {
-          final fileId = match.group(1);
-          // Use thumbnail endpoint with max size
-          return 'https://lh3.googleusercontent.com/d/$fileId';
-        }
-      }
-
-      // Dropbox - konversi ke raw link
-      if (url.contains('dropbox.com')) {
-        return url
-            .replaceAll('www.dropbox.com', 'dl.dropboxusercontent.com')
-            .replaceAll('?dl=0', '')
-            .replaceAll('?dl=1', '');
-      }
-
-      // Imgur - pastikan menggunakan i.imgur.com
-      if (url.contains('imgur.com') && !url.contains('i.imgur.com')) {
-        final imgurId = RegExp(r'imgur\.com/([a-zA-Z0-9]+)').firstMatch(url);
-        if (imgurId != null) {
-          final id = imgurId.group(1);
-          return 'https://i.imgur.com/$id.jpg';
-        }
-      }
-
-      // OneDrive - tambahkan parameter download
-      if (url.contains('1drv.ms') || url.contains('onedrive')) {
-        if (!url.contains('download=1')) {
-          return url.contains('?') ? '$url&download=1' : '$url?download=1';
-        }
-      }
-
-      // URL lainnya return as is
-      return url;
-    } catch (e) {
-      return url;
-    }
-  }
-
-  // Show photo preview in dialog
-  void _showPhotoPreview(BuildContext context, String photoUrl) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Close button
-            Align(
-              alignment: Alignment.topRight,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            // Image preview
-            Container(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.7,
-              ),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: AppColors.white,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Image.network(
-                _convertToDirectImageUrl(photoUrl),
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) {
-                  return Padding(
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.broken_image_rounded,
-                          size: 64,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Gagal memuat gambar',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Periksa kembali URL foto',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary.withOpacity(0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Padding(
-                    padding: const EdgeInsets.all(40),
-                    child: CircularProgressIndicator(
-                      value: loadingProgress.expectedTotalBytes != null
-                          ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                          : null,
-                      color: AppColors.primary,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // Validasi tanggal mulai
       if (_tanggalMulai == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1448,7 +1255,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
         return;
       }
 
-      // Validasi tanggal selesai tidak boleh lebih awal dari tanggal mulai
       if (_tanggalSelesai != null &&
           _tanggalSelesai!.isBefore(_tanggalMulai!)) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1462,7 +1268,6 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
         return;
       }
 
-      // Validasi kuota peserta
       final kuota = _kuotaController.text.isEmpty
           ? null
           : int.tryParse(_kuotaController.text);
@@ -1487,16 +1292,38 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
         return;
       }
 
-      // Validasi foto URL jika diisi
-      if (_fotoUrlController.text.isNotEmpty &&
-          !_isValidUrl(_fotoUrlController.text)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('URL foto tidak valid'),
-            backgroundColor: AppColors.danger,
-          ),
-        );
-        return;
+      String? fotoUrl;
+      if (_selectedImageBytes != null) {
+        // Upload image to storage
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Mengupload foto...'),
+              duration: Duration(seconds: 1),
+            ),
+          );
+
+          final kegiatanId =
+              widget.kegiatan?.id ??
+              DateTime.now().millisecondsSinceEpoch.toString();
+
+          fotoUrl = await ref
+              .read(kegiatanServiceProvider)
+              .uploadFotoKegiatan(_selectedImageBytes!, kegiatanId);
+        } catch (uploadError) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal upload foto: $uploadError'),
+              backgroundColor: AppColors.danger,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+      } else if (_uploadedImageUrl != null) {
+        // Gunakan URL yang sudah terupload
+        fotoUrl = _uploadedImageUrl;
       }
 
       if (isEditMode) {
@@ -1517,9 +1344,7 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
               kategori: _selectedKategori,
               status: _selectedStatus,
               kuotaPeserta: kuota,
-              fotoUrl: _fotoUrlController.text.trim().isEmpty
-                  ? null
-                  : _fotoUrlController.text.trim(),
+              fotoUrl: fotoUrl,
             );
       } else {
         ref
@@ -1538,13 +1363,10 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
               kategori: _selectedKategori,
               status: _selectedStatus,
               kuotaPeserta: kuota,
-              fotoUrl: _fotoUrlController.text.trim().isEmpty
-                  ? null
-                  : _fotoUrlController.text.trim(),
+              fotoUrl: fotoUrl,
             );
       }
     } else {
-      // Show validation error message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Mohon lengkapi semua field yang wajib diisi'),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_colors.dart';
 import '../../../data/models/produk_marketplace_model.dart';
+import '../../../core/providers/marketplace_provider.dart';
 import '../pages/marketplace/product_detail_page.dart';
 
 class ProductCard extends ConsumerWidget {
@@ -11,6 +12,8 @@ class ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch average rating for this product
+    final avgRatingAsync = ref.watch(averageRatingProvider(product.id));
     return GestureDetector(
       onTap: () {
         Navigator.of(context, rootNavigator: true).push(
@@ -101,12 +104,30 @@ class ProductCard extends ConsumerWidget {
                             color: AppColors.yellowGold,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            '0.0',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                          avgRatingAsync.when(
+                            data: (rating) => Text(
+                              rating.toStringAsFixed(1),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            loading: () => const Text(
+                              '0.0',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            error: (_, __) => const Text(
+                              '0.0',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
                         ],
