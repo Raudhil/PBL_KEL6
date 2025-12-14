@@ -100,6 +100,9 @@ class _IuranFormPageState extends ConsumerState<IuranFormPage> {
             .updateIuran(widget.iuran!.id!, newIuran);
       }
 
+      // Invalidate cache untuk refresh data
+      ref.invalidate(iuranControllerProvider);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

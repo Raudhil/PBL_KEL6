@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../data/models/iuran_model.dart';
 import '../../../data/models/iuran_warga_model.dart';
+import '../../bendahara/controllers/iuran_controllers.dart'; // TAMBAH IMPORT INI
 
 /// State untuk manajemen data iuran warga
 class IuranWargaState {
@@ -348,5 +349,22 @@ class IuranWargaController extends StateNotifier<IuranWargaState> {
 
 final iuranWargaProvider =
     StateNotifierProvider<IuranWargaController, IuranWargaState>((ref) {
-      return IuranWargaController();
+      final controller = IuranWargaController();
+
+      // Auto-refresh ketika iuranControllerProvider berubah
+      ref.listen(iuranControllerProvider, (previous, next) {
+        // Jika iuran data berubah, refresh iuran warga
+        controller.fetchData();
+      });
+
+      return controller;
     });
+
+// Listener untuk auto-refresh saat iuran berubah
+final iuranWargaRefreshListener = FutureProvider<void>((ref) async {
+  // Watch iuranControllerProvider
+  ref.watch(iuranControllerProvider);
+
+  // Refresh iuran warga data
+  await ref.read(iuranWargaProvider.notifier).fetchData();
+});
