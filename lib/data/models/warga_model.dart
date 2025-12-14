@@ -66,6 +66,7 @@ class WargaModel {
       'tanggal_lahir': tanggalLahir.toIso8601String(),
       'nomor_hp': nomorHp,
       'foto_ktp': fotoKtp,
+      'alamat': alamat,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       if (userStatus != null) 'user_status': userStatus,

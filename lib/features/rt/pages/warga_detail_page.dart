@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../data/models/warga_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../core/widgets/custom_top_bar.dart';
+import 'edit_warga_page.dart';
 
 class WargaDetailPage extends StatelessWidget {
   final WargaModel warga;
@@ -58,10 +59,9 @@ class WargaDetailPage extends StatelessWidget {
             padding: const EdgeInsets.only(right: 12),
             child: OutlinedButton.icon(
               onPressed: () {
-                // TODO: Navigate to edit page
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Fitur edit akan segera ditambahkan'),
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => EditWargaPage(warga: warga),
                   ),
                 );
               },

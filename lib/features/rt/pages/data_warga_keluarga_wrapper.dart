@@ -75,7 +75,6 @@ class _DataWargaKeluargaWrapperState
         appBar: CustomTopBar(
           title: 'Data Warga & Keluarga',
           showBackButton: true,
-          showNotification: false,
           onBack: () {
             if (context.canPop()) {
               context.pop();
