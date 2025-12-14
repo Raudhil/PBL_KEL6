@@ -773,12 +773,39 @@ class MarketplaceService {
           .select('rating')
           .eq('id_produk', idProduk);
 
-      if ((response as List).isEmpty) return 0.0;
+      print(
+        '🔍 calculateAverageRating - Response for produk $idProduk: $response',
+      );
 
-      final ratings = response.map((e) => e['rating'] as int).toList();
+      if ((response as List).isEmpty) {
+        print(
+          '⚠️ calculateAverageRating - No reviews found for produk $idProduk',
+        );
+        return 0.0;
+      }
+
+      // Parse rating - handle both String and int
+      final ratings = response.map((e) {
+        final ratingValue = e['rating'];
+        print(
+          '🔍 calculateAverageRating - Processing rating: $ratingValue (type: ${ratingValue.runtimeType})',
+        );
+        if (ratingValue is String) {
+          return int.parse(ratingValue);
+        } else if (ratingValue is int) {
+          return ratingValue;
+        }
+        return 0;
+      }).toList();
+
       final sum = ratings.fold<int>(0, (prev, curr) => prev + curr);
-      return sum / ratings.length;
+      final average = sum / ratings.length;
+      print(
+        '✅ calculateAverageRating - Average rating: $average (from ${ratings.length} reviews)',
+      );
+      return average;
     } catch (e) {
+      print('Error calculate average rating: $e');
       return 0.0;
     }
   }
