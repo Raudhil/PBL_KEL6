@@ -176,7 +176,11 @@ class _PengumumanPageState extends ConsumerState<PengumumanPage> {
                                             color: Colors.grey[600],
                                           ),
                                         ),
-                                        if (pengumuman.updatedAt != null)
+                                        // Show "Diedit" only if actually edited (updatedAt > createdAt)
+                                        if (pengumuman.updatedAt != null &&
+                                            pengumuman.updatedAt!.isAfter(
+                                              pengumuman.createdAt,
+                                            ))
                                           Container(
                                             margin: const EdgeInsets.only(
                                               top: 2,
