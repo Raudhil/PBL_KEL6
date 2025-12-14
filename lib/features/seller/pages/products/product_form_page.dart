@@ -57,7 +57,8 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
       _priceController.text = widget.product!.harga.toInt().toString();
       _stockController.text = widget.product!.stok.toString();
       _descController.text = widget.product!.deskripsi ?? '';
-      _selectedCategory = 'Lainnya'; // Default category for existing products
+      // Ambil kategori dari produk, default 'Lainnya' jika null
+      _selectedCategory = widget.product!.kategori ?? 'Lainnya';
       _selectedImagePath =
           widget.product!.fotoProduk ?? _categoryImages[_selectedCategory]!;
       // If product has uploaded image (starts with http), use it
@@ -455,6 +456,8 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   }
 
   Widget _buildCategoryDropdown() {
+    final kategoriesAsync = ref.watch(kategoriListProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -467,25 +470,78 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
           ),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedCategory,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppColors.white,
-            border: OutlineInputBorder(
+        kategoriesAsync.when(
+          data: (categories) {
+            // Fallback jika list kosong
+            final finalCategories = categories.isEmpty
+                ? ['Lainnya']
+                : categories;
+
+            // Pastikan selectedCategory ada di list
+            if (!finalCategories.contains(_selectedCategory)) {
+              _selectedCategory = finalCategories.first;
+            }
+
+            return DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: AppColors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.greyLight),
+                ),
+              ),
+              items: finalCategories
+                  .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedCategory = value!;
+                  _selectedImagePath =
+                      _categoryImages[_selectedCategory] ?? _selectedImagePath;
+                });
+              },
+            );
+          },
+          loading: () => Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.white,
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.greyLight),
+              border: Border.all(color: AppColors.greyLight),
+            ),
+            child: const Center(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
           ),
-          items: ['Kentang', 'Wortel', 'Tomat', 'Lainnya']
-              .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
-              .toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedCategory = value!;
-              _selectedImagePath =
-                  _categoryImages[_selectedCategory] ?? _selectedImagePath;
-            });
+          error: (error, stack) {
+            // Fallback ke hardcoded jika error
+            return DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: AppColors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.greyLight),
+                ),
+              ),
+              items: ['Kentang', 'Wortel', 'Tomat', 'Lainnya']
+                  .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedCategory = value!;
+                  _selectedImagePath =
+                      _categoryImages[_selectedCategory] ?? _selectedImagePath;
+                });
+              },
+            );
           },
         ),
       ],
@@ -547,6 +603,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
           'nama': _nameController.text.trim(),
           'harga': price,
           'stok': stock,
+          'kategori': _selectedCategory,
           'deskripsi': _descController.text.trim(),
           'foto_produk': imageUrl,
         };
@@ -566,6 +623,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
           id: 0,
           idToko: widget.storeId,
           nama: _nameController.text.trim(),
+          kategori: _selectedCategory,
           deskripsi: _descController.text.trim(),
           harga: price,
           fotoProduk: imageUrl,
