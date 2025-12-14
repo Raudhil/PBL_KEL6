@@ -9,6 +9,7 @@ import '../../widgets/transaction_list.dart';
 import '../keuangan_warga/transaction_form.dart';
 
 final _selectedMonthProvider = StateProvider<DateTime>((ref) => DateTime.now());
+final _transactionFilterProvider = StateProvider<String>((ref) => 'semua');
 
 class KeuanganPage extends ConsumerWidget {
   const KeuanganPage({super.key});
@@ -16,6 +17,7 @@ class KeuanganPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedMonth = ref.watch(_selectedMonthProvider);
+    final transactionFilter = ref.watch(_transactionFilterProvider);
     final keuanganState = ref.watch(keuanganControllerProvider);
 
     return Scaffold(
@@ -39,6 +41,38 @@ class KeuanganPage extends ConsumerWidget {
       ),
       body: Column(
         children: [
+          // Filter Tab Bar
+          Container(
+            color: Colors.white,
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    _buildFilterTab(
+                      ref,
+                      label: 'Semua',
+                      value: 'semua',
+                      isSelected: transactionFilter == 'semua',
+                    ),
+                    _buildFilterTab(
+                      ref,
+                      label: 'Pemasukan',
+                      value: 'pemasukan',
+                      isSelected: transactionFilter == 'pemasukan',
+                    ),
+                    _buildFilterTab(
+                      ref,
+                      label: 'Pengeluaran',
+                      value: 'pengeluaran',
+                      isSelected: transactionFilter == 'pengeluaran',
+                    ),
+                  ],
+                ),
+                Container(height: 1, color: Colors.grey[300]),
+              ],
+            ),
+          ),
+
           // Month Selector Card
           MonthSelectorCard(
             selectedMonth: selectedMonth,
@@ -115,16 +149,29 @@ class KeuanganPage extends ConsumerWidget {
                           error: e.toString(),
                         ),
                         data: (allTransactions) {
-                          final filteredTransactions =
-                              allTransactions.where((tx) {
-                                if (tx.createdAt == null) return false;
-                                return tx.createdAt!.year ==
-                                        selectedMonth.year &&
-                                    tx.createdAt!.month == selectedMonth.month;
-                              }).toList()..sort(
-                                (a, b) => (b.createdAt ?? DateTime.now())
-                                    .compareTo(a.createdAt ?? DateTime.now()),
-                              );
+                          var filteredTransactions = allTransactions.where((
+                            tx,
+                          ) {
+                            if (tx.createdAt == null) return false;
+                            return tx.createdAt!.year == selectedMonth.year &&
+                                tx.createdAt!.month == selectedMonth.month;
+                          }).toList();
+
+                          // Apply type filter
+                          if (transactionFilter != 'semua') {
+                            filteredTransactions = filteredTransactions.where((
+                              tx,
+                            ) {
+                              final type = tx.type?.trim().toLowerCase();
+                              return type == transactionFilter;
+                            }).toList();
+                          }
+
+                          filteredTransactions.sort(
+                            (a, b) => (b.createdAt ?? DateTime.now()).compareTo(
+                              a.createdAt ?? DateTime.now(),
+                            ),
+                          );
 
                           return TransactionListSection(
                             filteredTransactions: filteredTransactions,
@@ -138,6 +185,40 @@ class KeuanganPage extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterTab(
+    WidgetRef ref, {
+    required String label,
+    required String value,
+    required bool isSelected,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          ref.read(_transactionFilterProvider.notifier).state = value;
+        },
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? AppColors.primary : Colors.grey[600],
+                ),
+              ),
+            ),
+            if (isSelected)
+              Container(height: 3, color: AppColors.primary)
+            else
+              Container(height: 3, color: Colors.transparent),
+          ],
+        ),
       ),
     );
   }
