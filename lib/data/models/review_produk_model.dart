@@ -25,11 +25,21 @@ class ReviewProdukModel {
   });
 
   factory ReviewProdukModel.fromJson(Map<String, dynamic> json) {
+    // Parse rating - bisa berupa String atau int dari database
+    int ratingValue;
+    if (json['rating'] is String) {
+      ratingValue = int.parse(json['rating'] as String);
+    } else if (json['rating'] is int) {
+      ratingValue = json['rating'] as int;
+    } else {
+      ratingValue = 0; // default
+    }
+
     return ReviewProdukModel(
       id: json['id'] as int,
       idProduk: json['id_produk'] as int,
       idTransaksi: json['id_transaksi'] as int,
-      rating: json['rating'] as int,
+      rating: ratingValue,
       komentar: json['komentar'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
