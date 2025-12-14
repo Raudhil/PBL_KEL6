@@ -50,31 +50,49 @@ class AuthController extends StateNotifier<bool> {
           .eq('id_warga', idWarga)
           .maybeSingle();
 
-      if (existingUser != null) {
-        throw Exception("NIK ini sudah terdaftar di akun lain");
-      }
-
-      // 4. Buat akun Auth via AuthService: service hanya membuat auth user
+      // 4. Buat akun Auth via AuthService
       final authId = await _service.register(email: email, password: password);
 
-      // 5. Insert ke tabel USERS dengan id_warga dari warga
-      final insertRes = await _supabase
-          .from('users')
-          .insert({
-            'id_auth': authId,
-            'id_warga': idWarga,
-            'full_name': nama,
-            'status': 'Tidak Aktif', // optional, default-nya 'Tidak Aktif'
-          })
-          .select()
-          .maybeSingle();
+      if (existingUser != null) {
+        // User record sudah ada (dibuat oleh RT), update dengan id_auth
+        final updateRes = await _supabase
+            .from('users')
+            .update({
+              'id_auth': authId,
+              'full_name': nama,
+              // Status tetap seperti yang sudah di-set (biasanya 'Aktif' dari RT)
+            })
+            .eq('id_warga', idWarga)
+            .select()
+            .maybeSingle();
 
-      if (insertRes == null) {
-        // Jika insert gagal setelah Auth dibuat, sign out dan informasikan
-        try {
-          await _supabase.auth.signOut();
-        } catch (_) {}
-        throw Exception("Gagal menyimpan data user ke tabel users");
+        if (updateRes == null) {
+          // Jika update gagal, sign out dan informasikan
+          try {
+            await _supabase.auth.signOut();
+          } catch (_) {}
+          throw Exception("Gagal mengupdate data user");
+        }
+      } else {
+        // User record belum ada, create new
+        final insertRes = await _supabase
+            .from('users')
+            .insert({
+              'id_auth': authId,
+              'id_warga': idWarga,
+              'full_name': nama,
+              'status': 'Aktif', // Status Aktif saat registrasi
+            })
+            .select()
+            .maybeSingle();
+
+        if (insertRes == null) {
+          // Jika insert gagal, sign out dan informasikan
+          try {
+            await _supabase.auth.signOut();
+          } catch (_) {}
+          throw Exception("Gagal menyimpan data user ke tabel users");
+        }
       }
 
       // IMPORTANT: Ensure the client is NOT logged in after registration.

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_colors.dart';
 import '../../../data/models/warga_model.dart';
 import '../../../core/providers/warga_provider.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/widgets/app_modal_helper.dart';
 
 class EditWargaPage extends ConsumerStatefulWidget {
   final WargaModel warga;
@@ -175,31 +177,121 @@ class _EditWargaPageState extends ConsumerState<EditWargaPage> {
             .read(wargaNotifierProvider.notifier)
             .updateWarga(updatedWarga);
 
+        // Force refresh provider untuk update realtime
+        ref.invalidate(wargaNotifierProvider);
+
         setState(() {
           _isLoading = false;
         });
 
         if (mounted) {
           // Show success modal
-          _showSuccessDialog(
-            'Warga Berhasil Diperbarui',
-            'Data warga telah berhasil diperbarui',
+          await AppModalHelper.showSuccess(
+            context,
+            title: 'Warga Berhasil Diperbarui',
+            message: 'Data warga telah berhasil diperbarui',
           );
+
+          // Navigate back after modal closed
+          if (mounted) {
+            Navigator.of(
+              context,
+            ).pop(true); // Return true untuk indicate success
+          }
         }
       } catch (e) {
         setState(() {
           _isLoading = false;
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Gagal memperbarui: $e'),
-              backgroundColor: AppColors.danger,
-            ),
+          await AppModalHelper.showError(
+            context,
+            title: 'Gagal Memperbarui Data',
+            message:
+                'Terjadi kesalahan saat memperbarui data warga. Silakan coba lagi.',
+            error: e, // Tampilkan detail jika debug mode ON
           );
         }
+        AppConfig.logError('Update Warga', e);
       }
     }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.error_outline,
+                    color: AppColors.danger,
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.danger,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showSuccessDialog(String title, String message) {

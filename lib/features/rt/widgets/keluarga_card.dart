@@ -58,7 +58,7 @@ class _KeluargaCardState extends State<KeluargaCard> {
             children: [
               // Header - KK, Kepala Keluarga, Jumlah Anggota
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   children: [
                     Row(
@@ -66,8 +66,8 @@ class _KeluargaCardState extends State<KeluargaCard> {
                       children: [
                         // Icon Keluarga
                         Container(
-                          width: 50,
-                          height: 50,
+                          width: 48,
+                          height: 48,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -82,7 +82,7 @@ class _KeluargaCardState extends State<KeluargaCard> {
                           child: const Icon(
                             Icons.home_rounded,
                             color: Colors.white,
-                            size: 26,
+                            size: 24,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -92,23 +92,49 @@ class _KeluargaCardState extends State<KeluargaCard> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Label "No. KK"
                               Text(
-                                'KK${widget.idKk.toString().padLeft(9, '0')}',
+                                'No. KK',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              // Nomor KK
+                              Text(
+                                widget.kepalaKeluarga.nomorKk ??
+                                    'KK${widget.idKk.toString().padLeft(9, '0')}',
                                 style: const TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.textPrimary,
+                                  letterSpacing: 0.2,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 6),
+                              // Label "Kepala Keluarga"
                               Text(
-                                widget.kepalaKeluarga.namaLengkap,
+                                'Kepala Keluarga',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 10,
                                   color: AppColors.textSecondary,
                                   fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              // Nama Kepala Keluarga
+                              Text(
+                                widget.kepalaKeluarga.namaLengkap,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -117,18 +143,20 @@ class _KeluargaCardState extends State<KeluargaCard> {
                           ),
                         ),
 
+                        const SizedBox(width: 8),
+
                         // Jumlah Anggota + Dropdown di pojok kanan atas
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                                horizontal: 9,
+                                vertical: 5,
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: AppColors.primary.withOpacity(0.3),
                                   width: 1,
@@ -139,14 +167,14 @@ class _KeluargaCardState extends State<KeluargaCard> {
                                 children: [
                                   Icon(
                                     Icons.people,
-                                    size: 12,
+                                    size: 14,
                                     color: AppColors.primary,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '${widget.members.length} Anggota',
+                                    '${widget.members.length}',
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.primary,
                                     ),
@@ -154,16 +182,13 @@ class _KeluargaCardState extends State<KeluargaCard> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             // Dropdown Icon
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
+                              padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: AppColors.primary.withOpacity(0.2),
                                   width: 1,
@@ -174,7 +199,7 @@ class _KeluargaCardState extends State<KeluargaCard> {
                                     ? Icons.keyboard_arrow_up
                                     : Icons.keyboard_arrow_down,
                                 color: AppColors.primary,
-                                size: 20,
+                                size: 18,
                               ),
                             ),
                           ],
@@ -215,6 +240,7 @@ class _KeluargaCardState extends State<KeluargaCard> {
                                   MaterialPageRoute(
                                     builder: (_) => KeluargaDetailPage(
                                       idKk: widget.idKk,
+                                      nomorKk: widget.kepalaKeluarga.nomorKk,
                                       kepalaKeluarga: widget.kepalaKeluarga,
                                       members: widget.members,
                                     ),
@@ -336,7 +362,7 @@ class _KeluargaCardState extends State<KeluargaCard> {
       builder: (context) => AlertDialog(
         title: const Text('Hapus Keluarga'),
         content: Text(
-          'Apakah Anda yakin ingin menghapus keluarga KK${widget.idKk.toString().padLeft(9, '0')}?',
+          'Apakah Anda yakin ingin menghapus keluarga ${widget.kepalaKeluarga.nomorKk ?? 'KK${widget.idKk.toString().padLeft(9, '0')}'}?',
         ),
         actions: [
           TextButton(

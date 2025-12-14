@@ -7,7 +7,15 @@ class SupabaseService {
   Future<List<WargaModel>> fetchWarga() async {
     final data = await _client.from('warga').select('''
       *,
-      users!id_warga(status)
+      users!id_warga(status),
+      kk!inner(
+        id,
+        nomor,
+        alamat!inner(
+          id,
+          alamat
+        )
+      )
     ''');
     final list = data as List<dynamic>;
 
@@ -29,47 +37,67 @@ class SupabaseService {
         .select()
         .single();
 
-    final wargaId = inserted['id'] as int;
-
-    // Create user account with 'Aktif' status automatically
-    // Check if user already exists for this warga
-    final existingUser = await _client
-        .from('users')
-        .select('id')
-        .eq('id_warga', wargaId)
-        .maybeSingle();
-
-    if (existingUser == null) {
-      // Create new user with status 'Aktif'
+    // Auto-create user record dengan status 'Aktif'
+    // id_auth akan di-set nanti saat warga melakukan registrasi
+    final idWarga = inserted['id'] as int;
+    try {
       await _client.from('users').insert({
-        'id_warga': wargaId,
-        'id_role': 1, // Default role (Warga)
+        'id_warga': idWarga,
         'full_name': warga.namaLengkap,
-        'status': 'Aktif', // Set status to Aktif by default when created by RT
-        'created_at': DateTime.now().toIso8601String(),
+        'status': 'Aktif', // Status otomatis Aktif saat dibuat RT
+        'id_role': 1, // Default role Warga
+        // id_auth akan null sampai user melakukan registrasi
       });
-    } else {
-      // If user already exists, update status to Aktif
-      await _client
-          .from('users')
-          .update({
-            'status': 'Aktif',
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id_warga', wargaId);
+    } catch (e) {
+      // Jika gagal create user, tidak perlu throw error
+      // Karena warga sudah tercreate, user bisa dibuat manual nanti
+      print('Warning: Gagal auto-create user untuk warga $idWarga: $e');
     }
 
-    return WargaModel.fromJson(Map<String, dynamic>.from(inserted as Map));
+    // Fetch ulang dengan JOIN users untuk mendapatkan status terbaru
+    final result = await _client
+        .from('warga')
+        .select('''
+      *,
+      users!id_warga(status),
+      kk!inner(
+        id,
+        nomor,
+        alamat!inner(
+          id,
+          alamat
+        )
+      )
+    ''')
+        .eq('id', idWarga)
+        .single();
+
+    return WargaModel.fromJson(Map<String, dynamic>.from(result as Map));
   }
 
   Future<WargaModel> updateWarga(WargaModel warga) async {
-    final updated = await _client
+    // Update warga
+    await _client.from('warga').update(warga.toJson()).eq('id', warga.id);
+
+    // Fetch ulang dengan JOIN users dan kk untuk mendapatkan data terbaru lengkap
+    final result = await _client
         .from('warga')
-        .update(warga.toJson())
+        .select('''
+      *,
+      users!id_warga(status),
+      kk!inner(
+        id,
+        nomor,
+        alamat!inner(
+          id,
+          alamat
+        )
+      )
+    ''')
         .eq('id', warga.id)
-        .select()
         .single();
-    return WargaModel.fromJson(Map<String, dynamic>.from(updated as Map));
+
+    return WargaModel.fromJson(Map<String, dynamic>.from(result as Map));
   }
 
   Future<void> deleteWarga(int id) async {
@@ -90,6 +118,37 @@ class SupabaseService {
     } catch (e) {
       print('Error checking NIK: $e');
       return false;
+    }
+  }
+
+  /// Check if KK already has Kepala Keluarga
+  Future<Map<String, dynamic>?> getKepalaKeluargaByKK(int idKk) async {
+    try {
+      final result = await _client
+          .from('warga')
+          .select('id, nama_lengkap, nik')
+          .eq('id_kk', idKk)
+          .eq('peran_keluarga', 'Kepala Keluarga')
+          .maybeSingle();
+      return result;
+    } catch (e) {
+      print('Error checking Kepala Keluarga: $e');
+      return null;
+    }
+  }
+
+  /// Update peran keluarga warga lama saat ada kepala keluarga baru
+  Future<void> updatePeranKeluarga(int wargaId, String peranBaru) async {
+    try {
+      await _client
+          .from('warga')
+          .update({
+            'peran_keluarga': peranBaru,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', wargaId);
+    } catch (e) {
+      throw Exception('Gagal update peran keluarga: $e');
     }
   }
 }
