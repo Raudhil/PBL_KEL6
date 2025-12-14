@@ -15,15 +15,9 @@ class StoreSettingsPage extends ConsumerStatefulWidget {
 
 class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
   final _nameController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _hoursController = TextEditingController();
   bool _isLoading = true;
   int? _storeId;
   int? _currentUserId;
-
-  TimeOfDay _openTime = const TimeOfDay(hour: 8, minute: 0);
-  TimeOfDay _closeTime = const TimeOfDay(hour: 20, minute: 0);
 
   Future<int?> _getUserIntId(String authId) async {
     try {
@@ -55,30 +49,6 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
       if (store != null) {
         _storeId = store.id;
         _nameController.text = store.nama;
-        _addressController.text = ''; // Alamat belum ada di model
-        _phoneController.text = '';
-
-        // Parse jam operasional jika ada format "08:00 - 20:00"
-        if (_hoursController.text.isNotEmpty) {
-          final parts = _hoursController.text.split(' - ');
-          if (parts.length == 2) {
-            final openParts = parts[0].split(':');
-            final closeParts = parts[1].split(':');
-            if (openParts.length == 2 && closeParts.length == 2) {
-              _openTime = TimeOfDay(
-                hour: int.parse(openParts[0]),
-                minute: int.parse(openParts[1]),
-              );
-              _closeTime = TimeOfDay(
-                hour: int.parse(closeParts[0]),
-                minute: int.parse(closeParts[1]),
-              );
-            }
-          }
-        }
-
-        // Set default time display
-        _updateHoursDisplay();
       }
 
       setState(() {
@@ -91,45 +61,6 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
           _isLoading = false;
         });
       }
-    }
-  }
-
-  void _updateHoursDisplay() {
-    final openStr =
-        '${_openTime.hour.toString().padLeft(2, '0')}:${_openTime.minute.toString().padLeft(2, '0')}';
-    final closeStr =
-        '${_closeTime.hour.toString().padLeft(2, '0')}:${_closeTime.minute.toString().padLeft(2, '0')}';
-    _hoursController.text = '$openStr - $closeStr';
-  }
-
-  Future<void> _pickTime(bool isOpenTime) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: isOpenTime ? _openTime : _closeTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primary600,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: AppColors.textPrimary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        if (isOpenTime) {
-          _openTime = picked;
-        } else {
-          _closeTime = picked;
-        }
-        _updateHoursDisplay();
-      });
     }
   }
 
@@ -302,62 +233,6 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
     );
   }
 
-  Future<void> _showTimePickerDialog() async {
-    return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Atur Jam Operasional'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.wb_sunny, color: AppColors.warning),
-              title: const Text('Jam Buka'),
-              subtitle: Text(
-                '${_openTime.hour.toString().padLeft(2, '0')}:${_openTime.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary600,
-                ),
-              ),
-              onTap: () async {
-                Navigator.pop(context);
-                await _pickTime(true);
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(
-                Icons.nightlight,
-                color: AppColors.primary600,
-              ),
-              title: const Text('Jam Tutup'),
-              subtitle: Text(
-                '${_closeTime.hour.toString().padLeft(2, '0')}:${_closeTime.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary600,
-                ),
-              ),
-              onTap: () async {
-                Navigator.pop(context);
-                await _pickTime(false);
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   void initState() {
     super.initState();
@@ -390,28 +265,6 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
               controller: _nameController,
               label: 'Nama Toko',
               icon: Icons.store,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _addressController,
-              label: 'Alamat Toko',
-              icon: Icons.location_on,
-              maxLines: 2,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _phoneController,
-              label: 'Nomor WhatsApp/HP',
-              icon: Icons.phone,
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 16),
-            _buildTextField(
-              controller: _hoursController,
-              label: 'Jam Operasional',
-              icon: Icons.access_time,
-              readOnly: true,
-              onTap: () => _showTimePickerDialog(),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -499,9 +352,6 @@ class _StoreSettingsPageState extends ConsumerState<StoreSettingsPage> {
   @override
   void dispose() {
     _nameController.dispose();
-    _addressController.dispose();
-    _phoneController.dispose();
-    _hoursController.dispose();
     super.dispose();
   }
 }
