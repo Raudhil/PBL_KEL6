@@ -18,6 +18,10 @@ import '../features/sekretaris/pengumuman/pengumuman_page.dart';
 import '../features/bendahara/pages/keuangan/kelola_iuran.dart';
 import '../features/bendahara/pages/keuangan_warga/keuangan_page.dart';
 import '../features/admin/pages/kelola_pengguna_page.dart';
+import '../features/admin/pages/system_settings_page.dart';
+import '../features/admin/pages/log_activity_page.dart';
+import '../features/rw/pages/laporan_keuangan_rw_page.dart';
+import '../features/rw/pages/data_warga_rw_page.dart';
 import '../core/widgets/app_error_page.dart';
 import '../core/widgets/maintenance_page.dart';
 import '../core/utils/page_transitions.dart';
@@ -239,15 +243,35 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/admin/pengaturan-sistem',
+        name: 'admin-pengaturan-sistem',
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const SystemSettingsPage(),
+          state: state,
+        ),
+      ),
+      GoRoute(
         path: '/admin/log-aktivitas',
         name: 'admin-log-aktivitas',
         pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
-          child: const MaintenancePage(
-            featureName: 'Log Aktivitas',
-            message:
-                'Fitur Log Aktivitas sedang dalam tahap pengembangan dan perbaikan untuk memberikan pengalaman terbaik.',
-            estimatedTime: 'Segera hadir',
-          ),
+          child: const LogActivityPage(),
+          state: state,
+        ),
+      ),
+      // RW Routes
+      GoRoute(
+        path: '/rw/laporan-keuangan',
+        name: 'rw-laporan-keuangan',
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const LaporanKeuanganRwPage(),
+          state: state,
+        ),
+      ),
+      GoRoute(
+        path: '/rw/data-warga',
+        name: 'rw-data-warga',
+        pageBuilder: (context, state) => CustomPageTransition.sharedAxis(
+          child: const DataWargaRwPage(),
           state: state,
         ),
       ),

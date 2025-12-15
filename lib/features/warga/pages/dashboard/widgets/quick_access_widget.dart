@@ -272,9 +272,9 @@ class QuickAccessWidget extends ConsumerWidget {
             'color': AppColors.warning,
           },
           {
-            'icon': Icons.monitor_heart_outlined,
-            'label': 'Monitoring Sistem',
-            'color': AppColors.danger,
+            'icon': Icons.settings_suggest,
+            'label': 'Pengaturan Sistem',
+            'color': AppColors.primary,
           },
           {
             'icon': Icons.bar_chart_rounded,
@@ -405,9 +405,9 @@ class _FeatureGrid extends StatelessWidget {
             'color': AppColors.warning,
           },
           {
-            'icon': Icons.monitor_heart_outlined,
-            'label': 'Monitoring Sistem',
-            'color': AppColors.danger,
+            'icon': Icons.settings_suggest,
+            'label': 'Pengaturan Sistem',
+            'color': AppColors.primary,
           },
           {
             'icon': Icons.bar_chart_rounded,
@@ -424,7 +424,12 @@ class _FeatureGrid extends StatelessWidget {
     try {
       // Use GoRouter for navigation with error handling
       if (label == 'Data Warga') {
-        GoRouter.of(context).go('/rt/data-warga');
+        // Check role to determine which route
+        if (role == 'rw') {
+          GoRouter.of(context).go('/rw/data-warga');
+        } else {
+          GoRouter.of(context).go('/rt/data-warga');
+        }
         return;
       }
       if (label == 'Kelola Iuran') {
@@ -432,7 +437,12 @@ class _FeatureGrid extends StatelessWidget {
         return;
       }
       if (label == 'Laporan Keuangan') {
-        GoRouter.of(context).go('/bendahara/keuangan');
+        // Check role to determine which route
+        if (role == 'rw') {
+          GoRouter.of(context).go('/rw/laporan-keuangan');
+        } else {
+          GoRouter.of(context).go('/bendahara/keuangan');
+        }
         return;
       }
       if (label == 'Kelola Pengguna') {
@@ -443,8 +453,8 @@ class _FeatureGrid extends StatelessWidget {
         GoRouter.of(context).go('/admin/log-aktivitas');
         return;
       }
-      if (label == 'Monitoring Sistem') {
-        GoRouter.of(context).go('/admin/monitoring-sistem');
+      if (label == 'Pengaturan Sistem') {
+        GoRouter.of(context).go('/admin/pengaturan-sistem');
         return;
       }
       if (label == 'Statistik Warga') {

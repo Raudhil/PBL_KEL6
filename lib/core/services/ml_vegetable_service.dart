@@ -76,14 +76,19 @@ class MLVegetableService {
         // Try to extract prediction from 'quality' field
         if (data.containsKey('quality')) {
           prediction = data['quality']?.toString();
+          print('📊 Extracted from "quality": "$prediction"');
         } else if (data.containsKey('prediction')) {
           prediction = data['prediction']?.toString();
+          print('📊 Extracted from "prediction": "$prediction"');
         } else if (data.containsKey('Prediction')) {
           prediction = data['Prediction']?.toString();
+          print('📊 Extracted from "Prediction": "$prediction"');
         } else if (data.containsKey('class')) {
           prediction = data['class']?.toString();
+          print('📊 Extracted from "class": "$prediction"');
         } else if (data.containsKey('label')) {
           prediction = data['label']?.toString();
+          print('📊 Extracted from "label": "$prediction"');
         } else {
           throw Exception(
             'Response missing prediction field. Available keys: ${data.keys.join(", ")}',

@@ -109,59 +109,12 @@ class _EditPengumumanPageState extends ConsumerState<EditPengumumanPage> {
   }
 
   void _showImagePreview(XFile imageFile, Uint8List imageBytes) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: const Text(
-                'Preview Foto',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Container(
-              constraints: const BoxConstraints(maxHeight: 400),
-              child: Image.memory(imageBytes, fit: BoxFit.contain),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _showImageSourceDialog();
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Ambil Ulang'),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _selectedImageFile = imageFile;
-                        _selectedImageBytes = imageBytes;
-                        _uploadedImageUrl = null;
-                      });
-                      Navigator.pop(ctx);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                    icon: const Icon(Icons.check),
-                    label: const Text('Terima'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    // Langsung set state tanpa modal preview
+    setState(() {
+      _selectedImageFile = imageFile;
+      _selectedImageBytes = imageBytes;
+      _uploadedImageUrl = null;
+    });
   }
 
   Widget _buildImagePickerSection() {
@@ -211,24 +164,25 @@ class _EditPengumumanPageState extends ConsumerState<EditPengumumanPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                'Foto Pengumuman (Opsional)',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+              Expanded(
+                child: Text(
+                  'Foto Pengumuman (Opsional)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
 
-          // Image Picker Box
+          // Image Preview dengan AspectRatio untuk menghindari overflow
           GestureDetector(
             onTap: _showImageSourceDialog,
             child: Container(
               width: double.infinity,
-              height: 180,
               decoration: BoxDecoration(
                 color: AppColors.greyLight,
                 borderRadius: BorderRadius.circular(12),
@@ -237,73 +191,76 @@ class _EditPengumumanPageState extends ConsumerState<EditPengumumanPage> {
                   width: hasImage ? 2 : 1,
                 ),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: _selectedImageBytes != null
-                    ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
-                    : _selectedImageFile != null && !kIsWeb
-                    ? Image.file(
-                        File(_selectedImageFile!.path),
-                        fit: BoxFit.cover,
-                      )
-                    : _uploadedImageUrl != null
-                    ? Image.network(
-                        _uploadedImageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.broken_image_rounded,
-                                  size: 48,
-                                  color: AppColors.textSecondary.withOpacity(
-                                    0.5,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: _selectedImageBytes != null
+                      ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
+                      : _selectedImageFile != null && !kIsWeb
+                      ? Image.file(
+                          File(_selectedImageFile!.path),
+                          fit: BoxFit.cover,
+                        )
+                      : _uploadedImageUrl != null
+                      ? Image.network(
+                          _uploadedImageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.broken_image_rounded,
+                                    size: 40,
+                                    color: AppColors.textSecondary.withOpacity(
+                                      0.5,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Gagal memuat foto',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Gagal memuat foto',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
+                                ],
+                              ),
+                            );
+                          },
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.cloud_upload_outlined,
+                                size: 40,
+                                color: AppColors.primary.withOpacity(0.5),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Tap untuk upload foto',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
                                 ),
-                              ],
-                            ),
-                          );
-                        },
-                      )
-                    : Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.cloud_upload_outlined,
-                              size: 48,
-                              color: AppColors.primary.withOpacity(0.5),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Tap untuk upload foto',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'dari kamera atau galeri',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
+                              const SizedBox(height: 4),
+                              Text(
+                                'dari kamera atau galeri',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
+                ),
               ),
             ),
           ),

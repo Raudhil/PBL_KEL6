@@ -19,7 +19,7 @@ class CustomBottomNavBar extends ConsumerWidget {
       {
         'icon': Icons.store_outlined,
         'activeIcon': Icons.store,
-        'label': 'Market',
+        'label': 'Pasar',
       },
       {
         'icon': Icons.payments_outlined,
@@ -38,34 +38,34 @@ class CustomBottomNavBar extends ConsumerWidget {
         color: Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.only(
-            left: 10,
-            right: 10,
-            bottom: 10,
-            top: 10,
+            left: 12,
+            right: 12,
+            bottom: 12,
+            top: 4,
           ),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            height: 65,
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.greyLight, width: 2.5),
+              borderRadius: BorderRadius.circular(25),
+              border: Border.all(color: AppColors.greyLight, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 12,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: navItems.asMap().entries.map((entry) {
                 int idx = entry.key;
                 Map<String, dynamic> item = entry.value;
 
-                return Flexible(
-                  fit: FlexFit.loose,
+                return Expanded(
                   child: _NavBarItem(
                     icon: item['icon'],
                     activeIcon: item['activeIcon'],
@@ -101,47 +101,45 @@ class _NavBarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color activeColor = AppColors.primary;
-    final Color inactiveColor = AppColors.primary;
+    final Color inactiveColor = AppColors.greyMedium;
     final Color activeContentColor = AppColors.white;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: isActive
             ? BoxDecoration(
                 color: activeColor,
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(16),
               )
             : null,
-        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 0),
-          child: Row(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Icon
-              Icon(
-                isActive ? activeIcon : icon,
-                color: isActive ? activeContentColor : inactiveColor,
-                size: 24,
-              ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon
+            Icon(
+              isActive ? activeIcon : icon,
+              color: isActive ? activeContentColor : inactiveColor,
+              size: 22,
+            ),
 
-              // Teks hanya tampil jika item aktif
-              if (isActive) ...[
-                const SizedBox(width: 4), // Jarak antara ikon dan teks
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: activeContentColor,
-                  ),
+            // Teks hanya tampil jika item aktif
+            if (isActive) ...[
+              const SizedBox(width: 3), // Jarak antara ikon dan teks
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: activeContentColor,
+                  letterSpacing: 0.1,
                 ),
-              ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
