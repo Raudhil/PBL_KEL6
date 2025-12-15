@@ -142,40 +142,46 @@ class _LoginPageState extends ConsumerState<LoginPage>
     } catch (e) {
       if (!mounted) return;
 
-      String msg;
+      // Extract error message
+      String msg = e.toString().trim();
+
+      // Debug logging
+      print('🔍 Raw error: $msg');
+      final lowerMsg = msg.toLowerCase();
+      print('🔍 Lowercase msg: $lowerMsg');
+
       String title;
       IconData icon;
       Color color;
 
-      if (e is String) {
-        msg = e;
-      } else if (e is Exception) {
-        msg = e.toString().replaceFirst('Exception: ', '');
-      } else {
-        msg = e.toString();
-      }
-
-      msg = msg.replaceFirst('Error: Exception: ', '');
-      msg = msg.replaceFirst('Login gagal: ', '');
-
-      final lowerMsg = msg.toLowerCase();
-
-      if (lowerMsg.contains('tidak aktif') ||
-          lowerMsg.contains('status tidak valid')) {
+      // Match error cases
+      if (lowerMsg.contains('status akun tidak aktif')) {
         title = 'Akun Tidak Aktif';
         icon = Icons.block_rounded;
         color = AppColors.warning;
         msg = 'Akun Anda tidak aktif. Hubungi administrator.';
-      } else if (lowerMsg.contains('data akun tidak ditemukan') ||
-          lowerMsg.contains('user not found')) {
+      } else if (lowerMsg.contains('email tidak ditemukan')) {
+        title = 'Akun Tidak Terdaftar';
+        icon = Icons.person_off_rounded;
+        color = AppColors.danger;
+        msg = 'Email belum terdaftar. Silakan buat akun baru.';
+      } else if (lowerMsg.contains('password salah')) {
+        title = 'Password Salah';
+        icon = Icons.lock_outline_rounded;
+        color = AppColors.danger;
+        msg = 'Password yang Anda masukkan salah.';
+      } else if (lowerMsg.contains('data akun tidak ditemukan')) {
+        title = 'Akun Tidak Terdaftar';
+        icon = Icons.person_off_rounded;
+        color = AppColors.danger;
+        msg = 'Email belum terdaftar. Silakan buat akun baru.';
+      } else if (lowerMsg.contains('user not found')) {
         title = 'Akun Tidak Terdaftar';
         icon = Icons.person_off_rounded;
         color = AppColors.danger;
         msg = 'Email belum terdaftar. Silakan buat akun baru.';
       } else if (lowerMsg.contains('invalid login credentials') ||
-          lowerMsg.contains('invalid credentials') ||
-          lowerMsg.contains('email or password') ||
-          lowerMsg.contains('email atau password')) {
+          lowerMsg.contains('invalid credentials')) {
         title = 'Password Salah';
         icon = Icons.lock_outline_rounded;
         color = AppColors.danger;
@@ -186,6 +192,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
         icon = Icons.email_outlined;
         color = AppColors.warning;
         msg = 'Silakan konfirmasi email Anda terlebih dahulu.';
+      } else if (lowerMsg.contains('server')) {
+        title = 'Kesalahan Server';
+        icon = Icons.cloud_off_rounded;
+        color = AppColors.warning;
+        msg = 'Terjadi kesalahan server. Coba lagi nanti.';
       } else if (lowerMsg.contains('network') ||
           lowerMsg.contains('connection') ||
           lowerMsg.contains('timeout')) {
@@ -193,20 +204,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
         icon = Icons.wifi_off_rounded;
         color = AppColors.warning;
         msg = 'Tidak dapat terhubung ke server. Periksa koneksi internet.';
-      } else if (lowerMsg.contains('server error') ||
-          lowerMsg.contains('internal error') ||
-          lowerMsg.contains('500')) {
-        title = 'Server Error';
-        icon = Icons.error_outline_rounded;
-        color = AppColors.danger;
-        msg = 'Terjadi kesalahan pada server. Coba lagi nanti.';
       } else {
         title = 'Login Gagal';
         icon = Icons.error_outline_rounded;
         color = AppColors.danger;
-        if (msg.length > 100) {
-          msg = 'Login gagal. Periksa email dan password Anda.';
-        }
       }
 
       if (mounted) {

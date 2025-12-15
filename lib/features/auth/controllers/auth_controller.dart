@@ -53,46 +53,24 @@ class AuthController extends StateNotifier<bool> {
       // 4. Buat akun Auth via AuthService
       final authId = await _service.register(email: email, password: password);
 
-      if (existingUser != null) {
-        // User record sudah ada (dibuat oleh RT), update dengan id_auth
-        final updateRes = await _supabase
-            .from('users')
-            .update({
-              'id_auth': authId,
-              'full_name': nama,
-              // Status tetap seperti yang sudah di-set (biasanya 'Aktif' dari RT)
-            })
-            .eq('id_warga', idWarga)
-            .select()
-            .maybeSingle();
+      // 5. Insert ke tabel USERS dengan id_warga dari warga
+      final insertRes = await _supabase
+          .from('users')
+          .insert({
+            'id_auth': authId,
+            'id_warga': idWarga,
+            'full_name': nama,
+            'status': 'Aktif',
+          })
+          .select()
+          .maybeSingle();
 
-        if (updateRes == null) {
-          // Jika update gagal, sign out dan informasikan
-          try {
-            await _supabase.auth.signOut();
-          } catch (_) {}
-          throw Exception("Gagal mengupdate data user");
-        }
-      } else {
-        // User record belum ada, create new
-        final insertRes = await _supabase
-            .from('users')
-            .insert({
-              'id_auth': authId,
-              'id_warga': idWarga,
-              'full_name': nama,
-              'status': 'Aktif', // Status Aktif saat registrasi
-            })
-            .select()
-            .maybeSingle();
-
-        if (insertRes == null) {
-          // Jika insert gagal, sign out dan informasikan
-          try {
-            await _supabase.auth.signOut();
-          } catch (_) {}
-          throw Exception("Gagal menyimpan data user ke tabel users");
-        }
+      if (insertRes == null) {
+        // Jika insert gagal setelah Auth dibuat, sign out dan informasikan
+        try {
+          await _supabase.auth.signOut();
+        } catch (_) {}
+        throw Exception("Gagal menyimpan data user ke tabel users");
       }
 
       // IMPORTANT: Ensure the client is NOT logged in after registration.
@@ -126,29 +104,10 @@ class AuthController extends StateNotifier<bool> {
       print(
         "✅ Login berhasil - roleProvider di-refresh (email: ${result['email']})",
       );
-    } on AuthException catch (e) {
-      final msg = e.message.toLowerCase();
-
-      // More specific error handling
-      if (msg.contains("invalid") && msg.contains("credentials")) {
-        throw Exception("Password salah");
-      } else if (msg.contains("email not confirmed")) {
-        throw Exception("Email belum dikonfirmasi");
-      } else if (msg.contains("user not found")) {
-        throw Exception("Akun tidak terdaftar");
-      }
-
-      // Default: pass through the original message
-      throw Exception(e.message);
     } catch (e) {
-      // Re-throw without modifying if it already has specific message
-      final errMsg = e.toString();
-      if (errMsg.contains("tidak aktif") ||
-          errMsg.contains("tidak terdaftar") ||
-          errMsg.contains("Password salah")) {
-        rethrow;
-      }
-      throw Exception(e.toString().replaceAll("Exception: ", ""));
+      // Pass through the exception from AuthService without modification
+      // to ensure mapping in LoginPage works correctly
+      rethrow;
     } finally {
       state = false;
     }
