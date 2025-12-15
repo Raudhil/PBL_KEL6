@@ -142,7 +142,7 @@ class PengumumanService {
         'dokumen_url': dokumenUrl,
         'id_pembuat': userId,
         'created_at': now,
-        'updated_at': now,
+        // Jangan set updated_at saat create, biarkan null
       };
 
       final response = await _supabase

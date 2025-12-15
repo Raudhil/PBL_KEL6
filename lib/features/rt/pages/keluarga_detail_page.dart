@@ -4,12 +4,14 @@ import 'warga_detail_page.dart';
 
 class KeluargaDetailPage extends StatelessWidget {
   final int idKk;
+  final String? nomorKk;
   final dynamic kepalaKeluarga;
   final List<dynamic> members;
 
   const KeluargaDetailPage({
     super.key,
     required this.idKk,
+    this.nomorKk,
     required this.kepalaKeluarga,
     required this.members,
   });
@@ -137,7 +139,7 @@ class KeluargaDetailPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'KK${idKk.toString().padLeft(9, '0')}',
+                        nomorKk ?? 'KK${idKk.toString().padLeft(9, '0')}',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -306,13 +308,30 @@ class KeluargaDetailPage extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'NIK : ${member.nik}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          'NIK :',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            member.nik,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -85,6 +85,13 @@ class SellerHomePage extends ConsumerWidget {
           style: TextStyle(fontSize: 15),
         ),
         actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Batal',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);

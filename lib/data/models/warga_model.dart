@@ -1,6 +1,7 @@
 class WargaModel {
   final int id;
   final int idKk;
+  final String? nomorKk; // Nomor KK dari tabel kk
   final String nik;
   final String namaLengkap;
   final String jenisKelamin;
@@ -8,6 +9,7 @@ class WargaModel {
   final String? nomorHp;
   final String? fotoKtp;
   final String? alamat;
+  final String? peranKeluarga; // Kepala Keluarga, Istri, Anak, dll
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? userStatus; // Status dari tabel users
@@ -15,6 +17,7 @@ class WargaModel {
   WargaModel({
     required this.id,
     required this.idKk,
+    this.nomorKk,
     required this.nik,
     required this.namaLengkap,
     required this.jenisKelamin,
@@ -22,6 +25,7 @@ class WargaModel {
     this.nomorHp,
     this.fotoKtp,
     this.alamat,
+    this.peranKeluarga,
     required this.createdAt,
     required this.updatedAt,
     this.userStatus,
@@ -40,16 +44,37 @@ class WargaModel {
       }
     }
 
+    // Extract alamat dan nomor KK dari relasi kk -> alamat
+    String? alamatValue;
+    String? nomorKkValue;
+    if (json['kk'] != null) {
+      final kk = json['kk'];
+      if (kk is Map) {
+        // Extract nomor KK
+        nomorKkValue = kk['nomor'];
+
+        // Extract alamat
+        if (kk['alamat'] != null) {
+          final alamatData = kk['alamat'];
+          if (alamatData is Map && alamatData['alamat'] != null) {
+            alamatValue = alamatData['alamat'];
+          }
+        }
+      }
+    }
+
     return WargaModel(
       id: json['id'],
       idKk: json['id_kk'],
+      nomorKk: nomorKkValue,
       nik: json['nik'],
       namaLengkap: json['nama_lengkap'],
       jenisKelamin: json['jenis_kelamin'],
       tanggalLahir: DateTime.parse(json['tanggal_lahir']),
       nomorHp: json['nomor_hp'],
       fotoKtp: json['foto_ktp'],
-      alamat: json['alamat'],
+      alamat: alamatValue,
+      peranKeluarga: json['peran_keluarga'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
       userStatus: userStatus,
@@ -66,7 +91,9 @@ class WargaModel {
       'tanggal_lahir': tanggalLahir.toIso8601String(),
       'nomor_hp': nomorHp,
       'foto_ktp': fotoKtp,
-      'alamat': alamat,
+      'peran_keluarga': peranKeluarga,
+      // Alamat tidak disimpan langsung di tabel warga, tapi di tabel alamat via kk
+      // 'alamat': alamat,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       if (userStatus != null) 'user_status': userStatus,

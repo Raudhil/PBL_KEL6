@@ -41,8 +41,6 @@ class _WargaIuranPageState extends ConsumerState<WargaIuranPage>
         },
         child: iuranState.isLoading
             ? const Center(child: CircularProgressIndicator())
-            : iuranState.errorMessage != null
-            ? _buildErrorWidget(context, controller, iuranState)
             : _buildContent(context, iuranState, controller),
       ),
     );

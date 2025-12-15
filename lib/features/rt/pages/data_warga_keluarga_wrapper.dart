@@ -471,7 +471,7 @@ class _DataWargaKeluargaWrapperState
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: filteredList.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final entry = filteredList[index];
         final idKk = entry.key;

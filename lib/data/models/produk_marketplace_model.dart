@@ -3,6 +3,7 @@ class ProdukMarketplaceModel {
   final int id;
   final int idToko;
   final String nama;
+  final String? kategori;
   final String? deskripsi;
   final double harga;
   final String? fotoProduk;
@@ -19,6 +20,7 @@ class ProdukMarketplaceModel {
     required this.id,
     required this.idToko,
     required this.nama,
+    this.kategori,
     this.deskripsi,
     required this.harga,
     this.fotoProduk,
@@ -35,6 +37,7 @@ class ProdukMarketplaceModel {
       id: json['id'] as int,
       idToko: json['id_toko'] as int,
       nama: json['nama'] as String,
+      kategori: json['kategori'] as String?,
       deskripsi: json['deskripsi'] as String?,
       harga: (json['harga'] as num).toDouble(),
       fotoProduk: json['foto_produk'] as String?,
@@ -52,6 +55,7 @@ class ProdukMarketplaceModel {
       'id': id,
       'id_toko': idToko,
       'nama': nama,
+      if (kategori != null) 'kategori': kategori,
       'deskripsi': deskripsi,
       'harga': harga,
       'foto_produk': fotoProduk,
@@ -68,6 +72,7 @@ class ProdukMarketplaceModel {
     return {
       'id_toko': idToko,
       'nama': nama,
+      if (kategori != null) 'kategori': kategori,
       if (deskripsi != null) 'deskripsi': deskripsi,
       'harga': harga,
       if (fotoProduk != null) 'foto_produk': fotoProduk,
@@ -81,6 +86,7 @@ class ProdukMarketplaceModel {
     int? id,
     int? idToko,
     String? nama,
+    String? kategori,
     String? deskripsi,
     double? harga,
     String? fotoProduk,
@@ -95,6 +101,7 @@ class ProdukMarketplaceModel {
       id: id ?? this.id,
       idToko: idToko ?? this.idToko,
       nama: nama ?? this.nama,
+      kategori: kategori ?? this.kategori,
       deskripsi: deskripsi ?? this.deskripsi,
       harga: harga ?? this.harga,
       fotoProduk: fotoProduk ?? this.fotoProduk,

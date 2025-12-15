@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/warga_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../core/widgets/custom_top_bar.dart';
+import '../../../core/providers/warga_provider.dart';
 import 'edit_warga_page.dart';
 
-class WargaDetailPage extends StatelessWidget {
+class WargaDetailPage extends ConsumerWidget {
   final WargaModel warga;
 
   const WargaDetailPage({super.key, required this.warga});
@@ -38,7 +40,7 @@ class WargaDetailPage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final String statusText = warga.userStatus ?? 'Tidak Aktif';
     final bool isActive = statusText == 'Aktif';
     final Color statusColor = isActive ? AppColors.success : AppColors.danger;
@@ -58,12 +60,18 @@ class WargaDetailPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
+              onPressed: () async {
+                final result = await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => EditWargaPage(warga: warga),
                   ),
                 );
+
+                // Jika edit berhasil, refresh provider dan pop ke list
+                if (result == true && context.mounted) {
+                  ref.invalidate(wargaNotifierProvider);
+                  Navigator.of(context).pop(); // Kembali ke list
+                }
               },
               icon: const Icon(Icons.edit, size: 18),
               label: const Text(

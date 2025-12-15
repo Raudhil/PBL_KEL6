@@ -50,11 +50,7 @@ class AuthController extends StateNotifier<bool> {
           .eq('id_warga', idWarga)
           .maybeSingle();
 
-      if (existingUser != null) {
-        throw Exception("NIK ini sudah terdaftar di akun lain");
-      }
-
-      // 4. Buat akun Auth via AuthService: service hanya membuat auth user
+      // 4. Buat akun Auth via AuthService
       final authId = await _service.register(email: email, password: password);
 
       // 5. Insert ke tabel USERS dengan id_warga dari warga

@@ -63,6 +63,17 @@ class KeuanganController
       throw Exception('Gagal menghapus transaksi: $e');
     }
   }
+
+  Future<void> updateTransaction(int id, KeuanganModel tx) async {
+    try {
+      // Update di backend
+      await _service.updateTransaction(id, tx);
+      // Refresh data
+      await fetchTransactions();
+    } catch (e) {
+      throw Exception('Gagal mengubah transaksi: $e');
+    }
+  }
 }
 
 final keuanganControllerProvider =
@@ -72,3 +83,5 @@ final keuanganControllerProvider =
       final service = ref.read(keuanganServiceProvider);
       return KeuanganController(service);
     });
+
+final expandedTransactionIdProvider = StateProvider<int?>((ref) => null);

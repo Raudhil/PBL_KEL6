@@ -166,4 +166,12 @@ class MarketplaceRepository {
   Future<double> calculateAverageRating(int idProduk) async {
     return await _service.calculateAverageRating(idProduk);
   }
+
+  // ============================================
+  // KATEGORI
+  // ============================================
+
+  Future<List<String>> getDistinctKategori() async {
+    return await _service.fetchDistinctKategori();
+  }
 }
