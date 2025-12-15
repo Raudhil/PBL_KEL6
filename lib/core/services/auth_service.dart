@@ -1,4 +1,14 @@
+import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Custom exception untuk login error
+class LoginException implements Exception {
+  final String message;
+  LoginException(this.message);
+
+  @override
+  String toString() => message;
+}
 
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -15,86 +25,118 @@ class AuthService {
       // Clear any existing session first
       final existingSession = _supabase.auth.currentSession;
       if (existingSession != null) {
-        print('⚠️ Found existing session, clearing...');
         await _supabase.auth.signOut();
         await Future.delayed(const Duration(milliseconds: 300));
       }
 
-      // STRATEGI: Sign in dulu untuk validasi kredensial dan dapat auth_id,
-      // TAPI langsung cek status dan batalkan session jika tidak aktif
-      // SEBELUM authEnforcerProvider punya kesempatan bereaksi
+      // PRECHECK via Edge Function: validate email existence and status
+      // Requires an Edge Function named 'check_email_status' that accepts { email }
+      // and returns { exists: bool, status: 'aktif' | 'nonaktif' | null }
+      try {
+        final precheck = await _supabase.functions.invoke('check_email_status',
+            body: {
+          'email': email,
+        });
+        
+        // Parse JSON response (precheck.data might be String or Map)
+        final data = precheck.data is String
+            ? jsonDecode(precheck.data as String) as Map<String, dynamic>?
+            : precheck.data as Map<String, dynamic>?;
+            
+        if (data == null) {
+        } else {
+          final exists = (data['exists'] == true);
+          final status = (data['status'] ?? '').toString().toLowerCase();
+          
+          if (!exists) {
+            // Case 1: email tidak ditemukan
+            throw LoginException('Email tidak ditemukan');
+          }
+          if (status.isNotEmpty && status != 'aktif') {
+            // Case 3: email ditemukan tapi status tidak aktif
+            throw LoginException('Status akun tidak aktif');
+          }
+        }
+      } on LoginException {
+        // Don't suppress LoginException - re-throw immediately
+        rethrow;
+      } catch (preErr) {
+        // Precheck unavailable, continue to password auth
+      }
 
+      // STEP 1: Login terlebih dahulu untuk mendapatkan auth_id (UUID)
       final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
       if (response.user == null) {
-        throw Exception('Login gagal - user null');
+        throw LoginException('Login gagal - user null');
       }
 
       final authId = response.user!.id;
 
-      // LANGSUNG query status - INI HARUS CEPAT sebelum UI bereaksi
-      final userData = await _supabase
+      // STEP 2: Cari record di public.users berdasarkan id_auth (final validation)
+      final userRecord = await _supabase
           .from('users')
-          .select('role, status, id_auth')
+          .select('id_role, status')
           .eq('id_auth', authId)
           .maybeSingle();
 
-      if (userData == null) {
-        // Tidak ada di tabel users - LANGSUNG batalkan session
+      if (userRecord == null) {
         await _supabase.auth.signOut();
-        await Future.delayed(
-          const Duration(milliseconds: 100),
-        ); // Pastikan signOut selesai
-        throw Exception('Akun tidak terdaftar di sistem');
+        throw LoginException('Data akun tidak ditemukan');
       }
 
-      // CEK STATUS - INI CRITICAL POINT
-      final status = (userData['status'] ?? '').toString().toLowerCase();
+      // Status sudah di-check di precheck, tapi validasi lagi untuk safety
+      final status = (userRecord['status'] ?? '').toString().toLowerCase();
       if (status != 'aktif') {
-        // BATALKAN SESSION SEGERA - Ini yang paling penting!
-        print('❌ Status tidak aktif: $status - MEMBATALKAN LOGIN');
-        await _supabase.auth.signOut();
-        // Delay kecil untuk memastikan signOut benar-benar selesai
-        // sebelum throw exception ke UI
-        await Future.delayed(const Duration(milliseconds: 150));
-        throw Exception('Akun Anda tidak aktif. Hubungi administrator.');
+        throw LoginException('Status akun tidak aktif');
       }
 
-      // Jika sampai sini = status aktif, session valid
-      final userRole = userData['role'] as String? ?? 'warga';
-      print(
-        '✅ Login berhasil - Email: $email, Role: $userRole, Status: $status',
-      );
+      final userRole = userRecord['id_role'] ?? 1;
 
       return {
         'user': response.user,
         'role': userRole,
         'email': response.user!.email,
       };
+    } on LoginException {
+      // Pass through custom login exceptions
+      rethrow;
     } on AuthException catch (e) {
-      print('❌ AuthException: ${e.message}');
 
-      // Handle specific auth errors
       final errorMsg = e.message.toLowerCase();
-      if (errorMsg.contains('invalid') && errorMsg.contains('credentials')) {
-        throw Exception('Password salah');
+      if (errorMsg.contains('user not found') ||
+          errorMsg.contains('email not found')) {
+        // Case 1: email tidak ditemukan (fallback if precheck failed)
+        throw LoginException('Email tidak ditemukan');
+      } else if (errorMsg.contains('invalid') &&
+          errorMsg.contains('credentials')) {
+        // Case 2: email ditemukan tapi password salah
+        throw LoginException('Password salah');
       } else if (errorMsg.contains('email not confirmed')) {
-        throw Exception('Email belum dikonfirmasi');
-      } else if (errorMsg.contains('user not found')) {
-        throw Exception('Email tidak terdaftar');
+        throw LoginException('Email belum dikonfirmasi');
       }
 
-      throw Exception('Login gagal: ${e.message}');
+      throw LoginException(e.message);
     } catch (e) {
-      print('❌ Error during login: $e');
-      // Don't wrap if it's already an Exception with our custom message
-      if (e is Exception) {
-        rethrow;
+      // Check if it's a database/server error
+      String errStr = e.toString().toLowerCase();
+      if (errStr.contains('postgrest') ||
+          errStr.contains('column') ||
+          errStr.contains('400') ||
+          errStr.contains('500') ||
+          errStr.contains('server')) {
+        // Database or server error
+        throw LoginException('Kesalahan server. Coba lagi nanti.');
+      } else if (errStr.contains('network') ||
+          errStr.contains('connection') ||
+          errStr.contains('timeout')) {
+        throw LoginException('Kesalahan koneksi. Periksa internet Anda.');
       }
-      throw Exception('Error: $e');
+
+      throw LoginException('Error: $e');
     }
   }
 
@@ -121,12 +163,8 @@ class AuthService {
 
   Future<void> signOut() async {
     try {
-      print('🔄 Signing out from Supabase...');
       await _supabase.auth.signOut();
-      print('✅ Supabase sign out successful');
     } catch (e) {
-      print('❌ Error during sign out: $e');
-      // Don't rethrow - logout should always succeed from UI perspective
     }
   }
 
@@ -158,7 +196,6 @@ class AuthService {
 
       return userData?['id'] as int?;
     } catch (e) {
-      print('❌ Error getting user int ID: $e');
       return null;
     }
   }

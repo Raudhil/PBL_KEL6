@@ -20,7 +20,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   void initState() {
     super.initState();
     // Short delay to show splash then navigate
-    _timer = Timer(const Duration(milliseconds: 500), _navigateNext);
+    _timer = Timer(const Duration(milliseconds: 100), _navigateNext);
   }
 
   Future<void> _navigateNext() async {
@@ -96,15 +96,6 @@ class _SplashPageState extends ConsumerState<SplashPage> {
               ),
             ),
             const SizedBox(height: 8),
-            // Loading indicator
-            const SizedBox(
-              width: 30,
-              height: 30,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
-              ),
-            ),
           ],
         ),
       ),

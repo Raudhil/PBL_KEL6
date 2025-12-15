@@ -20,6 +20,8 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _loading = false;
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -230,6 +232,10 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
                     label: "Password Baru",
                     hint: "Minimal 6 karakter",
                     icon: Icons.lock_outline_rounded,
+                    isVisible: _isPasswordVisible,
+                    onToggleVisibility: () => setState(
+                      () => _isPasswordVisible = !_isPasswordVisible,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   _buildPasswordField(
@@ -237,6 +243,11 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
                     label: "Konfirmasi Password",
                     hint: "Ketik ulang password",
                     icon: Icons.lock_reset_rounded,
+                    isVisible: _isConfirmPasswordVisible,
+                    onToggleVisibility: () => setState(
+                      () => _isConfirmPasswordVisible =
+                          !_isConfirmPasswordVisible,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Container(
@@ -708,6 +719,8 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
     required String label,
     required String hint,
     required IconData icon,
+    required bool isVisible,
+    required VoidCallback onToggleVisibility,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -729,7 +742,7 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
-          obscureText: true,
+          obscureText: !isVisible,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
@@ -754,10 +767,15 @@ class _EditAkunProfilPageState extends ConsumerState<EditAkunProfilPage> {
               horizontal: 16,
               vertical: 14,
             ),
-            suffixIcon: Icon(
-              Icons.visibility_off_outlined,
-              color: AppColors.textSecondary.withOpacity(0.5),
-              size: 20,
+            suffixIcon: IconButton(
+              onPressed: onToggleVisibility,
+              icon: Icon(
+                isVisible
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                color: AppColors.textSecondary.withOpacity(0.7),
+                size: 20,
+              ),
             ),
           ),
         ),

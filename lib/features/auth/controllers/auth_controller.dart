@@ -64,7 +64,7 @@ class AuthController extends StateNotifier<bool> {
             'id_auth': authId,
             'id_warga': idWarga,
             'full_name': nama,
-            'status': 'Tidak Aktif', // optional, default-nya 'Tidak Aktif'
+            'status': 'Aktif',
           })
           .select()
           .maybeSingle();
@@ -108,29 +108,10 @@ class AuthController extends StateNotifier<bool> {
       print(
         "✅ Login berhasil - roleProvider di-refresh (email: ${result['email']})",
       );
-    } on AuthException catch (e) {
-      final msg = e.message.toLowerCase();
-
-      // More specific error handling
-      if (msg.contains("invalid") && msg.contains("credentials")) {
-        throw Exception("Password salah");
-      } else if (msg.contains("email not confirmed")) {
-        throw Exception("Email belum dikonfirmasi");
-      } else if (msg.contains("user not found")) {
-        throw Exception("Akun tidak terdaftar");
-      }
-
-      // Default: pass through the original message
-      throw Exception(e.message);
     } catch (e) {
-      // Re-throw without modifying if it already has specific message
-      final errMsg = e.toString();
-      if (errMsg.contains("tidak aktif") ||
-          errMsg.contains("tidak terdaftar") ||
-          errMsg.contains("Password salah")) {
-        rethrow;
-      }
-      throw Exception(e.toString().replaceAll("Exception: ", ""));
+      // Pass through the exception from AuthService without modification
+      // to ensure mapping in LoginPage works correctly
+      rethrow;
     } finally {
       state = false;
     }
