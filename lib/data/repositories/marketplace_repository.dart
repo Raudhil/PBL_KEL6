@@ -52,8 +52,16 @@ class MarketplaceRepository {
     return await _service.fetchAllProduk();
   }
 
+  Stream<List<ProdukMarketplaceModel>> streamAllProduk() {
+    return _service.streamAllProduk();
+  }
+
   Future<List<ProdukMarketplaceModel>> getProdukByToko(int idToko) async {
     return await _service.fetchProdukByToko(idToko);
+  }
+
+  Stream<List<ProdukMarketplaceModel>> streamProdukByToko(int idToko) {
+    return _service.streamProdukByToko(idToko);
   }
 
   Future<ProdukMarketplaceModel> getProdukById(int id) async {
@@ -144,6 +152,10 @@ class MarketplaceRepository {
     return await _service.fetchReviewByProduk(idProduk);
   }
 
+  Stream<List<ReviewProdukModel>> streamReviewByProduk(int idProduk) {
+    return _service.streamReviewByProduk(idProduk);
+  }
+
   Future<List<ReviewProdukModel>> getReviewByToko(int idToko) async {
     return await _service.fetchReviewByToko(idToko);
   }
@@ -165,6 +177,10 @@ class MarketplaceRepository {
 
   Future<double> calculateAverageRating(int idProduk) async {
     return await _service.calculateAverageRating(idProduk);
+  }
+
+  Stream<double> streamAverageRating(int idProduk) {
+    return _service.streamAverageRating(idProduk);
   }
 
   // ============================================

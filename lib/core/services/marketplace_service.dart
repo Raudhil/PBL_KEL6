@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/toko_model.dart';
@@ -154,6 +155,57 @@ class MarketplaceService {
     }
   }
 
+  /// Stream semua produk untuk realtime updates
+  Stream<List<ProdukMarketplaceModel>> streamAllProduk() {
+    late final StreamController<List<ProdukMarketplaceModel>> controller;
+    RealtimeChannel? channel;
+
+    controller = StreamController<List<ProdukMarketplaceModel>>(
+      onListen: () async {
+        // Emit initial data
+        try {
+          final initialData = await fetchAllProduk();
+          if (!controller.isClosed) {
+            controller.add(initialData);
+          }
+        } catch (e) {
+          if (!controller.isClosed) {
+            controller.addError(e);
+          }
+        }
+
+        // Setup realtime subscription
+        channel = _client
+            .channel('produk_all')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'produk',
+              callback: (payload) async {
+                // Fetch and emit updated data
+                try {
+                  final updatedProducts = await fetchAllProduk();
+                  if (!controller.isClosed) {
+                    controller.add(updatedProducts);
+                  }
+                } catch (e) {
+                  if (!controller.isClosed) {
+                    controller.addError(e);
+                  }
+                }
+              },
+            )
+            .subscribe();
+      },
+      onCancel: () {
+        channel?.unsubscribe();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
+  }
+
   /// Fetch produk berdasarkan toko
   Future<List<ProdukMarketplaceModel>> fetchProdukByToko(int idToko) async {
     try {
@@ -170,6 +222,62 @@ class MarketplaceService {
     } catch (e) {
       throw Exception('Gagal fetch produk: $e');
     }
+  }
+
+  /// Stream produk berdasarkan toko untuk realtime updates
+  Stream<List<ProdukMarketplaceModel>> streamProdukByToko(int idToko) {
+    late final StreamController<List<ProdukMarketplaceModel>> controller;
+    RealtimeChannel? channel;
+
+    controller = StreamController<List<ProdukMarketplaceModel>>(
+      onListen: () async {
+        // Emit initial data
+        try {
+          final initialData = await fetchProdukByToko(idToko);
+          if (!controller.isClosed) {
+            controller.add(initialData);
+          }
+        } catch (e) {
+          if (!controller.isClosed) {
+            controller.addError(e);
+          }
+        }
+
+        // Setup realtime subscription
+        channel = _client
+            .channel('produk_toko_$idToko')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'produk',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'id_toko',
+                value: idToko,
+              ),
+              callback: (payload) async {
+                // Fetch and emit updated data
+                try {
+                  final updatedProducts = await fetchProdukByToko(idToko);
+                  if (!controller.isClosed) {
+                    controller.add(updatedProducts);
+                  }
+                } catch (e) {
+                  if (!controller.isClosed) {
+                    controller.addError(e);
+                  }
+                }
+              },
+            )
+            .subscribe();
+      },
+      onCancel: () {
+        channel?.unsubscribe();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
   }
 
   /// Fetch produk berdasarkan ID
@@ -647,7 +755,7 @@ class MarketplaceService {
     }
   }
 
-  /// Fetch review berdasarkan produk
+  /// Fetch review berdasarkan produk (limit 7 terbaru)
   Future<List<ReviewProdukModel>> fetchReviewByProduk(int idProduk) async {
     try {
       final response = await _client
@@ -659,7 +767,8 @@ class MarketplaceService {
             )
           ''')
           .eq('id_produk', idProduk)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .limit(7);
 
       return (response as List)
           .map(
@@ -673,6 +782,62 @@ class MarketplaceService {
     } catch (e) {
       throw Exception('Gagal fetch review: $e');
     }
+  }
+
+  /// Stream review berdasarkan produk untuk realtime updates
+  Stream<List<ReviewProdukModel>> streamReviewByProduk(int idProduk) {
+    late final StreamController<List<ReviewProdukModel>> controller;
+    RealtimeChannel? channel;
+
+    controller = StreamController<List<ReviewProdukModel>>(
+      onListen: () async {
+        // Emit initial data
+        try {
+          final initialData = await fetchReviewByProduk(idProduk);
+          if (!controller.isClosed) {
+            controller.add(initialData);
+          }
+        } catch (e) {
+          if (!controller.isClosed) {
+            controller.addError(e);
+          }
+        }
+
+        // Setup realtime subscription
+        channel = _client
+            .channel('review_produk_$idProduk')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'review_produk',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'id_produk',
+                value: idProduk,
+              ),
+              callback: (payload) async {
+                // Fetch and emit updated data
+                try {
+                  final updatedReviews = await fetchReviewByProduk(idProduk);
+                  if (!controller.isClosed) {
+                    controller.add(updatedReviews);
+                  }
+                } catch (e) {
+                  if (!controller.isClosed) {
+                    controller.addError(e);
+                  }
+                }
+              },
+            )
+            .subscribe();
+      },
+      onCancel: () {
+        channel?.unsubscribe();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
   }
 
   /// Fetch semua review untuk produk-produk di toko tertentu
@@ -808,6 +973,62 @@ class MarketplaceService {
       print('Error calculate average rating: $e');
       return 0.0;
     }
+  }
+
+  /// Stream rata-rata rating produk untuk realtime updates
+  Stream<double> streamAverageRating(int idProduk) {
+    late final StreamController<double> controller;
+    RealtimeChannel? channel;
+
+    controller = StreamController<double>(
+      onListen: () async {
+        // Emit initial data
+        try {
+          final initialRating = await calculateAverageRating(idProduk);
+          if (!controller.isClosed) {
+            controller.add(initialRating);
+          }
+        } catch (e) {
+          if (!controller.isClosed) {
+            controller.addError(e);
+          }
+        }
+
+        // Setup realtime subscription for review changes
+        channel = _client
+            .channel('rating_produk_$idProduk')
+            .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'review_produk',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'id_produk',
+                value: idProduk,
+              ),
+              callback: (payload) async {
+                // Recalculate and emit updated rating
+                try {
+                  final updatedRating = await calculateAverageRating(idProduk);
+                  if (!controller.isClosed) {
+                    controller.add(updatedRating);
+                  }
+                } catch (e) {
+                  if (!controller.isClosed) {
+                    controller.addError(e);
+                  }
+                }
+              },
+            )
+            .subscribe();
+      },
+      onCancel: () {
+        channel?.unsubscribe();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
   }
 
   // ============================================

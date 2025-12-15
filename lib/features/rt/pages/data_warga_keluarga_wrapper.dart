@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/providers/warga_provider.dart';
 import '../../../core/widgets/custom_top_bar.dart';
 import '../../../theme/app_colors.dart';
@@ -30,6 +31,10 @@ class _DataWargaKeluargaWrapperState
   int? _expandedWargaId; // Track expanded warga card
   final Map<int, GlobalKey> _cardKeys = {}; // Keys for each card
 
+  // Track if RT filter has been set to prevent infinite loop
+  int? _currentRtFilter;
+  bool _rtFilterInitialized = false;
+
   @override
   void initState() {
     super.initState();
@@ -55,6 +60,67 @@ class _DataWargaKeluargaWrapperState
 
   @override
   Widget build(BuildContext context) {
+    // Get current user ID
+    final currentUser = Supabase.instance.client.auth.currentUser;
+
+    return FutureBuilder<int?>(
+      future: _getUserIntId(currentUser?.id),
+      builder: (context, userSnapshot) {
+        if (!userSnapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final userId = userSnapshot.data;
+        if (userId == null) {
+          return const Scaffold(
+            body: Center(child: Text('User ID tidak ditemukan')),
+          );
+        }
+
+        // Get RT ID untuk filter
+        final rtIdAsync = ref.watch(userRtIdProvider(userId));
+
+        return rtIdAsync.when(
+          data: (rtId) => _buildMainContent(context, rtId),
+          loading: () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+          error: (_, __) => _buildMainContent(context, null),
+        );
+      },
+    );
+  }
+
+  Future<int?> _getUserIntId(String? authId) async {
+    if (authId == null) return null;
+    try {
+      final userData = await Supabase.instance.client
+          .from('users')
+          .select('id')
+          .eq('id_auth', authId)
+          .maybeSingle();
+      return userData?['id'] as int?;
+    } catch (e) {
+      print('❌ Error getting user ID: $e');
+      return null;
+    }
+  }
+
+  Widget _buildMainContent(BuildContext context, int? rtId) {
+    // Set RT filter di notifier hanya sekali atau saat rtId berubah
+    if (!_rtFilterInitialized || _currentRtFilter != rtId) {
+      _currentRtFilter = rtId;
+      _rtFilterInitialized = true;
+
+      // Schedule filter update after build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(wargaNotifierProvider.notifier).setRtFilter(rtId);
+        }
+      });
+    }
+
     final state = ref.watch(wargaNotifierProvider);
 
     return PopScope(

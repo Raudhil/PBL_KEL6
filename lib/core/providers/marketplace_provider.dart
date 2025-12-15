@@ -65,18 +65,18 @@ final todayOrdersCountProvider = FutureProvider.autoDispose.family<int, int>((
 // PRODUK PROVIDERS
 // ============================================
 
-/// Provider untuk list semua produk
+/// Provider untuk list semua produk (realtime)
 final produkListProvider =
-    FutureProvider.autoDispose<List<ProdukMarketplaceModel>>((ref) async {
+    StreamProvider.autoDispose<List<ProdukMarketplaceModel>>((ref) {
       final repository = ref.read(marketplaceRepositoryProvider);
-      return await repository.getAllProduk();
+      return repository.streamAllProduk();
     });
 
-/// Provider untuk produk berdasarkan toko
-final produkByTokoProvider = FutureProvider.autoDispose
-    .family<List<ProdukMarketplaceModel>, int>((ref, tokoId) async {
+/// Provider untuk produk berdasarkan toko (realtime)
+final produkByTokoProvider = StreamProvider.autoDispose
+    .family<List<ProdukMarketplaceModel>, int>((ref, tokoId) {
       final repository = ref.read(marketplaceRepositoryProvider);
-      return await repository.getProdukByToko(tokoId);
+      return repository.streamProdukByToko(tokoId);
     });
 
 /// Provider untuk detail produk
@@ -277,20 +277,20 @@ final confirmOrderProvider = FutureProvider.autoDispose
 // REVIEW PROVIDERS
 // ============================================
 
-/// Provider untuk review produk
-final reviewByProdukProvider = FutureProvider.autoDispose
-    .family<List<ReviewProdukModel>, int>((ref, produkId) async {
+/// Provider untuk review produk (realtime dengan limit 7 terbaru)
+final reviewByProdukProvider = StreamProvider.autoDispose
+    .family<List<ReviewProdukModel>, int>((ref, produkId) {
       final repository = ref.read(marketplaceRepositoryProvider);
-      return await repository.getReviewByProduk(produkId);
+      return repository.streamReviewByProduk(produkId);
     });
 
-/// Provider untuk rata-rata rating produk
-final averageRatingProvider = FutureProvider.autoDispose.family<double, int>((
+/// Provider untuk rata-rata rating produk (realtime)
+final averageRatingProvider = StreamProvider.autoDispose.family<double, int>((
   ref,
   produkId,
-) async {
+) {
   final repository = ref.read(marketplaceRepositoryProvider);
-  return await repository.calculateAverageRating(produkId);
+  return repository.streamAverageRating(produkId);
 });
 
 /// Provider untuk review toko (semua review produk di toko)
