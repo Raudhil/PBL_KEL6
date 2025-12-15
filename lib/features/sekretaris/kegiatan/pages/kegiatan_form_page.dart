@@ -199,59 +199,12 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
   }
 
   void _showImagePreview(XFile imageFile, Uint8List imageBytes) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: const Text(
-                'Preview Foto',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Container(
-              constraints: const BoxConstraints(maxHeight: 400),
-              child: Image.memory(imageBytes, fit: BoxFit.contain),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _showImageSourceDialog();
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Ambil Ulang'),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _selectedImageFile = imageFile;
-                        _selectedImageBytes = imageBytes;
-                        _uploadedImageUrl = null;
-                      });
-                      Navigator.pop(ctx);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                    icon: const Icon(Icons.check),
-                    label: const Text('Terima'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    // Langsung set state tanpa modal preview
+    setState(() {
+      _selectedImageFile = imageFile;
+      _selectedImageBytes = imageBytes;
+      _uploadedImageUrl = null;
+    });
   }
 
   Widget _buildImagePickerSection() {
@@ -301,24 +254,25 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                'Foto Kegiatan (Opsional)',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+              Expanded(
+                child: Text(
+                  'Foto Kegiatan (Opsional)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
 
-          // Image Picker Box
+          // Image Preview dengan AspectRatio untuk menghindari overflow
           GestureDetector(
             onTap: _showImageSourceDialog,
             child: Container(
               width: double.infinity,
-              height: 180,
               decoration: BoxDecoration(
                 color: AppColors.greyLight,
                 borderRadius: BorderRadius.circular(12),
@@ -327,73 +281,76 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                   width: hasImage ? 2 : 1,
                 ),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: _selectedImageBytes != null
-                    ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
-                    : _selectedImageFile != null && !kIsWeb
-                    ? Image.file(
-                        File(_selectedImageFile!.path),
-                        fit: BoxFit.cover,
-                      )
-                    : _uploadedImageUrl != null
-                    ? Image.network(
-                        _uploadedImageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.broken_image_rounded,
-                                  size: 48,
-                                  color: AppColors.textSecondary.withOpacity(
-                                    0.5,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: _selectedImageBytes != null
+                      ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
+                      : _selectedImageFile != null && !kIsWeb
+                      ? Image.file(
+                          File(_selectedImageFile!.path),
+                          fit: BoxFit.cover,
+                        )
+                      : _uploadedImageUrl != null
+                      ? Image.network(
+                          _uploadedImageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.broken_image_rounded,
+                                    size: 40,
+                                    color: AppColors.textSecondary.withOpacity(
+                                      0.5,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Gagal memuat foto',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary,
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Gagal memuat foto',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
+                                ],
+                              ),
+                            );
+                          },
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.cloud_upload_outlined,
+                                size: 40,
+                                color: AppColors.primary.withOpacity(0.5),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Tap untuk upload foto',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
                                 ),
-                              ],
-                            ),
-                          );
-                        },
-                      )
-                    : Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.cloud_upload_outlined,
-                              size: 48,
-                              color: AppColors.primary.withOpacity(0.5),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Tap untuk upload foto',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'dari kamera atau galeri',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
+                              const SizedBox(height: 4),
+                              Text(
+                                'dari kamera atau galeri',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
+                ),
               ),
             ),
           ),
@@ -1205,7 +1162,12 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
       'November',
       'Desember',
     ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+
+    // Format waktu dengan padding 0 di depan jika perlu
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+
+    return '${date.day} ${months[date.month - 1]} ${date.year}, $hour:$minute';
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
@@ -1213,7 +1175,7 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
         ? (_tanggalMulai ?? DateTime.now())
         : (_tanggalSelesai ?? _tanggalMulai ?? DateTime.now());
 
-    final DateTime? picked = await showDatePicker(
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime(2000),
@@ -1232,14 +1194,65 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
       },
     );
 
-    if (picked != null) {
-      setState(() {
-        if (isStartDate) {
-          _tanggalMulai = picked;
-        } else {
-          _tanggalSelesai = picked;
-        }
-      });
+    if (pickedDate != null) {
+      // Tampilkan time picker setelah date picker
+      if (!mounted) return;
+
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay(
+          hour: initialDate.hour,
+          minute: initialDate.minute,
+        ),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: AppColors.primary,
+                onPrimary: AppColors.white,
+                onSurface: AppColors.textPrimary,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null) {
+        // Gabungkan tanggal dan waktu
+        final DateTime combinedDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+
+        setState(() {
+          if (isStartDate) {
+            _tanggalMulai = combinedDateTime;
+          } else {
+            _tanggalSelesai = combinedDateTime;
+          }
+        });
+      } else {
+        // Jika time picker dibatalkan, tetap simpan tanggal dengan waktu saat ini
+        final DateTime combinedDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          DateTime.now().hour,
+          DateTime.now().minute,
+        );
+
+        setState(() {
+          if (isStartDate) {
+            _tanggalMulai = combinedDateTime;
+          } else {
+            _tanggalSelesai = combinedDateTime;
+          }
+        });
+      }
     }
   }
 

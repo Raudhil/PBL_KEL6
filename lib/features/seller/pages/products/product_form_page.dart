@@ -211,79 +211,332 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
             color: AppColors.textPrimary,
           ),
         ),
-        const SizedBox(height: 8),
-        Center(
-          child: GestureDetector(
-            onTap: _showImageSourceDialog,
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(
-                color: AppColors.greyLight,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.greyDark.withOpacity(0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+        const SizedBox(height: 12),
+
+        // Image Container dengan AspectRatio untuk menghindari overflow
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Preview Foto
+              GestureDetector(
+                onTap: _showImageSourceDialog,
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.greyLight,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                    border: Border.all(
+                      color:
+                          _selectedImageFile != null ||
+                              _uploadedImageUrl != null
+                          ? AppColors.primary600
+                          : Colors.transparent,
+                      width: 2,
+                    ),
                   ),
-                ],
-                border: Border.all(
-                  color: _selectedImageFile != null || _uploadedImageUrl != null
-                      ? AppColors.primary600
-                      : Colors.transparent,
-                  width: 2,
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(14),
+                      ),
+                      child: _selectedImageBytes != null
+                          ? Image.memory(
+                              _selectedImageBytes!,
+                              fit: BoxFit.cover,
+                            )
+                          : _selectedImageFile != null && !kIsWeb
+                          ? Image.file(
+                              File(_selectedImageFile!.path),
+                              fit: BoxFit.cover,
+                            )
+                          : _uploadedImageUrl != null
+                          ? Image.network(
+                              _uploadedImageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          emoji,
+                                          style: const TextStyle(fontSize: 60),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        const Text(
+                                          'Tap untuk tambah foto',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                            )
+                          : Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    emoji,
+                                    style: const TextStyle(fontSize: 60),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Tap untuk tambah foto',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: _selectedImageBytes != null
-                    ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
-                    : _selectedImageFile != null && !kIsWeb
-                    ? Image.file(
-                        File(_selectedImageFile!.path),
-                        fit: BoxFit.cover,
-                      )
-                    : _uploadedImageUrl != null
-                    ? Image.network(
-                        _uploadedImageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Center(
-                          child: Text(
-                            emoji,
-                            style: const TextStyle(fontSize: 80),
+
+              // Button Actions
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _showImageSourceDialog,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary600,
+                          side: const BorderSide(color: AppColors.primary600),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                      )
-                    : Center(
-                        child: Text(
-                          emoji,
-                          style: const TextStyle(fontSize: 80),
+                        icon: Icon(
+                          _selectedImageFile != null ||
+                                  _uploadedImageUrl != null
+                              ? Icons.edit
+                              : Icons.add_photo_alternate,
+                          size: 20,
+                        ),
+                        label: Text(
+                          _selectedImageFile != null ||
+                                  _uploadedImageUrl != null
+                              ? 'Ganti Foto'
+                              : 'Tambah Foto',
                         ),
                       ),
+                    ),
+                    if (_selectedImageFile != null && !kIsWeb) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isAnalyzing ? null : _analyzeVegetable,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary600,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          icon: _isAnalyzing
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(Icons.science, size: 20),
+                          label: Text(
+                            _isAnalyzing ? 'Menganalisa...' : 'Deteksi AI',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Hasil Deteksi AI (tampil di bawah foto, bukan modal)
+        if (_detectedQuality != null && _detectionConfidence != null) ...[
+          const SizedBox(height: 16),
+          _buildDetectionResultCard(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDetectionResultCard() {
+    // Case-insensitive comparison untuk handle "Utuh", "utuh", "UTUH", dll
+    final isGoodQuality = _detectedQuality?.toLowerCase().trim() == 'utuh';
+    print('🔍 isGoodQuality: $isGoodQuality (dari "$_detectedQuality")');
+
+    final icon = isGoodQuality
+        ? Icons.check_circle_rounded
+        : Icons.warning_rounded;
+    final color = isGoodQuality ? AppColors.success : AppColors.warning;
+    final title = isGoodQuality ? 'Kualitas Baik ✓' : 'Kualitas Rusak !';
+    final message = isGoodQuality
+        ? 'Sayuran dalam kondisi utuh dan layak dijual'
+        : 'Sayuran menunjukkan tanda-tanda kerusakan';
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3), width: 2),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      message,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textPrimary.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hasil Deteksi',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _detectedQuality!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Confidence',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_detectionConfidence!.toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (!isGoodQuality) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  setState(() {
+                    _selectedImageFile = null;
+                    _selectedImageBytes = null;
+                    _detectedQuality = null;
+                    _detectionConfidence = null;
+                  });
+                  _showImageSourceDialog();
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: color,
+                  side: BorderSide(color: color, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.camera_alt, size: 18),
+                label: const Text('Ganti Foto Produk'),
               ),
             ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: TextButton.icon(
-            onPressed: _showImageSourceDialog,
-            icon: Icon(
-              _selectedImageFile != null || _uploadedImageUrl != null
-                  ? Icons.edit
-                  : Icons.add_a_photo,
-              size: 16,
-            ),
-            label: Text(
-              _selectedImageFile != null || _uploadedImageUrl != null
-                  ? 'Ganti Foto'
-                  : 'Tambah Foto',
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-        ),
-      ],
+          ],
+        ],
+      ),
     );
   }
 
@@ -349,61 +602,15 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   }
 
   void _showImagePreview(XFile imageFile, Uint8List imageBytes) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: const Text(
-                'Preview Foto',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            Container(
-              constraints: const BoxConstraints(maxHeight: 400),
-              child: Image.memory(imageBytes, fit: BoxFit.contain),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _showImageSourceDialog();
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Ambil Ulang'),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _selectedImageFile = imageFile;
-                        _selectedImageBytes = imageBytes;
-                        _uploadedImageUrl = null; // Clear old URL
-                      });
-                      Navigator.pop(ctx);
-                      // Otomatis deteksi kualitas setelah foto diterima
-                      _analyzeVegetable();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary600,
-                      foregroundColor: Colors.white,
-                    ),
-                    icon: const Icon(Icons.check),
-                    label: const Text('Terima'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    // Langsung set state tanpa modal preview
+    setState(() {
+      _selectedImageFile = imageFile;
+      _selectedImageBytes = imageBytes;
+      _uploadedImageUrl = null; // Clear old URL
+      // Reset detection result saat ganti foto
+      _detectedQuality = null;
+      _detectionConfidence = null;
+    });
   }
 
   Widget _buildTextField({
@@ -862,15 +1069,31 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
         throw Exception('Data prediction atau confidence null');
       }
 
+      // Debug: Print nilai asli dari backend
+      print('🔍 Prediction dari backend: "$prediction"');
+      print('🔍 Confidence dari backend: $confidence%');
+
+      // Normalisasi string (trim whitespace dan capitalize first letter)
+      final normalizedPrediction = prediction.trim();
+      print('🔍 Prediction setelah trim: "$normalizedPrediction"');
+
       setState(() {
-        _detectedQuality = prediction;
+        _detectedQuality = normalizedPrediction;
         _detectionConfidence = confidence;
       });
 
       if (!mounted) return;
 
-      // Show result dialog
-      _showDetectionResultDialog(_detectedQuality!, _detectionConfidence!);
+      // Scroll ke hasil deteksi
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          Scrollable.ensureVisible(
+            context,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -885,192 +1108,6 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
         setState(() => _isAnalyzing = false);
       }
     }
-  }
-
-  void _showDetectionResultDialog(String quality, double confidence) {
-    final isGoodQuality = quality == 'Utuh';
-    final icon = isGoodQuality ? Icons.check_circle : Icons.warning;
-    final color = isGoodQuality ? AppColors.success : AppColors.warning;
-    final title = isGoodQuality ? 'Kualitas Baik' : 'Kualitas Rusak';
-    final message = isGoodQuality
-        ? 'Sayuran dalam kondisi utuh dan layak dijual'
-        : 'Sayuran menunjukkan tanda-tanda kerusakan';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 50),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                message,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textPrimary.withOpacity(0.7),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.greyLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Hasil Deteksi:',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          quality,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Confidence:',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          '${confidence.toStringAsFixed(1)}%',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Tombol berbeda untuk Utuh vs Rusak
-              if (isGoodQuality)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: color,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'OK, Lanjutkan',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                )
-              else
-                Column(
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          // Reset foto dan buka picker lagi
-                          setState(() {
-                            _selectedImageFile = null;
-                            _selectedImageBytes = null;
-                            _detectedQuality = null;
-                          });
-                          _showImageSourceDialog();
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary600,
-                          side: const BorderSide(
-                            color: AppColors.primary600,
-                            width: 2,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text(
-                          'Ganti Foto',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.textSecondary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: const Text(
-                          'Tetap Lanjutkan',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   @override
