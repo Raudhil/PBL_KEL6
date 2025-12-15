@@ -4,6 +4,41 @@ import '../../data/models/warga_model.dart';
 class SupabaseService {
   final _client = Supabase.instance.client;
 
+  /// Get RT ID dari user yang sedang login
+  Future<int?> getUserRtId(int userId) async {
+    try {
+      final result = await _client
+          .from('users')
+          .select('''
+            id_warga,
+            warga!inner(
+              id_kk,
+              kk!inner(
+                id_alamat,
+                alamat!inner(
+                  id_rt
+                )
+              )
+            )
+          ''')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (result == null || result['warga'] == null) {
+        return null;
+      }
+
+      final warga = result['warga'];
+      final kk = warga['kk'];
+      final alamat = kk['alamat'];
+      return alamat['id_rt'] as int?;
+    } catch (e) {
+      print('Error getting user RT ID: $e');
+      return null;
+    }
+  }
+
+  /// Fetch semua warga (untuk admin/super user)
   Future<List<WargaModel>> fetchWarga() async {
     final data = await _client.from('warga').select('''
       *,
@@ -13,7 +48,8 @@ class SupabaseService {
         nomor,
         alamat!inner(
           id,
-          alamat
+          alamat,
+          id_rt
         )
       )
     ''');
@@ -23,6 +59,32 @@ class SupabaseService {
     if (list.isNotEmpty) {
       print('DEBUG - Sample warga data: ${list.first}');
     }
+
+    return list
+        .map((e) => WargaModel.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  /// Fetch warga berdasarkan RT (untuk warga biasa)
+  Future<List<WargaModel>> fetchWargaByRT(int idRT) async {
+    final data = await _client
+        .from('warga')
+        .select('''
+      *,
+      users!id_warga(status),
+      kk!inner(
+        id,
+        nomor,
+        alamat!inner(
+          id,
+          alamat,
+          id_rt
+        )
+      )
+    ''')
+        .eq('kk.alamat.id_rt', idRT);
+
+    final list = data as List<dynamic>;
 
     return list
         .map((e) => WargaModel.fromJson(Map<String, dynamic>.from(e as Map)))

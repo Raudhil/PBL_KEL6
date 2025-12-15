@@ -761,49 +761,76 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                   );
                 }
 
-                final latestReview = reviews.first;
-
+                // Tampilkan semua review (max 7)
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          latestReview.namaPembeli ?? 'Pembeli',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Row(
-                          children: List.generate(
-                            5,
-                            (index) => Icon(
-                              index < latestReview.rating
-                                  ? Icons.star
-                                  : Icons.star_border,
-                              size: 14,
-                              color: AppColors.yellowGold,
+                    ...reviews
+                        .map(
+                          (review) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        review.namaPembeli ?? 'Pembeli',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Row(
+                                      children: List.generate(
+                                        5,
+                                        (index) => Icon(
+                                          index < review.rating
+                                              ? Icons.star
+                                              : Icons.star_border,
+                                          size: 14,
+                                          color: AppColors.yellowGold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (review.komentar != null &&
+                                    review.komentar!.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '"${review.komentar}"',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatDate(review.createdAt),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.textSecondary,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                                if (review != reviews.last)
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 8),
+                                    child: Divider(height: 1),
+                                  ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    if (latestReview.komentar != null &&
-                        latestReview.komentar!.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        '"${latestReview.komentar}"',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                        )
+                        .toList(),
                   ],
                 );
               },
@@ -825,6 +852,25 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]}.',
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      if (difference.inHours == 0) {
+        if (difference.inMinutes == 0) {
+          return 'Baru saja';
+        }
+        return '${difference.inMinutes} menit yang lalu';
+      }
+      return '${difference.inHours} jam yang lalu';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} hari yang lalu';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 }
 

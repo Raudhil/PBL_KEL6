@@ -9,6 +9,27 @@ final wargaRepositoryProvider = Provider<WargaRepository>((ref) {
   return WargaRepository(service);
 });
 
+/// Provider untuk get RT ID user yang login
+final userRtIdProvider = FutureProvider.family<int?, int>((ref, userId) async {
+  final repo = ref.read(wargaRepositoryProvider);
+  return await repo.getUserRtId(userId);
+});
+
+/// Provider untuk list warga filtered by RT
+final wargaByRTProvider = FutureProvider.family<List<WargaModel>, int?>((
+  ref,
+  rtId,
+) async {
+  final repo = ref.read(wargaRepositoryProvider);
+  if (rtId == null) {
+    // Jika tidak ada RT ID (admin), tampilkan semua
+    return await repo.getAllWarga();
+  } else {
+    // Jika ada RT ID (warga biasa), filter by RT
+    return await repo.getWargaByRT(rtId);
+  }
+});
+
 final wargaNotifierProvider =
     StateNotifierProvider<WargaNotifier, AsyncValue<List<WargaModel>>>(
       (ref) => WargaNotifier(ref.read(wargaRepositoryProvider)),
@@ -17,9 +38,16 @@ final wargaNotifierProvider =
 class WargaNotifier extends StateNotifier<AsyncValue<List<WargaModel>>> {
   final WargaRepository _repo;
   RealtimeChannel? _realtimeChannel;
+  int? _filterRtId;
 
   WargaNotifier(this._repo) : super(const AsyncValue.loading()) {
     _setupRealtimeSubscription();
+    fetchAll();
+  }
+
+  /// Set filter RT ID
+  void setRtFilter(int? rtId) {
+    _filterRtId = rtId;
     fetchAll();
   }
 
@@ -48,7 +76,9 @@ class WargaNotifier extends StateNotifier<AsyncValue<List<WargaModel>>> {
   Future<void> fetchAll() async {
     try {
       state = const AsyncValue.loading();
-      final list = await _repo.getAllWarga();
+      final list = _filterRtId == null
+          ? await _repo.getAllWarga()
+          : await _repo.getWargaByRT(_filterRtId!);
       state = AsyncValue.data(list);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
