@@ -113,64 +113,67 @@ class _WargaIuranPageState extends ConsumerState<WargaIuranPage>
       print('  - ${item.iuran.jenis}: ${item.tanggalBayar}');
     }
 
-    return Column(
-      children: [
-        // Summary Card
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: IuranSummaryCard(
-            totalTagihan: iuranState.totalTagihan,
-            jatuhTempo: iuranState.jatuhTempoTerdekat,
+    return SizedBox(
+      width: double.infinity,
+      child: Column(
+        children: [
+          // Summary Card
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: IuranSummaryCard(
+              totalTagihan: iuranState.totalTagihan,
+              jatuhTempo: iuranState.jatuhTempoTerdekat,
+            ),
           ),
-        ),
 
-        // TabBar
-        Container(
-          color: AppColors.creamWhite,
-          child: TabBar(
-            controller: _tabController,
-            indicatorColor: AppColors.primary,
-            labelColor: AppColors.primary,
-            unselectedLabelColor: AppColors.textSecondary,
-            tabs: [
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.receipt),
-                    const SizedBox(width: 8),
-                    Text('Tagihan (${tagihanList.length})'),
-                  ],
+          // TabBar
+          Container(
+            color: AppColors.creamWhite,
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.primary,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.textSecondary,
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.receipt),
+                      const SizedBox(width: 8),
+                      Text('Tagihan (${tagihanList.length})'),
+                    ],
+                  ),
                 ),
-              ),
-              Tab(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.history),
-                    const SizedBox(width: 8),
-                    Text('Riwayat (${riwayatList.length})'),
-                  ],
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.history),
+                      const SizedBox(width: 8),
+                      Text('Riwayat (${riwayatList.length})'),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
 
-        // TabBarView
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              // Tab 1: Tagihan (Belum Lunas)
-              _buildListView(context, controller, tagihanList, 'Belum Lunas'),
+          // TabBarView
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Tab 1: Tagihan (Belum Lunas)
+                _buildListView(context, controller, tagihanList, 'Belum Lunas'),
 
-              // Tab 2: Riwayat (Lunas) - sudah sorted
-              _buildListView(context, controller, riwayatList, 'Lunas'),
-            ],
+                // Tab 2: Riwayat (Lunas) - sudah sorted
+                _buildListView(context, controller, riwayatList, 'Lunas'),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
