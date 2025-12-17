@@ -770,7 +770,7 @@ class MarketplaceService {
           .order('created_at', ascending: false)
           .limit(7);
 
-      return (response as List)
+      final reviews = (response as List)
           .map(
             (item) => ReviewProdukModel.fromJson({
               ...item,
@@ -779,6 +779,15 @@ class MarketplaceService {
             }),
           )
           .toList();
+
+      // DEBUG: Log review gambar field
+      for (var review in reviews) {
+        if (review.gambar != null) {
+          print('🖼️ Review ${review.id} has gambar: ${review.gambar}');
+        }
+      }
+
+      return reviews;
     } catch (e) {
       throw Exception('Gagal fetch review: $e');
     }
@@ -855,7 +864,7 @@ class MarketplaceService {
           .eq('produk.id_toko', idToko)
           .order('created_at', ascending: false);
 
-      return (response as List)
+      final reviews = (response as List)
           .map(
             (item) => ReviewProdukModel.fromJson({
               ...item,
@@ -865,7 +874,10 @@ class MarketplaceService {
             }),
           )
           .toList();
+
+      return reviews;
     } catch (e) {
+      print('❌ [fetchReviewByToko] Error: $e');
       throw Exception('Gagal fetch review toko: $e');
     }
   }

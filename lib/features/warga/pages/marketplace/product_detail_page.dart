@@ -821,6 +821,56 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                                     fontStyle: FontStyle.italic,
                                   ),
                                 ),
+                                // TAMBAH INI - Tampilkan gambar review jika ada
+                                if (review.gambar != null &&
+                                    review.gambar!.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Image.network(
+                                      review.gambar!,
+                                      width: double.infinity,
+                                      height: 150,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null)
+                                          return child;
+                                        return Container(
+                                          width: double.infinity,
+                                          height: 150,
+                                          color: AppColors.greyLight,
+                                          child: Center(
+                                            child: CircularProgressIndicator(
+                                              value:
+                                                  loadingProgress
+                                                          .expectedTotalBytes !=
+                                                      null
+                                                  ? loadingProgress
+                                                            .cumulativeBytesLoaded /
+                                                        loadingProgress
+                                                            .expectedTotalBytes!
+                                                  : null,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Container(
+                                              width: double.infinity,
+                                              height: 150,
+                                              color: AppColors.greyLight,
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.image_not_supported,
+                                                  color: AppColors.greyMedium,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                    ),
+                                  ),
+                                ],
                                 if (review != reviews.last)
                                   const Padding(
                                     padding: EdgeInsets.only(top: 8),
