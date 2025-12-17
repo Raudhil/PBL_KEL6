@@ -294,8 +294,8 @@ final averageRatingProvider = StreamProvider.autoDispose.family<double, int>((
 });
 
 /// Provider untuk review toko (semua review produk di toko)
-final storeReviewsProvider = FutureProvider.autoDispose
-    .family<List<ReviewProdukModel>, int>((ref, idToko) async {
+final storeReviewsProvider =
+    FutureProvider.family<List<ReviewProdukModel>, int>((ref, idToko) async {
       final repository = ref.read(marketplaceRepositoryProvider);
       return await repository.getReviewByToko(idToko);
     });
