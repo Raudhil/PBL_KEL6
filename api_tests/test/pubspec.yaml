@@ -1,0 +1,9 @@
+name: teraswarga_api_tests
+description: API Testing Suite for TerasWarga
+version: 1.0.0
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  http: ^1.1.0
