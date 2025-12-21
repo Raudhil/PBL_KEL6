@@ -16,7 +16,7 @@ class TestHelper {
     final status = passed ? '✓ PASSED' : '✗ FAILED';
     final color = passed ? '\x1B[32m' : '\x1B[31m';
     final reset = '\x1B[0m';
-    
+
     print('$color$status$reset: $testName');
     if (message != null) {
       print('  Message: $message');
@@ -27,7 +27,7 @@ class TestHelper {
   static void printResponse(http.Response response) {
     print('Status Code: ${response.statusCode}');
     print('Headers: ${response.headers}');
-    
+
     try {
       final body = json.decode(response.body);
       print('Body: ${json.encode(body)}');
@@ -64,7 +64,10 @@ class TestHelper {
   }
 
   /// Check if response contains required fields
-  static bool hasRequiredFields(Map<String, dynamic> data, List<String> fields) {
+  static bool hasRequiredFields(
+    Map<String, dynamic> data,
+    List<String> fields,
+  ) {
     for (var field in fields) {
       if (!data.containsKey(field)) {
         return false;
@@ -75,8 +78,10 @@ class TestHelper {
 
   /// Generate test report summary
   static String generateSummary(int total, int passed, int failed) {
-    final passRate = total > 0 ? (passed / total * 100).toStringAsFixed(2) : '0.00';
-    
+    final passRate = total > 0
+        ? (passed / total * 100).toStringAsFixed(2)
+        : '0.00';
+
     return '''
 ${'=' * 60}
 TEST SUMMARY
