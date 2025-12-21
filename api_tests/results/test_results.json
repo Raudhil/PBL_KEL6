@@ -1,0 +1,21 @@
+{
+  "test_suite": "TerasWarga API Testing",
+  "timestamp": "2025-12-21T08:23:25.161807",
+  "start_time": "2025-12-21T08:23:13.810858",
+  "end_time": "2025-12-21T08:23:25.161807",
+  "duration_seconds": 11,
+  "mode": "authenticated",
+  "summary": {
+    "total_tests": 20,
+    "passed": 18,
+    "failed": 2,
+    "pass_rate": "90.00"
+  },
+  "test_categories": [
+    "Warga API (CRUD)",
+    "Iuran & Transaksi API (CRUD)",
+    "Marketplace API (CRUD)",
+    "Community API (Read Only)",
+    "Keuangan RT API (CRUD)"
+  ]
+}
