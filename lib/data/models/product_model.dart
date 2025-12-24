@@ -84,17 +84,16 @@ class Order {
   int get itemCount => items.fold(0, (sum, item) => sum + item.quantity);
 }
 
-enum OrderStatus { pending, processing, shipped, delivered, cancelled }
+enum OrderStatus { pending, processing, delivered, cancelled }
 
 extension OrderStatusExtension on OrderStatus {
   String get displayName {
     switch (this) {
       case OrderStatus.pending:
-        return 'Menunggu Konfirmasi';
+        return 'Pending';
       case OrderStatus.processing:
-        return 'Diproses';
-      case OrderStatus.shipped:
-        return 'Dikirim';
+        return 'Dikonfirmasi';
+        ;
       case OrderStatus.delivered:
         return 'Selesai';
       case OrderStatus.cancelled:

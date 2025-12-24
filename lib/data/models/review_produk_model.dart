@@ -5,6 +5,7 @@ class ReviewProdukModel {
   final int idTransaksi;
   final int rating;
   final String? komentar;
+  final String? gambar; // TAMBAH INI - URL gambar dari Supabase
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -18,6 +19,7 @@ class ReviewProdukModel {
     required this.idTransaksi,
     required this.rating,
     this.komentar,
+    this.gambar, // TAMBAH INI
     required this.createdAt,
     required this.updatedAt,
     this.namaPembeli,
@@ -41,6 +43,7 @@ class ReviewProdukModel {
       idTransaksi: json['id_transaksi'] as int,
       rating: ratingValue,
       komentar: json['komentar'] as String?,
+      gambar: json['gambar'] as String?, // TAMBAH INI
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       namaPembeli: json['nama_pembeli'] as String?,
@@ -55,6 +58,7 @@ class ReviewProdukModel {
       'id_transaksi': idTransaksi,
       'rating': rating,
       'komentar': komentar,
+      'gambar': gambar, // TAMBAH INI
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       if (namaPembeli != null) 'nama_pembeli': namaPembeli,
@@ -68,6 +72,7 @@ class ReviewProdukModel {
       'id_transaksi': idTransaksi,
       'rating': rating,
       if (komentar != null) 'komentar': komentar,
+      if (gambar != null) 'gambar': gambar, // TAMBAH INI
     };
   }
 
@@ -77,6 +82,7 @@ class ReviewProdukModel {
     int? idTransaksi,
     int? rating,
     String? komentar,
+    String? gambar,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? namaPembeli,
@@ -88,6 +94,7 @@ class ReviewProdukModel {
       idTransaksi: idTransaksi ?? this.idTransaksi,
       rating: rating ?? this.rating,
       komentar: komentar ?? this.komentar,
+      gambar: gambar ?? this.gambar, // TAMBAH INI
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       namaPembeli: namaPembeli ?? this.namaPembeli,

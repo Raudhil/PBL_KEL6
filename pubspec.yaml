@@ -64,6 +64,7 @@ dependencies:
   firebase_core: ^4.2.1
   intl: ^0.20.2
   http_parser: ^4.1.2
+  google_generative_ai: ^0.4.7
 
 dev_dependencies:
   flutter_test:

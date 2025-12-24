@@ -60,7 +60,8 @@ class StoreReviewsPage extends ConsumerWidget {
               itemCount: reviews.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                return _ReviewCard(review: reviews[index]);
+                final review = reviews[index];
+                return _ReviewCard(key: ValueKey(review.id), review: review);
               },
             ),
           );
@@ -93,7 +94,7 @@ class StoreReviewsPage extends ConsumerWidget {
 class _ReviewCard extends StatelessWidget {
   final ReviewProdukModel review;
 
-  const _ReviewCard({required this.review});
+  const _ReviewCard({super.key, required this.review});
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +115,7 @@ class _ReviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // User info header
           Row(
             children: [
               CircleAvatar(
@@ -167,6 +169,7 @@ class _ReviewCard extends StatelessWidget {
               ),
             ],
           ),
+          // Comment
           if (review.komentar != null && review.komentar!.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(
@@ -178,6 +181,69 @@ class _ReviewCard extends StatelessWidget {
               ),
             ),
           ],
+          // Image display - THIS IS KEY
+          if (review.gambar != null && review.gambar!.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                review.gambar!,
+                width: double.infinity,
+                height: 200,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: AppColors.greyLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: AppColors.greyLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.image_not_supported,
+                            color: AppColors.greyMedium,
+                            size: 32,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Gambar tidak bisa dimuat',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.greyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+          // Product name badge
           if (review.namaProduk != null) ...[
             const SizedBox(height: 12),
             Container(

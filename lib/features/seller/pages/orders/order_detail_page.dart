@@ -38,7 +38,8 @@ class SellerOrderDetailPage extends ConsumerWidget {
             ]),
             const SizedBox(height: 24),
             if (order['status'] == 'Pending') _buildPendingActions(context),
-            if (order['status'] == 'Diproses') _buildProcessActions(context),
+            if (order['status'] == 'Dikonfirmasi')
+              _buildProcessActions(context),
           ],
         ),
       ),

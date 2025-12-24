@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../data/models/transaksi_marketplace_model.dart';
 import '../../../../data/models/review_produk_model.dart';
@@ -24,6 +28,9 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
   ReviewProdukModel? _existingReview;
   bool _isLoadingReview = true;
   String? _loadedPaymentMethod;
+  XFile? _selectedImageFile; // UBAH INI - gunakan XFile instead of File
+  Uint8List? _selectedImageBytes; // TAMBAH INI - untuk web preview
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -75,6 +82,216 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     }
   }
 
+  Future<void> _pickImage() async {
+    try {
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (context) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.greyLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                // Title
+                const Text(
+                  'Pilih Sumber Foto',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Camera option
+                _buildPhotoSourceOption(
+                  icon: Icons.camera_alt_rounded,
+                  title: 'Ambil Foto',
+                  subtitle: 'Gunakan kamera',
+                  color: AppColors.primary,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImageFromSource(ImageSource.camera);
+                  },
+                ),
+                const SizedBox(height: 12),
+                // Gallery option
+                _buildPhotoSourceOption(
+                  icon: Icons.photo_library_rounded,
+                  title: 'Pilih dari Galeri',
+                  subtitle: 'Pilih foto dari perangkat',
+                  color: AppColors.secondary,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImageFromSource(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      print('✗ Error showing photo options: $e');
+    }
+  }
+
+  Future<void> _pickImageFromSource(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null && mounted) {
+        // Read bytes untuk preview di web
+        final bytes = await pickedFile.readAsBytes();
+        setState(() {
+          _selectedImageFile = pickedFile;
+          _selectedImageBytes = bytes;
+        });
+        print('✓ Image selected: ${pickedFile.name}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memilih gambar: $e')));
+      }
+      print('✗ Error picking image: $e');
+    }
+  }
+
+  Widget _buildPhotoSourceOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _uploadImageToSupabase() async {
+    if (_selectedImageBytes == null) return null;
+
+    try {
+      setState(() => _isUploadingImage = true);
+
+      final supabase = Supabase.instance.client;
+      final fileName =
+          'review_${DateTime.now().millisecondsSinceEpoch}_${widget.order.id}.jpg';
+
+      print('⬆️ Uploading image: $fileName');
+
+      // Upload file to Supabase storage using uploadBinary
+      final uploadResponse = await supabase.storage
+          .from('review-images')
+          .uploadBinary(
+            fileName,
+            _selectedImageBytes!,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          );
+
+      print('✓ Upload response: $uploadResponse');
+
+      // Get public URL - pastikan bucket public di Supabase!
+      final publicUrl = supabase.storage
+          .from('review-images')
+          .getPublicUrl(fileName);
+
+      print('✓ Image uploaded successfully');
+      print('✓ File name: $fileName');
+      print('✓ Public URL: $publicUrl');
+
+      return publicUrl;
+    } catch (e) {
+      print('❌ Error uploading image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal upload gambar: $e')));
+      }
+      return null;
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+      }
+    }
+  }
+
   Future<void> _submitReview() async {
     if (widget.order.items == null || widget.order.items!.isEmpty) {
       _showErrorDialog('Tidak ada produk untuk direview');
@@ -92,6 +309,16 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
     try {
       setState(() => _isReviewing = true);
 
+      // Upload image jika ada
+      String? imageUrl;
+      if (_selectedImageBytes != null) {
+        imageUrl = await _uploadImageToSupabase();
+        if (imageUrl == null) {
+          _showErrorDialog('Gagal upload gambar. Silakan coba lagi.');
+          return;
+        }
+      }
+
       final review = ReviewProdukModel(
         id: 0,
         idProduk: firstItem.idProduk,
@@ -102,7 +329,12 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
             : _commentController.text.trim(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        gambar: imageUrl, // TAMBAH INI - tambahkan URL gambar ke review
       );
+
+      print('✓ Review model created');
+      print('✓ Review gambar field: ${review.gambar}');
+      print('✓ Review toInsertJson: ${review.toInsertJson()}');
 
       await ref.read(marketplaceRepositoryProvider).createReview(review);
 
@@ -112,6 +344,10 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
           'Review Berhasil Dikirim!',
           'Terima kasih atas review Anda. Review akan membantu pembeli lain.',
         );
+        // Clear selected image
+        setState(() {
+          _selectedImageBytes = null;
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -619,6 +855,55 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                 ),
               ),
             ],
+            // TAMBAH INI - Tampilkan gambar review jika ada
+            if (_existingReview!.gambar != null &&
+                _existingReview!.gambar!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  _existingReview!.gambar!,
+                  width: double.infinity,
+                  height: 200,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      width: double.infinity,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: AppColors.greyLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: double.infinity,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: AppColors.greyLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: AppColors.greyMedium,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Text(
               'Dikirim pada ${_formatDateTime(_existingReview!.createdAt)}',
@@ -720,10 +1005,99 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
             ),
           ),
           const SizedBox(height: 16),
+          // TAMBAH SECTION UNTUK UPLOAD GAMBAR
+          const Text(
+            'Foto Produk (Opsional)',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (_selectedImageBytes != null)
+            Stack(
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    image: DecorationImage(
+                      image: MemoryImage(_selectedImageBytes!),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedImageFile = null;
+                        _selectedImageBytes = null;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: AppColors.danger,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            GestureDetector(
+              onTap: _isReviewing || _isUploadingImage ? null : _pickImage,
+              child: Container(
+                width: double.infinity,
+                height: 120,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.greyMedium,
+                    style: BorderStyle.solid,
+                    width: 2,
+                  ),
+                  color: AppColors.greyLight,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.image_outlined,
+                      size: 48,
+                      color: AppColors.greyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Pilih Foto dari Galeri',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _isReviewing ? null : _submitReview,
+              onPressed: (_isReviewing || _isUploadingImage)
+                  ? null
+                  : _submitReview,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary600,
                 foregroundColor: AppColors.white,
@@ -732,7 +1106,7 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: _isReviewing
+              child: (_isReviewing || _isUploadingImage)
                   ? const SizedBox(
                       height: 20,
                       width: 20,
@@ -743,9 +1117,11 @@ class _OrderDetailPageState extends ConsumerState<OrderDetailPage> {
                         ),
                       ),
                     )
-                  : const Text(
-                      'Kirim Review',
-                      style: TextStyle(
+                  : Text(
+                      _isUploadingImage
+                          ? 'Mengunggah Gambar...'
+                          : 'Kirim Review',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),

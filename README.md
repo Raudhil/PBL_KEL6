@@ -200,7 +200,7 @@ Untuk testing dan demo aplikasi, gunakan akun berikut:
   <b>1. Marketplace Produk Lokal</b><br>
   &nbsp;&nbsp;&nbsp;• Browse & beli produk warga<br>
   &nbsp;&nbsp;&nbsp;• Keranjang belanja<br>
-  &nbsp;&nbsp;&nbsp;• Tracking pesanan<br><br>
+  &nbsp;&nbsp;&nbsp;• Checkout & tracking pesanan<br><br>
   <b>2. Pembayaran Iuran</b><br>
   &nbsp;&nbsp;&nbsp;• Lihat & bayar iuran<br>
   &nbsp;&nbsp;&nbsp;• Upload bukti pembayaran<br>
@@ -222,7 +222,8 @@ Untuk testing dan demo aplikasi, gunakan akun berikut:
   <b>1. Kelola Produk</b><br>
   &nbsp;&nbsp;&nbsp;• Tambah/edit/hapus produk<br>
   &nbsp;&nbsp;&nbsp;• Upload foto produk<br>
-  &nbsp;&nbsp;&nbsp;• Manajemen stok & harga<br><br>
+  &nbsp;&nbsp;&nbsp;• Manajemen stok & harga<br>
+  &nbsp;&nbsp;&nbsp;• <b>ML Deteksi Kualitas Sayuran</b> (Utuh/Rusak)<br><br>
   <b>2. Kelola Pembelian</b><br>
   &nbsp;&nbsp;&nbsp;• Order management<br>
   &nbsp;&nbsp;&nbsp;• Update status pesanan<br>
@@ -248,8 +249,9 @@ Untuk testing dan demo aplikasi, gunakan akun berikut:
 - Klasifikasi sayuran: **Utuh** atau **Rusak**
 - Backend FastAPI deployed di Railway (Production)
 - Confidence score untuk setiap prediksi
-- Support upload gambar dari kamera atau galeri
+- Support upload gambar dari galeri
 - Hasil prediksi real-time dengan akurasi tinggi
+- Terintegrasi di halaman form produk penjual
 
 #### 🔔 Notifikasi Real-time
 
@@ -258,7 +260,6 @@ Untuk testing dan demo aplikasi, gunakan akun berikut:
 - Real-time updates menggunakan Supabase Realtime
 - History notifikasi tersimpan di database
 - Badge counter untuk notifikasi yang belum dibaca
-</table>
 
 ---
 
@@ -332,8 +333,8 @@ cached_network_image: ^3.3.1
 
 <tr>
 <td><b>ML Vegetable Detection</b></td>
-<td><code>lib/features/warga/pages/marketplace/product_detail_page.dart</code></td>
-<td>Deteksi kualitas sayuran via camera</td>
+<td><code>lib/features/seller/pages/products/product_form_page.dart</code></td>
+<td>Deteksi kualitas sayuran saat upload produk</td>
 </tr>
 
 <tr>
@@ -342,22 +343,17 @@ cached_network_image: ^3.3.1
 <td>Upload gambar pengumuman</td>
 </tr>
 
-<tr>
-<td><b>Payment Proof Upload</b></td>
-<td><code>lib/features/warga/pages/iuran/detail_iuran_warga_page.dart</code></td>
-<td>Upload bukti transfer pembayaran</td>
-</tr>
 </table>
 
 #### 📝 Contoh Kode:
 
 ```dart
 // lib/features/warga/pages/profil/edit_profil_page.dart
-Future<void> _pickImage(ImageSource source) async {
+Future<void> _pickImage() async {
   try {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
-      source: source,
+      source: ImageSource.gallery,
       maxWidth: 1080,
       maxHeight: 1080,
       imageQuality: 85,
@@ -377,12 +373,11 @@ Future<void> _pickImage(ImageSource source) async {
 
 #### 🎯 Fitur Camera yang Diimplementasikan:
 
-- ✅ **Akses Camera** - Ambil foto langsung dari kamera
 - ✅ **Akses Galeri** - Pilih foto dari galeri
 - ✅ **Image Compression** - Optimasi ukuran gambar
 - ✅ **Image Caching** - Cache gambar untuk performa
-- ✅ **Multiple Image Sources** - Pilihan camera atau galeri
 - ✅ **Image Upload to Supabase Storage** - Upload ke cloud storage
+- ✅ **Multi-platform Support** - Web & Mobile compatibility
 
 ---
 
@@ -404,9 +399,9 @@ flutter_riverpod: ^2.4.9
 </tr>
 
 <tr>
-<td><b>StreamProvider</b></td>
-<td><code>lib/core/providers/auth_state_provider.dart</code></td>
-<td>Auth state realtime stream</td>
+<td><b>StateNotifierProvider</b></td>
+<td><code>lib/core/providers/auth_provider.dart</code></td>
+<td>Auth state & authentication</td>
 </tr>
 
 <tr>
@@ -422,19 +417,19 @@ flutter_riverpod: ^2.4.9
 </tr>
 
 <tr>
-<td><b>Provider (Computed)</b></td>
-<td><code>lib/routes/app_router.dart</code></td>
-<td>Router configuration</td>
-</tr>
-
-<tr>
-<td><b>StateProvider</b></td>
+<td><b>FutureProvider.family</b></td>
 <td><code>lib/core/providers/marketplace_provider.dart</code></td>
-<td>Cart & filter state</td>
+<td>Products, toko, orders</td>
 </tr>
 
 <tr>
-<td><b>AsyncNotifierProvider</b></td>
+<td><b>StateNotifierProvider</b></td>
+<td><code>lib/core/providers/marketplace_provider.dart</code></td>
+<td>Cart management</td>
+</tr>
+
+<tr>
+<td><b>StateNotifierProvider</b></td>
 <td><code>lib/core/providers/kegiatan_provider.dart</code></td>
 <td>Kegiatan list management</td>
 </tr>
@@ -443,47 +438,54 @@ flutter_riverpod: ^2.4.9
 #### 📝 Contoh Kode:
 
 ```dart
-// lib/core/providers/auth_state_provider.dart
-// StreamProvider untuk realtime auth state
-final authStateProvider = StreamProvider.autoDispose((ref) {
-  return Supabase.instance.client.auth.onAuthStateChange;
-});
+// lib/core/providers/auth_provider.dart
+// StateNotifierProvider untuk auth state
+class AuthNotifier extends StateNotifier<AuthState> {
+  final AuthService _authService;
+  final Ref _ref;
+
+  AuthNotifier(this._authService, this._ref) : super(AuthState()) {
+    _init();
+  }
+
+  Future<void> signIn(String email, String password) async {
+    state = state.copyWith(isLoading: true);
+    final result = await _authService.signIn(email: email, password: password);
+    // Handle result...
+  }
+}
+
+final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>(
+  (ref) => AuthNotifier(ref.watch(authServiceProvider), ref),
+);
 
 // lib/theme/theme_provider.dart
-// StateNotifierProvider untuk theme management
+// StateNotifierProvider untuk theme (fixed light mode)
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier() : super(ThemeMode.system);
-
-  Future<void> toggleTheme() async {
-    state = state == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
-    await _saveThemePreference(state);
-  }
+  ThemeModeNotifier() : super(ThemeMode.light);
 }
 
 final themeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>(
   (ref) => ThemeModeNotifier(),
 );
 
-// lib/core/providers/kegiatan_provider.dart
-// StateNotifierProvider dengan complex state
-final kegiatanListProvider = StateNotifierProvider<
-  KegiatanListNotifier,
-  AsyncValue<List<KegiatanModel>>
->((ref) {
-  final service = ref.watch(kegiatanServiceProvider);
-  return KegiatanListNotifier(service);
+// lib/core/providers/marketplace_provider.dart
+// FutureProvider.family untuk products
+final produkListProvider = FutureProvider.autoDispose<List<ProdukMarketplaceModel>>((ref) async {
+  final repository = ref.read(marketplaceRepositoryProvider);
+  return await repository.getAllProducts();
 });
 ```
 
 #### 🎯 State Management Pattern:
 
 - ✅ **Riverpod** - Modern state management
-- ✅ **Provider Composition** - Kombinasi multiple providers
+- ✅ **StateNotifierProvider** - Complex state management
+- ✅ **FutureProvider** - Async data fetching
+- ✅ **FutureProvider.family** - Parameterized async data
 - ✅ **Auto Dispose** - Automatic cleanup
+- ✅ **Provider Composition** - Kombinasi multiple providers
 - ✅ **Reactive UI** - UI auto-update saat state berubah
-- ✅ **Family & AutoDispose Modifier** - Parameterized providers
-- ✅ **Global State** - Shared state across app
-- ✅ **Local State** - Component-specific state
 
 #### 📍 Lokasi Provider:
 
