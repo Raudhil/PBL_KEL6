@@ -470,7 +470,7 @@ class _CreatePengumumanPageState extends ConsumerState<CreatePengumumanPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
-          'Buat Pengumuman',
+          'Tambah Pengumuman',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,

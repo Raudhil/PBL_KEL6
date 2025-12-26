@@ -841,7 +841,7 @@ class _KegiatanFormPageState extends ConsumerState<KegiatanFormPage> {
                           ),
                         )
                       : const Text(
-                          'Tambah Kegiatan',
+                          'Buat Kegiatan',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
