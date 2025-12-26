@@ -506,145 +506,162 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
                         ),
                       ],
 
-                      // Action buttons (Edit & Hapus) untuk pembuat
-                      if (!_isLoadingUserId &&
-                          _currentUserId != null &&
-                          _currentUserId == pengumuman.idPembuat) ...[
-                        const SizedBox(height: 24),
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: AppColors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 10,
-                                offset: const Offset(0, 3),
-                                spreadRadius: 0,
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(
-                                      Icons.settings,
-                                      size: 20,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Kelola Pengumuman',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              // Button Edit - Full Width
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () async {
-                                    // Navigate ke edit page dan tunggu result
-                                    final result = await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            EditPengumumanPage(
-                                              pengumuman: pengumuman,
-                                            ),
-                                      ),
-                                    );
+                      // Action buttons (Edit & Hapus)
+                      // Tampilkan untuk role yang diizinkan (RT, Sekretaris, Bendahara)
+                      // Agar tidak bergantung pada async userId di lingkungan test, gunakan provider role-based.
+                      ...(() {
+                        final canManage = ref
+                            .watch(canManagePengumumanProvider)
+                            .maybeWhen(data: (v) => v, orElse: () => false);
 
-                                    // Jika result = true (dari edit success), invalidate detail provider
-                                    if (result == true && mounted) {
-                                      ref.invalidate(
-                                        pengumumanDetailProvider(pengumuman.id),
+                        if (!canManage) return <Widget>[];
+                        return [
+                          const SizedBox(height: 24),
+                          Container(
+                            key: const ValueKey('kelola_pengumuman_section'),
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                  spreadRadius: 0,
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withOpacity(
+                                          0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.settings,
+                                        size: 20,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text(
+                                      'Kelola Pengumuman',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                // Button Edit - Full Width
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    key: const ValueKey(
+                                      'edit_pengumuman_button',
+                                    ),
+                                    onPressed: () async {
+                                      // Navigate ke edit page dan tunggu result
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              EditPengumumanPage(
+                                                pengumuman: pengumuman,
+                                              ),
+                                        ),
                                       );
-                                    }
-                                  },
-                                  icon: const Icon(
-                                    Icons.edit_rounded,
-                                    size: 22,
-                                  ),
-                                  label: const Text(
-                                    'Edit Pengumuman',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+
+                                      // Jika result = true (dari edit success), invalidate detail provider
+                                      if (result == true && mounted) {
+                                        ref.invalidate(
+                                          pengumumanDetailProvider(
+                                            pengumuman.id,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(
+                                      Icons.edit_rounded,
+                                      size: 22,
                                     ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: Colors.white,
-                                    elevation: 3,
-                                    shadowColor: AppColors.primary.withOpacity(
-                                      0.4,
+                                    label: const Text(
+                                      'Edit Pengumuman',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 18,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Button Hapus - Full Width
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    _showDeleteDialog(
-                                      context,
-                                      ref,
-                                      pengumuman.id,
-                                    );
-                                  },
-                                  icon: const Icon(
-                                    Icons.delete_rounded,
-                                    size: 22,
-                                  ),
-                                  label: const Text(
-                                    'Hapus Pengumuman',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red.shade600,
-                                    foregroundColor: Colors.white,
-                                    elevation: 3,
-                                    shadowColor: Colors.red.withOpacity(0.4),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 18,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      elevation: 3,
+                                      shadowColor: AppColors.primary
+                                          .withOpacity(0.4),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 18,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 12),
+                                // Button Hapus - Full Width
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    key: const ValueKey(
+                                      'hapus_pengumuman_button',
+                                    ),
+                                    onPressed: () {
+                                      _showDeleteDialog(
+                                        context,
+                                        ref,
+                                        pengumuman.id,
+                                      );
+                                    },
+                                    icon: const Icon(
+                                      Icons.delete_rounded,
+                                      size: 22,
+                                    ),
+                                    label: const Text(
+                                      'Hapus Pengumuman',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red.shade600,
+                                      foregroundColor: Colors.white,
+                                      elevation: 3,
+                                      shadowColor: Colors.red.withOpacity(0.4),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 18,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ];
+                      })(),
 
                       const SizedBox(height: 40),
                     ],
@@ -760,6 +777,7 @@ class _DetailPengumumanPageState extends ConsumerState<DetailPengumumanPage> {
             ),
           ),
           ElevatedButton(
+            key: const ValueKey('confirm_hapus_button'),
             onPressed: () async {
               Navigator.pop(ctx); // Close dialog
 

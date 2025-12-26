@@ -40,7 +40,7 @@ class _PengumumanPageState extends ConsumerState<PengumumanPage> {
             }
           },
         ),
-        title: const Text('Pengumuman'),
+        title: const Text('Kelola Pengumuman'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
@@ -132,6 +132,7 @@ class _PengumumanPageState extends ConsumerState<PengumumanPage> {
                           ],
                         ),
                         child: InkWell(
+                          key: ValueKey('pengumuman_card_${pengumuman.judul}'),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -350,7 +351,7 @@ class _PengumumanPageState extends ConsumerState<PengumumanPage> {
                   );
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('Buat Pengumuman'),
+                label: const Text('Tambah Pengumuman'),
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               )
